@@ -1,0 +1,14 @@
+Objective:
+
+Build a world class, custom, filesystem explorer. This in many ways is similar to Finder on mac, or Windows Explorer on windows platform, but greatly enhances usability aspects of the explorer. Application should be very robust and flexible. As this runs directly on OS, it should be resilient to network failures, detecting statle network connections, missing files or directories, lack of permission or requiring addition permissions. UI should be very very slick, fast and very well thought, with very intiutive interface, that works well with OS themes.
+
+
+Requirements:
+
+1. 
+
+
+Technical Considerations:
+
+
+
