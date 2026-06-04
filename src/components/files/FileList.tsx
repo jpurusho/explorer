@@ -54,10 +54,10 @@ function ResizeHandle({
 
   return (
     <div
-      className="absolute top-0 bottom-0 -right-[3px] w-[7px] cursor-col-resize z-30 flex items-center justify-center group/handle"
+      className="absolute top-0 bottom-0 right-0 w-[5px] cursor-col-resize z-30 group/handle"
       onMouseDown={handleMouseDown}
     >
-      <div className="w-[1px] h-full bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
+      <div className="absolute inset-y-0 right-0 w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
     </div>
   );
 }
@@ -125,7 +125,7 @@ function ColumnHeader() {
   };
 
   const visibleColumns = columns.filter((c) => c.visible);
-  const gridTemplate = `16px 1fr ${visibleColumns.map((c) => `${c.width}px`).join(" ")}`;
+  const gridTemplate = `16px minmax(100px, 1fr) ${visibleColumns.map((c) => `${c.width}px`).join(" ")}`;
 
   return (
   <>

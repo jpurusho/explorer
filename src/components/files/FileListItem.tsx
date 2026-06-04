@@ -63,7 +63,7 @@ export function FileListItem({
   const [renameValue, setRenameValue] = useState(entry.name);
 
   const visibleColumns = columns.filter((c) => c.visible);
-  const gridTemplate = `16px 1fr ${visibleColumns.map((c) => `${c.width}px`).join(" ")}`;
+  const gridTemplate = `16px minmax(100px, 1fr) ${visibleColumns.map((c) => `${c.width}px`).join(" ")}`;
 
   return (
     <div
@@ -87,50 +87,47 @@ export function FileListItem({
     >
       <FileIcon fileType={entry.file_type as FileType} size={16} />
 
-      {/* Name - flexible */}
-      {renaming ? (
-        <input
-          autoFocus
-          value={renameValue}
-          onChange={(e) => setRenameValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && renameValue.trim() && renameValue !== entry.name) {
-              onRename?.(renameValue.trim());
-            }
-            if (e.key === "Escape") onCancelRename?.();
-          }}
-          onBlur={() => onCancelRename?.()}
-          onClick={(e) => e.stopPropagation()}
-          className="flex-1 min-w-0 bg-bg border border-accent rounded px-1.5 py-0 text-text outline-none"
-          style={{ fontSize: "inherit" }}
-        />
-      ) : (
-      <span
-        className={clsx(
-          "flex-1 truncate min-w-0",
-          selected ? "text-text font-semibold" : entry.is_dir ? "text-text font-medium" : "text-text"
+      {/* Name cell — contains name + tag pills */}
+      <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+        {renaming ? (
+          <input
+            autoFocus
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && renameValue.trim() && renameValue !== entry.name) {
+                onRename?.(renameValue.trim());
+              }
+              if (e.key === "Escape") onCancelRename?.();
+            }}
+            onBlur={() => onCancelRename?.()}
+            onClick={(e) => e.stopPropagation()}
+            className="flex-1 min-w-0 bg-bg border border-accent rounded px-1.5 py-0 text-text outline-none"
+            style={{ fontSize: "inherit" }}
+          />
+        ) : (
+          <span
+            className={clsx(
+              "truncate",
+              selected ? "text-text font-semibold" : entry.is_dir ? "text-text font-medium" : "text-text"
+            )}
+          >
+            {entry.name}
+          </span>
         )}
-      >
-        {entry.name}
-      </span>
-      )}
-
-      {/* Tag pills */}
-      {tags.length > 0 && (
-        <div className="flex items-center gap-1 shrink-0">
-          {tags.slice(0, 3).map((tag) => (
-            <div
-              key={tag.id}
-              className="h-[6px] w-[6px] rounded-full shrink-0"
-              style={{ backgroundColor: tag.color }}
-              title={tag.name}
-            />
-          ))}
-          {tags.length > 3 && (
-            <span className="text-[var(--font-xs)] text-text-muted">+{tags.length - 3}</span>
-          )}
-        </div>
-      )}
+        {tags.length > 0 && (
+          <div className="flex items-center gap-1 shrink-0">
+            {tags.slice(0, 3).map((tag) => (
+              <div
+                key={tag.id}
+                className="h-[6px] w-[6px] rounded-full shrink-0"
+                style={{ backgroundColor: tag.color }}
+                title={tag.name}
+              />
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Data columns — rendered in order matching grid template */}
       {visibleColumns.map((col) => (
