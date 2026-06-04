@@ -304,7 +304,6 @@ function TagsSection() {
   const tagFiles = useTagStore((s) => s.tagFiles);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
-  const [showTags, setShowTags] = useState(true);
   const [tagCtxMenu, setTagCtxMenu] = useState<{ x: number; y: number; tagId: number } | null>(null);
   const [renamingTagId, setRenamingTagId] = useState<number | null>(null);
   const [renameValue, setRenameValue] = useState("");
@@ -347,37 +346,20 @@ function TagsSection() {
 
   if (tags.length === 0 && !creating) {
     return (
-      <div className="px-4 pb-2">
-        <div className="flex items-center justify-between">
-          <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
-          <button
-            onClick={() => setCreating(true)}
-            className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary"
-          >
-            <Plus size={11} />
-          </button>
-        </div>
+      <div>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-2 text-text-muted hover:text-text-secondary py-1 text-left w-full"
+          style={{ fontSize: "var(--font-sidebar-item)" }}
+        >
+          <Plus size={12} /> New tag
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="px-4 pb-2">
-      <div className="flex items-center justify-between mb-2">
-        <button onClick={() => setShowTags(!showTags)} className="flex items-center gap-1">
-          <FoldIcon expanded={showTags} />
-          <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
-        </button>
-        <button
-          onClick={() => setCreating(true)}
-          className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary"
-        >
-          <Plus size={11} />
-        </button>
-      </div>
-
-      {showTags && (
-        <>
+    <div>
           <nav className="flex flex-col gap-[2px]">
             {tags.map((tag) => (
               renamingTagId === tag.id ? (
@@ -428,8 +410,6 @@ function TagsSection() {
               ✕ Clear filter
             </button>
           )}
-        </>
-      )}
 
       {creating && (
         <div className="mt-1.5">
@@ -553,33 +533,20 @@ function SectionsPanel() {
 
   if (!sectionsEnabled && !creating) {
     return (
-      <div className="px-4 pb-2">
-        <div className="flex items-center justify-between">
-          <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Sections</h3>
-          <button
-            onClick={() => setCreating(true)}
-            className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary"
-            title="New section for current folder"
-          >
-            <Plus size={12} />
-          </button>
-        </div>
+      <div>
+        <button
+          onClick={() => setCreating(true)}
+          className="flex items-center gap-2 text-text-muted hover:text-text-secondary py-1 text-left w-full"
+          style={{ fontSize: "var(--font-sidebar-item)" }}
+        >
+          <Plus size={12} /> New workspace
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="px-4 pb-2">
-      <div className="flex items-center justify-between mb-2">
-        <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Sections</h3>
-        <button
-          onClick={() => setCreating(true)}
-          className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary"
-          title="New section for current folder"
-        >
-          <Plus size={12} />
-        </button>
-      </div>
+    <div>
 
       <nav className="flex flex-col">
         {sections.filter((s) => !s.hidden).map((section, idx) => (
@@ -606,59 +573,26 @@ function SectionsPanel() {
                 </div>
               ) : (
                 <div
-                  className={clsx("flex items-center gap-3 transition-all relative", dragOverSectionId === section.id && "ring-2 ring-accent scale-[1.02] brightness-125")}
-                  style={{
-                    backgroundColor: "var(--section-bg)",
-                    color: "var(--section-text)",
-                    borderRadius: "var(--section-radius)",
-                    padding: "var(--section-padding-v) var(--section-padding-h)",
-                    minHeight: "44px",
-                  }}
+                  className={clsx(
+                    "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] w-full relative transition-colors",
+                    dragOverSectionId === section.id ? "bg-accent/15 ring-1 ring-accent" : "hover:bg-bg-hover"
+                  )}
                   onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: section.id }); }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
+                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
+                  onDragLeave={() => setDragOverSectionId(null)}
+                  onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(null); handleDrop(e, section.id); }}
                 >
-                  {/* Invisible drop overlay — catches all drag events without child interference */}
-                  <div
-                    className="absolute inset-0 z-40"
-                    style={{ borderRadius: "var(--section-radius)" }}
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
-                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
-                    onDragLeave={() => { setDragOverSectionId(null); }}
-                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(null); handleDrop(e, section.id); }}
-                  />
-                  {/* Color accent icon */}
-                  <div
-                    className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: `${section.color}25` }}
-                  >
-                    <Folder size={15} style={{ color: section.color }} strokeWidth={2} />
-                  </div>
-
-                  {/* Section name */}
+                  <div className="w-[10px] h-[10px] rounded-[3px] shrink-0" style={{ backgroundColor: section.color }} />
                   <button
                     onClick={() => toggleExpanded(section.id)}
-                    style={{ fontSize: "var(--font-sidebar-section)" }}
-                    className="flex-1 text-left font-semibold truncate"
+                    style={{ fontSize: "var(--font-sidebar-item)" }}
+                    className="flex-1 text-left text-text truncate"
                   >
                     {section.name}
                   </button>
-
-                  {/* Action buttons */}
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      onClick={() => { setRenamingId(section.id); setRenameValue(section.name); }}
-                      className="p-1 rounded hover:bg-white/10 text-text-muted hover:text-text transition-colors"
-                      title="Rename"
-                    >
-                      <Plus size={13} />
-                    </button>
-                    <button
-                      onClick={() => toggleExpanded(section.id)}
-                      className="p-1 rounded hover:bg-white/10 text-text-muted hover:text-text transition-colors"
-                      title={expandedSections.has(section.id) ? "Collapse" : "Expand"}
-                    >
-                      <FoldIcon expanded={expandedSections.has(section.id)} />
-                    </button>
-                  </div>
+                  <span style={{ fontSize: "var(--font-sidebar-badge)" }} className="text-text-muted tabular-nums">{section.files.length}</span>
+                  <FoldIcon expanded={expandedSections.has(section.id)} />
                 </div>
               )}
             </div>
@@ -819,6 +753,8 @@ export function Sidebar() {
   const [rootDirs, setRootDirs] = useState<FileEntry[]>([]);
   const [showFavorites, setShowFavorites] = useState(true);
   const [showFolders, setShowFolders] = useState(true);
+  const [showWorkspaces, setShowWorkspaces] = useState(true);
+  const [showTags, setShowTags] = useState(true);
 
   const homeDir = settings.favorites[0] || "/Users";
 
@@ -839,9 +775,9 @@ export function Sidebar() {
 
   return (
     <aside className="h-full bg-bg-secondary flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
-      {/* Favorites — collapsible */}
+      {/* Favorites — compact, non-scrollable */}
       {showFavorites && (
-        <div className="pt-4 px-4 pb-2">
+        <div className="pt-4 px-4 pb-2 shrink-0">
           <div className="flex items-center justify-between mb-2">
             <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
               Favorites
@@ -874,45 +810,78 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Tags */}
-      <TagsSection />
+      {/* Main scrollable area: Folders → Workspaces → Tags */}
+      <div className="flex-1 overflow-auto px-4 pb-4">
 
-      {/* Sections */}
-      <SectionsPanel />
+        {/* Folders */}
+        {showFolders && (
+          <div>
+            <div className="flex items-center justify-between mb-2 mt-3">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
+                Folders
+              </h3>
+              <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+            </div>
+            <div className="flex flex-col">
+              {rootDirs.map((entry, idx) => (
+                <TreeItem
+                  key={entry.path}
+                  entry={entry}
+                  depth={0}
+                  isLast={idx === rootDirs.length - 1}
+                  parentLines={[]}
+                  currentPath={currentPath}
+                  onNavigate={navigateTo}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
-      {/* Folders — collapsible */}
-      {showFolders && (
-        <div className="flex-1 overflow-auto px-4 pb-4">
-          <div className="flex items-center justify-between mb-2 mt-3">
-            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
-              Folders
-            </h3>
-            <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+        {/* Divider */}
+        <div className="h-[1px] bg-border my-6" />
+
+        {/* Workspaces */}
+        {showWorkspaces ? (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Workspaces</h3>
+              <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+            </div>
+            <SectionsPanel />
           </div>
-          <div className="flex flex-col">
-            {rootDirs.map((entry, idx) => (
-              <TreeItem
-                key={entry.path}
-                entry={entry}
-                depth={0}
-                isLast={idx === rootDirs.length - 1}
-                parentLines={[]}
-                currentPath={currentPath}
-                onNavigate={navigateTo}
-              />
-            ))}
+        ) : null}
+
+        {/* Divider */}
+        <div className="h-[1px] bg-border my-6" />
+
+        {/* Tags */}
+        {showTags ? (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+              <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+            </div>
+            <TagsSection />
           </div>
-        </div>
-      )}
+        ) : null}
+
+      </div>
 
       {/* Show hidden panels */}
-      {(!showFavorites || !showFolders) && (
-        <div className="px-4 py-2 border-t border-border">
+      {(!showFavorites || !showFolders || !showWorkspaces || !showTags) && (
+        <div className="px-4 py-2 border-t border-border shrink-0">
           {!showFavorites && (
             <button onClick={() => setShowFavorites(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Favorites</button>
           )}
           {!showFolders && (
             <button onClick={() => setShowFolders(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Folders</button>
+          )}
+          {!showWorkspaces && (
+            <button onClick={() => setShowWorkspaces(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Workspaces</button>
+          )}
+          {!showTags && (
+            <button onClick={() => setShowTags(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Tags</button>
           )}
         </div>
       )}
