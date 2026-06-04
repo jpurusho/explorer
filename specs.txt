@@ -1,14 +1,65 @@
 Objective:
 
-Build a world class, custom, filesystem explorer. This in many ways is similar to Finder on mac, or Windows Explorer on windows platform, but greatly enhances usability aspects of the explorer. Application should be very robust and flexible. As this runs directly on OS, it should be resilient to network failures, detecting statle network connections, missing files or directories, lack of permission or requiring addition permissions. UI should be very very slick, fast and very well thought, with very intiutive interface, that works well with OS themes.
+Build a world class, custom, filesystem explorer. This in many ways is similar to Finder on mac,
+or Windows Explorer on windows platform, but greatly enhances usability aspects of the explorer.
+Application should be very robust and flexible. As this runs directly on OS, it should be resilient
+to network failures, detecting statle network connections, missing files or directories,
+lack of permission or requiring addition permissions. UI should be very very slick, fast and very
+well thought, with very intiutive interface, that works well with OS themes.
 
+References:
+
+1. See how warp terminal editor renders markdown and source code files. Gives ability to see both
+raw and rendered view with ability to edit them.
 
 Requirements:
 
-1. 
+1. When a image file is selected such as jgg, png,heic etc they should be nicely rendered as cards with
+meta information. We should have ability to see multiple images either in list view or cards view.
+They should be sortable, filtered based on essential properties, zoomable, keyboard friendly.
+Mouse clicks should be handled appropriately, including right click showing peritinant information.
+
+2. Likewise, the .mov, .mp4 or other movie files should also be nicely rendered as cards, I should
+able to preview them, play them, with good keyboard and mouse short cuts.
+
+3. The .md files should be rendered on selection properly including rendering mermaid diagrams.
+I should have ability to see both rendered and raw versions with a toggle. Same is true for json,
+and yml files. We should have the ablility to format or view them nicely. See the mermaid.live
+website, https://markdownlivepreview.com/, https://jsonformatter.org/json-viewer for references.
+
+4. The source code files should be rendered in appropriate format or use themes with proper syntax
+highlight.
+
+5. I should be able to see more than one source file side by side. Even compare the diff of 2 files
+with clear diff identification, and scrolling them in lock step.
+
+6. I should be able to tag one or more files, filter based on that tag.
+
+7. We can keep state in a config file in home folder to save any user customized settings for the
+explorer.
+
+6. I will add other operations later. Where we should be able to multi-select different types of
+files, move them or delete them or rename. These features
+7. The application should be resizable, movable, be able to run multiple instances
+8. I should be able to compile and produce the binary that can be copied to application folder
+and run. Since this is not a webapp, what is the best way this application can be shared or distributed
+so it can be run on other macs.
+
+We can start with some basic features, and revise this as we make progress.
 
 
 Technical Considerations:
+
+1. This will be native application run on mac. So it can use the best practices for mac without
+any limitation
+2. Performance and security are critical, you can consider if there are some good RUST code base
+references that can be used. Since speed of execution is important, I'm thinking of using rust for
+this project.
+
+Help me plan design of this application. This application will be used on daily basis. I want this
+to be highly productive app. There are lot of limitations on current filesystem explorers. I want this
+app to overcome those limitations, to make my day to day tasks easier and a breeze.
+
 
 
 

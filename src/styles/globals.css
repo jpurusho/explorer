@@ -1,0 +1,289 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: var(--explorer-bg);
+  --color-bg-secondary: var(--explorer-bg-secondary);
+  --color-bg-tertiary: var(--explorer-bg-tertiary);
+  --color-bg-hover: var(--explorer-bg-hover);
+  --color-bg-selected: var(--explorer-bg-selected);
+  --color-text: var(--explorer-text);
+  --color-text-secondary: var(--explorer-text-secondary);
+  --color-text-muted: var(--explorer-text-muted);
+  --color-border: var(--explorer-border);
+  --color-accent: var(--explorer-accent);
+  --color-accent-hover: var(--explorer-accent-hover);
+  --color-folder: var(--explorer-folder);
+  --color-scrollbar: var(--explorer-scrollbar);
+  --color-scrollbar-hover: var(--explorer-scrollbar-hover);
+}
+
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue",
+    system-ui, sans-serif;
+  font-size: 13.5px;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1, "liga" 1;
+}
+
+[data-theme="light"] {
+  --explorer-bg: #ffffff;
+  --explorer-bg-secondary: #f8f8fa;
+  --explorer-bg-tertiary: #ededf0;
+  --explorer-bg-hover: #f0f0f3;
+  --explorer-bg-selected: rgba(0, 102, 255, 0.08);
+  --explorer-text: #111111;
+  --explorer-text-secondary: #333333;
+  --explorer-text-muted: #777777;
+  --explorer-border: #e0e0e4;
+  --explorer-accent: #0066ff;
+  --explorer-accent-hover: #0055dd;
+  --explorer-folder: #2196f3;
+  --explorer-scrollbar: #c8c8cc;
+  --explorer-scrollbar-hover: #a8a8ac;
+}
+
+[data-theme="dark"] {
+  --explorer-bg: #1c1c1e;
+  --explorer-bg-secondary: #232326;
+  --explorer-bg-tertiary: #2c2c2f;
+  --explorer-bg-hover: #2a2a2d;
+  --explorer-bg-selected: rgba(64, 156, 255, 0.12);
+  --explorer-text: #f0f0f2;
+  --explorer-text-secondary: #b8b8bd;
+  --explorer-text-muted: #7a7a80;
+  --explorer-border: #38383a;
+  --explorer-accent: #4da8ff;
+  --explorer-accent-hover: #6cb8ff;
+  --explorer-folder: #4da8ff;
+  --explorer-scrollbar: #3d3d40;
+  --explorer-scrollbar-hover: #545456;
+}
+
+[data-theme="dracula"] {
+  --explorer-bg: #282a36;
+  --explorer-bg-secondary: #21222c;
+  --explorer-bg-tertiary: #343746;
+  --explorer-bg-hover: #3a3d4e;
+  --explorer-bg-selected: rgba(98, 114, 164, 0.2);
+  --explorer-text: #f8f8f2;
+  --explorer-text-secondary: #d4d4d4;
+  --explorer-text-muted: #7e8db5;
+  --explorer-border: #3a3d4e;
+  --explorer-accent: #bd93f9;
+  --explorer-accent-hover: #caa9fa;
+  --explorer-folder: #8be9fd;
+  --explorer-scrollbar: #3a3d4e;
+  --explorer-scrollbar-hover: #6272a4;
+}
+
+[data-theme="nord"] {
+  --explorer-bg: #2e3440;
+  --explorer-bg-secondary: #3b4252;
+  --explorer-bg-tertiary: #434c5e;
+  --explorer-bg-hover: #3e4555;
+  --explorer-bg-selected: rgba(136, 192, 208, 0.12);
+  --explorer-text: #eceff4;
+  --explorer-text-secondary: #d8dee9;
+  --explorer-text-muted: #8e9ab5;
+  --explorer-border: #434c5e;
+  --explorer-accent: #88c0d0;
+  --explorer-accent-hover: #8fbcbb;
+  --explorer-folder: #81a1c1;
+  --explorer-scrollbar: #434c5e;
+  --explorer-scrollbar-hover: #5e6a82;
+}
+
+[data-theme="solarized"] {
+  --explorer-bg: #002b36;
+  --explorer-bg-secondary: #073642;
+  --explorer-bg-tertiary: #0d4a5a;
+  --explorer-bg-hover: #0a4050;
+  --explorer-bg-selected: rgba(38, 139, 210, 0.15);
+  --explorer-text: #a8b5b5;
+  --explorer-text-secondary: #93a1a1;
+  --explorer-text-muted: #6d8080;
+  --explorer-border: #0d4a5a;
+  --explorer-accent: #268bd2;
+  --explorer-accent-hover: #2aa1f0;
+  --explorer-folder: #2aa198;
+  --explorer-scrollbar: #0d4a5a;
+  --explorer-scrollbar-hover: #1a6070;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* Rounded font for file listing and sidebar */
+.file-list-font {
+  font-family: ui-rounded, ".SFNSRounded", "SF Pro Rounded", -apple-system, system-ui, sans-serif;
+  font-weight: 450;
+  -webkit-font-smoothing: antialiased;
+  letter-spacing: 0.015em;
+}
+
+body {
+  background-color: var(--explorer-bg);
+  color: var(--explorer-text);
+  overflow: hidden;
+}
+
+/* Drag region and chrome should not be selectable */
+[data-tauri-drag-region],
+aside,
+nav {
+  user-select: none;
+}
+
+/* Content and preview areas should allow text selection */
+pre, code, .prose-explorer, .select-text {
+  user-select: text;
+  cursor: text;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+}
+
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--explorer-scrollbar);
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--explorer-scrollbar-hover);
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* CodeMirror editor overrides */
+.editor-container .cm-editor {
+  height: 100%;
+  overflow: hidden;
+}
+
+.editor-container .cm-scroller {
+  overflow: auto !important;
+}
+
+/* Markdown preview styles */
+.prose-explorer {
+  color: var(--explorer-text-secondary);
+  line-height: 1.7;
+  font-size: 12px;
+}
+
+.prose-explorer h1,
+.prose-explorer h2,
+.prose-explorer h3,
+.prose-explorer h4 {
+  color: var(--explorer-text);
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.5em;
+}
+
+.prose-explorer h1 { font-size: 1.4em; }
+.prose-explorer h2 { font-size: 1.2em; }
+.prose-explorer h3 { font-size: 1.1em; }
+
+.prose-explorer p {
+  margin-bottom: 0.7em;
+}
+
+.prose-explorer a {
+  color: var(--explorer-accent);
+  text-decoration: underline;
+}
+
+.prose-explorer code {
+  background: var(--explorer-bg-tertiary);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+}
+
+.prose-explorer pre {
+  background: var(--explorer-bg-tertiary);
+  border: 1px solid var(--explorer-border);
+  border-radius: 6px;
+  padding: 0.8em 1em;
+  overflow-x: auto;
+  margin: 0.8em 0;
+  max-width: 100%;
+}
+
+.prose-explorer pre code {
+  background: none;
+  padding: 0;
+  font-size: 11px;
+}
+
+.prose-explorer blockquote {
+  border-left: 3px solid var(--explorer-accent);
+  padding-left: 0.8em;
+  margin: 0.8em 0;
+  color: var(--explorer-text-muted);
+}
+
+.prose-explorer ul,
+.prose-explorer ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.7em;
+}
+
+.prose-explorer li {
+  margin-bottom: 0.3em;
+}
+
+.prose-explorer table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.8em 0;
+  font-size: 11px;
+}
+
+.prose-explorer th,
+.prose-explorer td {
+  border: 1px solid var(--explorer-border);
+  padding: 0.4em 0.7em;
+  text-align: left;
+}
+
+.prose-explorer th {
+  background: var(--explorer-bg-tertiary);
+  font-weight: 600;
+  color: var(--explorer-text);
+}
+
+.prose-explorer hr {
+  border: none;
+  border-top: 1px solid var(--explorer-border);
+  margin: 1em 0;
+}
+
+.prose-explorer img {
+  max-width: 100%;
+  border-radius: 4px;
+}

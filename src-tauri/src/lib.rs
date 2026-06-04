@@ -1,0 +1,135 @@
+mod commands;
+mod models;
+mod utils;
+
+use commands::file_ops::{copy_items, move_items, rename_item, trash_items};
+use commands::filesystem::{generate_thumbnail, get_file_metadata, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
+use commands::settings::{load_settings, save_settings};
+use std::path::PathBuf;
+use std::io::{Read, Seek, SeekFrom};
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_os::init())
+        .register_asynchronous_uri_scheme_protocol("media", |_ctx, request, responder| {
+            std::thread::spawn(move || {
+                let response = handle_media_request(&request);
+                responder.respond(response);
+            });
+        })
+        .invoke_handler(tauri::generate_handler![
+            list_directory,
+            read_file_content,
+            get_file_metadata,
+            get_home_directory,
+            read_image_base64,
+            write_file,
+            load_settings,
+            save_settings,
+            read_exif_data,
+            generate_thumbnail,
+            trash_items,
+            move_items,
+            copy_items,
+            rename_item,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+}
+
+fn handle_media_request(request: &http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
+    let uri = request.uri().path();
+    // URI path is /<encoded_path>
+    let path_str = &uri[1..]; // skip leading /
+    let decoded = urlencoding::decode(path_str).unwrap_or_default();
+    let file_path = PathBuf::from(decoded.as_ref());
+
+    if !file_path.exists() {
+        return http::Response::builder()
+            .status(404)
+            .body(b"File not found".to_vec())
+            .unwrap();
+    }
+
+    let mime = mime_from_path(&file_path);
+    let file_size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
+
+    // Check for Range header (needed for video seeking)
+    let range_header = request.headers()
+        .get("range")
+        .and_then(|v| v.to_str().ok())
+        .map(String::from);
+
+    if let Some(range) = range_header {
+        let range = range.strip_prefix("bytes=").unwrap_or(&range);
+        let parts: Vec<&str> = range.split('-').collect();
+        let start: u64 = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
+        let end: u64 = parts.get(1)
+            .and_then(|s| if s.is_empty() { None } else { s.parse().ok() })
+            .unwrap_or_else(|| (start + 1024 * 1024).min(file_size - 1)); // 1MB chunks
+
+        let end = end.min(file_size - 1);
+        let length = end - start + 1;
+
+        let mut file = match std::fs::File::open(&file_path) {
+            Ok(f) => f,
+            Err(_) => return http::Response::builder().status(500).body(vec![]).unwrap(),
+        };
+
+        if file.seek(SeekFrom::Start(start)).is_err() {
+            return http::Response::builder().status(500).body(vec![]).unwrap();
+        }
+
+        let mut buf = vec![0u8; length as usize];
+        let bytes_read = file.read(&mut buf).unwrap_or(0);
+        buf.truncate(bytes_read);
+
+        http::Response::builder()
+            .status(206)
+            .header("content-type", &mime)
+            .header("content-length", bytes_read.to_string())
+            .header("content-range", format!("bytes {}-{}/{}", start, start + bytes_read as u64 - 1, file_size))
+            .header("accept-ranges", "bytes")
+            .body(buf)
+            .unwrap()
+    } else {
+        // For small files, read entirely; for large ones, still support range on subsequent requests
+        let data = std::fs::read(&file_path).unwrap_or_default();
+
+        http::Response::builder()
+            .status(200)
+            .header("content-type", &mime)
+            .header("content-length", data.len().to_string())
+            .header("accept-ranges", "bytes")
+            .body(data)
+            .unwrap()
+    }
+}
+
+fn mime_from_path(path: &PathBuf) -> String {
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+    match ext.as_str() {
+        "mp4" | "m4v" => "video/mp4".to_string(),
+        "mov" => "video/mp4".to_string(), // WebKit handles mp4 better than quicktime
+        "webm" => "video/webm".to_string(),
+        "avi" => "video/x-msvideo".to_string(),
+        "mkv" => "video/x-matroska".to_string(),
+        "mp3" => "audio/mpeg".to_string(),
+        "wav" => "audio/wav".to_string(),
+        "flac" => "audio/flac".to_string(),
+        "ogg" => "audio/ogg".to_string(),
+        "m4a" | "aac" => "audio/mp4".to_string(),
+        "png" => "image/png".to_string(),
+        "jpg" | "jpeg" => "image/jpeg".to_string(),
+        "gif" => "image/gif".to_string(),
+        "svg" => "image/svg+xml".to_string(),
+        "webp" => "image/webp".to_string(),
+        "heic" => "image/heic".to_string(),
+        "pdf" => "application/pdf".to_string(),
+        _ => "application/octet-stream".to_string(),
+    }
+}
