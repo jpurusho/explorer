@@ -819,136 +819,103 @@ export function Sidebar() {
     if (homeDir) loadRoot();
   }, [homeDir, refreshTrigger]);
 
-  const [foldersHeight, setFoldersHeight] = useState(250);
-  const [workspacesHeight, setWorkspacesHeight] = useState(120);
-
-  const startDividerDrag = (aboveSetter: React.Dispatch<React.SetStateAction<number>>, belowSetter?: React.Dispatch<React.SetStateAction<number>>) => (e: React.MouseEvent) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const aboveStart = aboveSetter === setFoldersHeight ? foldersHeight : workspacesHeight;
-    const belowStart = belowSetter === setWorkspacesHeight ? workspacesHeight : 0;
-
-    const onMove = (ev: MouseEvent) => {
-      const delta = ev.clientY - startY;
-      aboveSetter(Math.max(60, aboveStart + delta));
-      if (belowSetter) {
-        belowSetter(Math.max(60, belowStart - delta));
-      }
-    };
-    const onUp = () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mouseup", onUp);
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-    document.body.style.cursor = "row-resize";
-    document.body.style.userSelect = "none";
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mouseup", onUp);
-  };
-
   return (
     <aside className="h-full bg-bg-secondary flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
-      {/* Favorites — compact, non-scrollable */}
-      {showFavorites && (
-        <div className="pt-4 px-4 pb-2 shrink-0">
-          <div className="flex items-center justify-between mb-2">
-            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
-              Favorites
-            </h3>
-            <button onClick={() => setShowFavorites(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
-          </div>
-          <nav className="flex flex-col gap-[2px]">
-            {defaultFavorites.map((item) => {
-              const fullPath = item.suffix ? homeDir + item.suffix : homeDir;
-              const Icon = item.icon;
-              const isActive = currentPath === fullPath;
-              return (
-                <button
-                  key={fullPath}
-                  onClick={() => navigateTo(fullPath)}
-                  className={clsx(
-                    "flex items-center gap-2.5 px-2.5 py-[5px] rounded-[5px] text-left w-full",
-                    "transition-colors duration-75",
-                    isActive
-                      ? "bg-accent/12 text-accent font-medium"
-                      : "text-text hover:bg-bg-hover"
-                  )}
-                >
-                  <Icon size={15} strokeWidth={1.75} />
-                  <span style={{ fontSize: "var(--font-sidebar-item)" }}>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      )}
+      {/* Single scrollable area — all sections flow naturally */}
+      <div className="flex-1 overflow-auto px-4 pt-4 pb-4">
 
-      {/* Divider: Favorites ↔ Folders */}
-      <div className="h-[1px] bg-border shrink-0 mx-4" />
-
-      {/* Folders — resizable height */}
-      {showFolders && (
-        <div className="shrink-0 overflow-auto px-4" style={{ height: `${foldersHeight}px` }}>
-          <div className="flex items-center justify-between mb-2 mt-2">
-            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
-              Folders
-            </h3>
-            <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+        {/* Favorites */}
+        {showFavorites && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
+                Favorites
+              </h3>
+              <button onClick={() => setShowFavorites(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+            </div>
+            <nav className="flex flex-col gap-[2px]">
+              {defaultFavorites.map((item) => {
+                const fullPath = item.suffix ? homeDir + item.suffix : homeDir;
+                const Icon = item.icon;
+                const isActive = currentPath === fullPath;
+                return (
+                  <button
+                    key={fullPath}
+                    onClick={() => navigateTo(fullPath)}
+                    className={clsx(
+                      "flex items-center gap-2.5 px-2.5 py-[5px] rounded-[5px] text-left w-full",
+                      "transition-colors duration-75",
+                      isActive
+                        ? "bg-accent/12 text-accent font-medium"
+                        : "text-text hover:bg-bg-hover"
+                    )}
+                  >
+                    <Icon size={15} strokeWidth={1.75} />
+                    <span style={{ fontSize: "var(--font-sidebar-item)" }}>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-          <div className="flex flex-col">
-            {rootDirs.map((entry, idx) => (
-              <TreeItem
-                key={entry.path}
-                entry={entry}
-                depth={0}
-                isLast={idx === rootDirs.length - 1}
-                parentLines={[]}
-                currentPath={currentPath}
-                onNavigate={navigateTo}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Draggable divider: Folders ↔ Workspaces */}
-      <div
-        className="h-[7px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover/50 group mx-2 rounded"
-        onMouseDown={startDividerDrag(setFoldersHeight, setWorkspacesHeight)}
-      >
-        <div className="w-10 h-[1px] bg-border group-hover:bg-accent transition-colors" />
+        {/* Divider */}
+        {showFavorites && showFolders && <div className="h-[1px] bg-border mb-4" />}
+
+        {/* Folders */}
+        {showFolders && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
+                Folders
+              </h3>
+              <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+            </div>
+            <div className="flex flex-col">
+              {rootDirs.map((entry, idx) => (
+                <TreeItem
+                  key={entry.path}
+                  entry={entry}
+                  depth={0}
+                  isLast={idx === rootDirs.length - 1}
+                  parentLines={[]}
+                  currentPath={currentPath}
+                  onNavigate={navigateTo}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        {showWorkspaces && <div className="h-[1px] bg-border mb-4" />}
+
+        {/* Workspaces */}
+        {showWorkspaces && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Workspaces</h3>
+              <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+            </div>
+            <SectionsPanel />
+          </div>
+        )}
+
+        {/* Divider */}
+        {showTags && <div className="h-[1px] bg-border mb-4" />}
+
+        {/* Tags */}
+        {showTags && (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+              <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+            </div>
+            <TagsSection />
+          </div>
+        )}
+
       </div>
-
-      {/* Workspaces — resizable height */}
-      {showWorkspaces && (
-        <div className="shrink-0 overflow-auto px-4" style={{ height: `${workspacesHeight}px` }}>
-          <div className="flex items-center justify-between mb-2 mt-2">
-            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Workspaces</h3>
-            <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
-          </div>
-          <SectionsPanel />
-        </div>
-      )}
-
-      {/* Draggable divider: Workspaces ↔ Tags */}
-      <div
-        className="h-[7px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover/50 group mx-2 rounded"
-        onMouseDown={startDividerDrag(setWorkspacesHeight)}
-      >
-        <div className="w-10 h-[1px] bg-border group-hover:bg-accent transition-colors" />
-      </div>
-
-      {/* Tags — fills remaining space */}
-      {showTags && (
-        <div className="flex-1 overflow-auto px-4 pb-4">
-          <div className="flex items-center justify-between mb-2 mt-2">
-            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
-            <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
-          </div>
-          <TagsSection />
-        </div>
-      )}
 
       {/* Show hidden panels */}
       {(!showFavorites || !showFolders || !showWorkspaces || !showTags) && (
