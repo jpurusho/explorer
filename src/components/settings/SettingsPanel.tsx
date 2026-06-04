@@ -24,7 +24,7 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 gap-6">
+    <div className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 gap-6 pr-2">
       <span className="text-[var(--font-md)] text-text-secondary shrink-0">{label}</span>
       <div className="flex items-center justify-end min-w-0 shrink-0">
         {children}
@@ -112,36 +112,33 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         </SettingsSection>
 
         <SettingsSection title="Font Size">
-          <p className="text-[var(--font-sm)] text-text-muted mb-3">
-            Choose a size preset. Fine-tune in ~/.config/explorer/themes/*.json (live reload).
+          <p className="text-[var(--font-sm)] text-text-muted mb-4">
+            Drag slider to adjust. Fine-tune in ~/.config/explorer/themes/*.json (live reload).
           </p>
-          <div className="flex flex-col gap-2">
-            {availableThemes.map((t) => {
-              const sampleSize = t.fonts?.fileList?.item || 13;
-              return (
-                <button
-                  key={t.name}
-                  onClick={() => {
-                    loadFontTheme(t.name.toLowerCase());
-                    updateSettings({ font_theme: t.name.toLowerCase() });
-                  }}
-                  className={clsx(
-                    "flex items-center gap-4 p-3 rounded-lg border transition-all text-left",
-                    currentFontTheme?.name === t.name
-                      ? "border-accent bg-accent/8"
-                      : "border-border hover:border-text-muted"
-                  )}
-                >
-                  <div className="shrink-0">
-                    <span className="text-[var(--font-md)] text-text font-medium">{t.name}</span>
-                    <span className="text-[var(--font-xs)] text-text-muted ml-2">({sampleSize}px)</span>
-                  </div>
-                  <span className="text-text-secondary truncate" style={{ fontSize: `${sampleSize}px` }}>
-                    The quick brown fox
-                  </span>
-                </button>
-              );
-            })}
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-text transition-all text-center" style={{ fontSize: `${currentFontTheme?.fonts?.fileList?.item || 14}px` }}>
+              The quick brown fox jumps over the lazy dog
+            </p>
+            <span className="text-[var(--font-xs)] text-text-muted">{currentFontTheme?.fonts?.fileList?.item || 14}px</span>
+            <input
+              type="range"
+              min="10"
+              max="20"
+              step="0.5"
+              value={currentFontTheme?.fonts?.fileList?.item || 14}
+              onChange={(e) => {
+                const size = parseFloat(e.target.value);
+                const name = size <= 12.5 ? "compact" : size >= 14.5 ? "comfortable" : "default";
+                loadFontTheme(name);
+                updateSettings({ font_theme: name });
+              }}
+              className="w-full h-1.5 bg-bg-tertiary rounded-full appearance-none cursor-pointer accent-accent"
+            />
+            <div className="flex justify-between w-full text-[var(--font-xs)] text-text-muted">
+              <span>Compact</span>
+              <span>Default</span>
+              <span>Comfortable</span>
+            </div>
           </div>
         </SettingsSection>
 
