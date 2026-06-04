@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { clsx } from "clsx";
 import { format } from "date-fns";
 import { FileIcon } from "./FileIcon";
@@ -8,11 +9,15 @@ import type { FileEntry, FileType } from "../../types";
 interface FileListItemProps {
   entry: FileEntry;
   selected: boolean;
+  renaming?: boolean;
+  onRename?: (newName: string) => void;
+  onCancelRename?: () => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
+  onFileDrop?: (paths: string[]) => void;
 }
 
 function formatSize(bytes: number): string {
@@ -41,15 +46,21 @@ function getTypeLabel(entry: FileEntry): string {
 export function FileListItem({
   entry,
   selected,
+  renaming,
+  onRename,
+  onCancelRename,
   onClick,
   onDoubleClick,
   onContextMenu,
   draggable,
   onDragStart,
+  onFileDrop,
 }: FileListItemProps) {
   const columns = useFileListStore((s) => s.columns);
   const fileTagMap = useTagStore((s) => s.fileTagMap);
   const tags = fileTagMap.get(entry.path) || [];
+  const [isDragTarget, setIsDragTarget] = useState(false);
+  const [renameValue, setRenameValue] = useState(entry.name);
 
   const typeCol = columns.find((c) => c.id === "type");
   const sizeCol = columns.find((c) => c.id === "size");
@@ -62,7 +73,8 @@ export function FileListItem({
         "transition-colors duration-75",
         selected
           ? "bg-accent/10 text-text"
-          : "hover:bg-bg-hover text-text-secondary"
+          : "hover:bg-bg-hover text-text-secondary",
+        isDragTarget && "ring-1 ring-accent/50 bg-accent/8"
       )}
       style={{ fontSize: "var(--font-filelist-item)" }}
       onClick={onClick}
@@ -70,10 +82,30 @@ export function FileListItem({
       onContextMenu={onContextMenu}
       draggable={draggable}
       onDragStart={onDragStart}
+      onDragOver={entry.is_dir && onFileDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setIsDragTarget(true); } : undefined}
+      onDragLeave={entry.is_dir ? () => setIsDragTarget(false) : undefined}
+      onDrop={entry.is_dir && onFileDrop ? (e) => { e.preventDefault(); setIsDragTarget(false); const data = e.dataTransfer.getData("application/x-explorer-files"); if (data) onFileDrop(JSON.parse(data)); } : undefined}
     >
       <FileIcon fileType={entry.file_type as FileType} size={16} />
 
       {/* Name - flexible */}
+      {renaming ? (
+        <input
+          autoFocus
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && renameValue.trim() && renameValue !== entry.name) {
+              onRename?.(renameValue.trim());
+            }
+            if (e.key === "Escape") onCancelRename?.();
+          }}
+          onBlur={() => onCancelRename?.()}
+          onClick={(e) => e.stopPropagation()}
+          className="flex-1 min-w-0 bg-bg border border-accent rounded px-1.5 py-0 text-text outline-none"
+          style={{ fontSize: "inherit" }}
+        />
+      ) : (
       <span
         className={clsx(
           "flex-1 truncate min-w-0",
@@ -82,6 +114,7 @@ export function FileListItem({
       >
         {entry.name}
       </span>
+      )}
 
       {/* Tag pills */}
       {tags.length > 0 && (

@@ -79,6 +79,34 @@ function TreeItem({
     setExpanded(!expanded);
   };
 
+  const [dragOver, setDragOver] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.stopPropagation();
+    setDragOver(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    const data = e.dataTransfer.getData("application/x-explorer-files");
+    if (data) {
+      const paths = JSON.parse(data) as string[];
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("move_items", { paths, destination: entry.path });
+      const { useNavigationStore } = await import("../../stores/navigationStore");
+      useNavigationStore.getState().refreshCurrent();
+    }
+  };
+
   return (
     <div>
       <div
@@ -89,10 +117,14 @@ function TreeItem({
             ? "bg-accent/12 text-accent"
             : isParentOfCurrent
             ? "text-text"
-            : "text-text hover:bg-bg-hover"
+            : "text-text hover:bg-bg-hover",
+          dragOver && "ring-1 ring-accent/50 bg-accent/8"
         )}
         style={{ paddingRight: "6px" }}
         onClick={() => onNavigate(entry.path)}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         {/* Tree connector lines */}
         <div className="flex items-center" style={{ width: `${depth * 16 + 4}px` }}>

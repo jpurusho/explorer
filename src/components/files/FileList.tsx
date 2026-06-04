@@ -186,6 +186,7 @@ export function FileList() {
   const selectRange = useFileListStore((s) => s.selectRange);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry } | null>(null);
+  const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
 
   const virtualizer = useVirtualizer({
     count: entries.length,
@@ -256,13 +257,26 @@ export function FileList() {
               <FileListItem
                 entry={entry}
                 selected={selectedIndices.has(virtualRow.index)}
+                renaming={renamingIndex === virtualRow.index}
+                onRename={async (newName) => {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  await invoke("rename_item", { path: entry.path, newName });
+                  setRenamingIndex(null);
+                  useNavigationStore.getState().refreshCurrent();
+                }}
+                onCancelRename={() => setRenamingIndex(null)}
                 onClick={(e) => handleClick(virtualRow.index, e)}
                 onDoubleClick={() => {
                   if (entry.is_dir) navigateTo(entry.path);
                 }}
                 onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
-                draggable
+                draggable={renamingIndex !== virtualRow.index}
                 onDragStart={(e) => handleDragStart(e, entry, virtualRow.index)}
+                onFileDrop={entry.is_dir ? async (paths) => {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  await invoke("move_items", { paths, destination: entry.path });
+                  useNavigationStore.getState().refreshCurrent();
+                } : undefined}
               />
             </div>
           );
@@ -277,6 +291,10 @@ export function FileList() {
           onClose={() => setContextMenu(null)}
           onOpen={() => {
             if (contextMenu.entry.is_dir) navigateTo(contextMenu.entry.path);
+          }}
+          onRename={() => {
+            const idx = entries.findIndex((e) => e.path === contextMenu.entry.path);
+            if (idx >= 0) setRenamingIndex(idx);
           }}
         />
       )}
