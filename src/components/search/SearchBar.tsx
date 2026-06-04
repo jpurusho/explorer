@@ -64,7 +64,7 @@ export function SearchBar({ visible, onClose }: SearchBarProps) {
   if (!visible) return null;
 
   return (
-    <div className="h-9 bg-bg-secondary border-b border-border flex items-center px-[--panel-px] gap-3">
+    <div className="h-9 bg-bg-secondary border-b border-border flex items-center px-[var(--panel-px)] gap-3">
       <Search size={13} className="text-text-muted shrink-0" />
       <input
         ref={inputRef}

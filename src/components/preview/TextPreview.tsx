@@ -5,7 +5,7 @@ interface TextPreviewProps {
 
 export function TextPreview({ content, truncated }: TextPreviewProps) {
   return (
-    <div className="h-full overflow-auto px-[--panel-px] py-4">
+    <div className="h-full overflow-auto px-[var(--panel-px)] py-4">
       <pre className="text-[--font-sm] text-text-secondary font-mono whitespace-pre-wrap break-words leading-[1.6]">
         {content}
       </pre>

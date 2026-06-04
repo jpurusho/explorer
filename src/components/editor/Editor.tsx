@@ -101,7 +101,7 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       {/* Editor toolbar */}
-      <div className="h-8 bg-bg-tertiary/60 border-b border-border flex items-center px-[--panel-px] gap-3 shrink-0">
+      <div className="h-8 bg-bg-tertiary/60 border-b border-border flex items-center px-[var(--panel-px)] gap-3 shrink-0">
         <span className="text-[--font-sm] text-text-secondary font-medium truncate max-w-[160px]">
           {fileName}
         </span>

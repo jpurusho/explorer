@@ -192,7 +192,7 @@ export function PreviewPanel() {
   return (
     <div className="h-full bg-bg flex flex-col overflow-hidden">
       {/* File info header */}
-      <div className="px-[--panel-px] py-3.5 border-b border-border shrink-0 bg-bg-secondary overflow-hidden">
+      <div className="px-[var(--panel-px)] py-3.5 border-b border-border shrink-0 bg-bg-secondary overflow-hidden">
         <div className="flex items-center justify-between">
           <p className="font-medium text-text truncate flex-1 mr-4" style={{ fontSize: "var(--font-preview-title)" }}>{entry.name}</p>
           <div className="flex items-center gap-0.5 shrink-0">
