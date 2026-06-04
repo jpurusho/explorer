@@ -42,7 +42,7 @@ export function FileGrid() {
     e.dataTransfer.effectAllowed = "copyMove";
 
     const ghost = document.createElement("div");
-    ghost.className = "fixed -top-[100px] left-0 px-3 py-1.5 bg-accent/90 text-white text-[11px] rounded-md font-medium shadow-lg";
+    ghost.className = "fixed -top-[100px] left-0 px-3 py-1.5 bg-accent/90 text-white text-[--font-sm] rounded-md font-medium shadow-lg";
     ghost.textContent = paths.length > 1 ? `${paths.length} items` : entry.name;
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 0, 0);

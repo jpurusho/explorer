@@ -48,8 +48,16 @@ export interface AppSettings {
   sort_by: "name" | "size" | "modified" | "type";
   sort_direction: "asc" | "desc";
   sidebar_width: number;
+  preview_width: number;
   favorites: string[];
   recent_paths: string[];
+  column_type_width: number;
+  column_size_width: number;
+  column_modified_width: number;
+  column_type_visible: boolean;
+  column_size_visible: boolean;
+  column_modified_visible: boolean;
+  font_theme: string;
 }
 
 export interface ExifData {

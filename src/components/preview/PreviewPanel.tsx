@@ -122,7 +122,7 @@ export function PreviewPanel() {
       <div className="h-full bg-bg flex items-center justify-center">
         <div className="text-center text-text-muted px-6">
           <FileText size={28} className="mx-auto mb-2 opacity-30" strokeWidth={1.5} />
-          <p className="text-[11px]">Select a file to preview</p>
+          <p className="text-[--font-sm]">Select a file to preview</p>
         </div>
       </div>
     );
@@ -148,7 +148,7 @@ export function PreviewPanel() {
     if (loading) {
       return (
         <div className="flex items-center justify-center h-full">
-          <span className="text-[11px] text-text-muted">Loading...</span>
+          <span className="text-[--font-sm] text-text-muted">Loading...</span>
         </div>
       );
     }
@@ -156,7 +156,7 @@ export function PreviewPanel() {
     if (!content) {
       return (
         <div className="flex items-center justify-center h-full px-4">
-          <span className="text-[11px] text-text-muted">No preview available</span>
+          <span className="text-[--font-sm] text-text-muted">No preview available</span>
         </div>
       );
     }
@@ -194,7 +194,7 @@ export function PreviewPanel() {
       {/* File info header */}
       <div className="pl-6 pr-14 py-3.5 border-b border-border shrink-0 bg-bg-secondary overflow-hidden">
         <div className="flex items-center justify-between">
-          <p className="text-[13px] font-medium text-text truncate flex-1 mr-4">{entry.name}</p>
+          <p className="font-medium text-text truncate flex-1 mr-4" style={{ fontSize: "var(--font-preview-title)" }}>{entry.name}</p>
           <div className="flex items-center gap-0.5 shrink-0">
             {/* View/Edit toggle for renderable files */}
             {hasRenderedView && content && (
@@ -236,16 +236,16 @@ export function PreviewPanel() {
           </div>
         </div>
         <div className="flex items-center gap-3 mt-1.5">
-          <span className="text-[11px] text-text-muted tabular-nums">
+          <span className="text-[--font-sm] text-text-muted tabular-nums">
             {formatSize(entry.size)}
           </span>
           {entry.modified && (
-            <span className="text-[11px] text-text-muted">
+            <span className="text-[--font-sm] text-text-muted">
               {(() => { try { return format(new Date(entry.modified), "MMM d, yyyy"); } catch { return ""; } })()}
             </span>
           )}
           <span className={clsx(
-            "text-[9px] px-2 py-[2px] rounded-full uppercase tracking-wide font-medium",
+            "text-[--font-xs] px-2 py-[2px] rounded-full uppercase tracking-wide font-medium",
             "bg-bg-tertiary text-text-muted"
           )}>
             {entry.file_type}

@@ -21,6 +21,7 @@ interface SectionState {
   sections: Section[];
   sectionsEnabled: boolean;
 
+  loadAllSections: () => Promise<void>;
   loadSections: (dirPath: string) => Promise<void>;
   createSection: (dirPath: string, name: string, color: string) => Promise<Section>;
   updateSection: (id: number, updates: { name?: string; color?: string; sort_order?: number; collapsed?: boolean; hidden?: boolean }) => Promise<void>;
@@ -38,8 +39,13 @@ export const useSectionStore = create<SectionState>((set, get) => ({
   sections: [],
   sectionsEnabled: false,
 
-  loadSections: async (dirPath) => {
-    const sections = await invoke<Section[]>("get_sections", { dirPath });
+  loadAllSections: async () => {
+    const sections = await invoke<Section[]>("get_all_sections");
+    set({ sections, sectionsEnabled: sections.length > 0 });
+  },
+
+  loadSections: async (_dirPath) => {
+    const sections = await invoke<Section[]>("get_all_sections");
     set({ sections, sectionsEnabled: sections.length > 0 });
   },
 

@@ -26,6 +26,47 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-feature-settings: "kern" 1, "liga" 1;
+
+  /* Font theme variables (overridden by theme loader) */
+  --font-sidebar-heading: 11px;
+  --font-sidebar-item: 13px;
+  --font-sidebar-section: 13.5px;
+  --font-sidebar-badge: 10px;
+  --font-filelist-header: 11px;
+  --font-filelist-item: 13.5px;
+  --font-filelist-meta: 11.5px;
+  --font-preview-title: 14px;
+  --font-preview-meta: 11px;
+  --font-preview-body: 13px;
+  --font-toolbar-breadcrumb: 12.5px;
+  --font-toolbar-button: 12px;
+  --font-statusbar-text: 11.5px;
+  --font-editor-code: 13px;
+
+  /* Global font scale tokens (overridden by theme) */
+  --font-xs: 10px;
+  --font-sm: 11px;
+  --font-base: 12px;
+  --font-md: 13px;
+  --font-lg: 14px;
+
+  /* Section styling */
+  --section-bg: var(--explorer-bg-tertiary);
+  --section-text: var(--explorer-text);
+  --section-border: var(--explorer-border);
+  --section-radius: 12px;
+  --section-padding-v: 10px;
+  --section-padding-h: 14px;
+
+  /* Layout dimensions */
+  --toolbar-height: 42px;
+  --statusbar-height: 30px;
+
+  /* Border radius tokens */
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
 }
 
 [data-theme="light"] {

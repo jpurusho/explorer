@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
@@ -9,39 +9,35 @@ import type { FileEntry } from "../types";
 export function useDirectory() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const refreshTrigger = useNavigationStore((s) => s.refreshTrigger);
-  const setEntries = useFileListStore((s) => s.setEntries);
-  const setLoading = useFileListStore((s) => s.setLoading);
-  const setError = useFileListStore((s) => s.setError);
-  const loadTagsForFiles = useTagStore((s) => s.loadTagsForFiles);
-  const loadSections = useSectionStore((s) => s.loadSections);
-
-  const loadDirectory = useCallback(
-    async (path: string) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const entries = await invoke<FileEntry[]>("list_directory", { path });
-        setEntries(entries);
-
-        // Load tags and sections in parallel (non-blocking)
-        const paths = entries.map((e) => e.path);
-        loadTagsForFiles(paths).catch(() => {});
-        loadSections(path).catch(() => {});
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err));
-        setEntries([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [setEntries, setLoading, setError, loadTagsForFiles, loadSections]
-  );
 
   useEffect(() => {
-    if (currentPath) {
-      loadDirectory(currentPath);
-    }
-  }, [currentPath, refreshTrigger, loadDirectory]);
+    if (!currentPath) return;
+    let cancelled = false;
 
-  return { loadDirectory };
+    const fileStore = useFileListStore.getState();
+    const tagStore = useTagStore.getState();
+    const sectionStore = useSectionStore.getState();
+
+    fileStore.setLoading(true);
+    fileStore.setError(null);
+
+    invoke<FileEntry[]>("list_directory", { path: currentPath })
+      .then((entries) => {
+        if (cancelled) return;
+        fileStore.setEntries(entries);
+        const paths = entries.map((e) => e.path);
+        tagStore.loadTagsForFiles(paths).catch(() => {});
+        sectionStore.loadSections(currentPath).catch(() => {});
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        fileStore.setError(err instanceof Error ? err.message : String(err));
+        fileStore.setEntries([]);
+      })
+      .finally(() => {
+        if (!cancelled) fileStore.setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [currentPath, refreshTrigger]);
 }

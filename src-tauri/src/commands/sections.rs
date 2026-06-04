@@ -22,6 +22,51 @@ pub struct Section {
 }
 
 #[tauri::command]
+pub fn get_all_sections(db: State<DbState>) -> Result<Vec<Section>, AppError> {
+    let conn = db.conn.lock().map_err(|e| AppError::Other(e.to_string()))?;
+    let mut sect_stmt = conn
+        .prepare("SELECT id, dir_path, name, color, sort_order, collapsed, hidden FROM sections ORDER BY sort_order")
+        .map_err(|e| AppError::Other(e.to_string()))?;
+    let mut file_stmt = conn
+        .prepare("SELECT file_path, sort_order FROM section_files WHERE section_id = ?1 ORDER BY sort_order")
+        .map_err(|e| AppError::Other(e.to_string()))?;
+
+    let sections = sect_stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, i64>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, String>(3)?,
+                row.get::<_, i32>(4)?,
+                row.get::<_, bool>(5)?,
+                row.get::<_, bool>(6)?,
+            ))
+        })
+        .map_err(|e| AppError::Other(e.to_string()))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| AppError::Other(e.to_string()))?;
+
+    let mut result = Vec::new();
+    for (id, dir_path, name, color, sort_order, collapsed, hidden) in sections {
+        let files = file_stmt
+            .query_map([id], |row| {
+                Ok(SectionFile {
+                    file_path: row.get(0)?,
+                    sort_order: row.get(1)?,
+                })
+            })
+            .map_err(|e| AppError::Other(e.to_string()))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| AppError::Other(e.to_string()))?;
+
+        result.push(Section { id, dir_path, name, color, sort_order, collapsed, hidden, files });
+    }
+
+    Ok(result)
+}
+
+#[tauri::command]
 pub fn get_sections(db: State<DbState>, dir_path: String) -> Result<Vec<Section>, AppError> {
     let conn = db.conn.lock().map_err(|e| AppError::Other(e.to_string()))?;
     let mut sect_stmt = conn

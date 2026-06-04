@@ -86,17 +86,17 @@ export function ImagePreview({ path, name }: ImagePreviewProps) {
       {exif && showExif && (
         <div className="shrink-0 border-t border-border bg-bg-secondary px-6 py-3">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold">
+            <span className="text-[--font-xs] text-text-muted uppercase tracking-wider font-semibold">
               EXIF Data
             </span>
             <button
               onClick={() => setShowExif(false)}
-              className="text-[10px] text-text-muted hover:text-text-secondary"
+              className="text-[--font-xs] text-text-muted hover:text-text-secondary"
             >
               Hide
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[11px]">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-[--font-sm]">
             {exif.camera_model && (
               <div className="flex items-center gap-1.5">
                 <Camera size={10} className="text-text-muted shrink-0" />
@@ -143,7 +143,7 @@ export function ImagePreview({ path, name }: ImagePreviewProps) {
         <div className="shrink-0 border-t border-border bg-bg-secondary px-6 py-1.5">
           <button
             onClick={() => setShowExif(true)}
-            className="text-[10px] text-text-muted hover:text-text-secondary"
+            className="text-[--font-xs] text-text-muted hover:text-text-secondary"
           >
             Show EXIF
           </button>

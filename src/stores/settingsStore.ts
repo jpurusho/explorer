@@ -20,8 +20,16 @@ const defaultSettings: AppSettings = {
   sort_by: "name",
   sort_direction: "asc",
   sidebar_width: 240,
+  preview_width: 420,
   favorites: [],
   recent_paths: [],
+  column_type_width: 50,
+  column_size_width: 58,
+  column_modified_width: 90,
+  column_type_visible: true,
+  column_size_visible: true,
+  column_modified_visible: true,
+  font_theme: "default",
 };
 
 function resolveTheme(theme: AppSettings["theme"]): ThemeName {

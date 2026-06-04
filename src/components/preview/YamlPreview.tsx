@@ -106,7 +106,7 @@ function YamlNode({ keyName, data, depth }: {
               <span className="text-text-muted mx-1">:</span>
             </>
           )}
-          <span className="text-text-muted text-[10px]">[{data.length} items]</span>
+          <span className="text-text-muted text-[--font-xs]">[{data.length} items]</span>
         </div>
         {!collapsed && data.map((item, idx) => {
           if (typeof item === "object" && item !== null) {
@@ -114,7 +114,7 @@ function YamlNode({ keyName, data, depth }: {
               <div key={idx}>
                 <div style={{ paddingLeft: `${(depth + 1) * 16}px` }} className="flex items-baseline py-[2px]">
                   <span className="text-text-muted mr-1">-</span>
-                  <span className="text-text-muted text-[10px]">
+                  <span className="text-text-muted text-[--font-xs]">
                     {Array.isArray(item) ? `[${item.length}]` : `{${Object.keys(item).length}}`}
                   </span>
                 </div>
@@ -172,7 +172,7 @@ function YamlNode({ keyName, data, depth }: {
             }
             <span className="text-accent">{keyName}</span>
             <span className="text-text-muted mx-1">:</span>
-            <span className="text-text-muted text-[10px]">{`{${entries.length}}`}</span>
+            <span className="text-text-muted text-[--font-xs]">{`{${entries.length}}`}</span>
           </div>
           {!collapsed && entries.map(([key, value]) => (
             <YamlNode key={key} keyName={key} data={value} depth={depth + 1} />
@@ -212,9 +212,9 @@ export function YamlPreview({ content }: YamlPreviewProps) {
       <div className="h-full overflow-auto pl-6 pr-8 py-4">
         <div className="flex items-center gap-2 text-amber-400 mb-3">
           <AlertTriangle size={12} />
-          <span className="text-[11px]">Parse error: {result.error}</span>
+          <span className="text-[--font-sm]">Parse error: {result.error}</span>
         </div>
-        <pre className="text-[11px] text-text-secondary font-mono whitespace-pre-wrap">
+        <pre className="text-[--font-sm] text-text-secondary font-mono whitespace-pre-wrap">
           {content}
         </pre>
       </div>
@@ -222,7 +222,7 @@ export function YamlPreview({ content }: YamlPreviewProps) {
   }
 
   return (
-    <div className="h-full overflow-auto pl-6 pr-8 py-3 font-mono text-[11px] leading-[1.7]">
+    <div className="h-full overflow-auto pl-6 pr-8 py-3 font-mono text-[--font-sm] leading-[1.7]">
       <YamlNode data={result.data} depth={0} />
     </div>
   );

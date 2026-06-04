@@ -3,29 +3,51 @@ import { AppShell } from "./components/layout/AppShell";
 import { DetachedPreview } from "./components/preview/DetachedPreview";
 import { useSettingsStore } from "./stores/settingsStore";
 import { useNavigationStore } from "./stores/navigationStore";
+import { useFileListStore } from "./stores/fileListStore";
+import { useFontThemeStore } from "./stores/fontThemeStore";
 import { useDirectory } from "./hooks/useDirectory";
 import { useTheme } from "./hooks/useTheme";
 import { useKeyboard } from "./hooks/useKeyboard";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { logger } from "./lib/logger";
 
 function MainApp() {
-  const loadSettings = useSettingsStore((s) => s.loadSettings);
-  const navigateTo = useNavigationStore((s) => s.navigateTo);
+  const [ready, setReady] = useState(false);
 
   useDirectory();
   useTheme();
   useKeyboard();
 
   useEffect(() => {
+    let cancelled = false;
     async function init() {
-      await loadSettings();
-      const home = await invoke<string>("get_home_directory");
-      navigateTo(home);
+      try {
+        logger.info("App initializing");
+        await useSettingsStore.getState().loadSettings();
+        if (cancelled) return;
+        const settings = useSettingsStore.getState().settings;
+        logger.info(`Settings loaded: theme=${settings.theme}, font_theme=${settings.font_theme}`);
+        useFileListStore.getState().syncFromSettings(settings);
+        await useFontThemeStore.getState().loadTheme(settings.font_theme || "default");
+        logger.info("Font theme applied");
+        if (cancelled) return;
+        const home = await invoke<string>("get_home_directory");
+        if (cancelled) return;
+        useNavigationStore.getState().navigateTo(home);
+        logger.info(`Navigated to home: ${home}`);
+        setReady(true);
+      } catch (err) {
+        logger.error(`Init failed: ${err}`);
+        console.error("Init failed:", err);
+        if (!cancelled) setReady(true);
+      }
     }
     init();
+    return () => { cancelled = true; };
   }, []);
 
+  if (!ready) return null;
   return <AppShell />;
 }
 

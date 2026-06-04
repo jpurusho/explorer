@@ -48,7 +48,8 @@ export function FileListItem({
   onDragStart,
 }: FileListItemProps) {
   const columns = useFileListStore((s) => s.columns);
-  const tags = useTagStore((s) => s.getTagsForPath(entry.path));
+  const fileTagMap = useTagStore((s) => s.fileTagMap);
+  const tags = fileTagMap.get(entry.path) || [];
 
   const typeCol = columns.find((c) => c.id === "type");
   const sizeCol = columns.find((c) => c.id === "size");
@@ -63,6 +64,7 @@ export function FileListItem({
           ? "bg-accent/10 text-text"
           : "hover:bg-bg-hover text-text-secondary"
       )}
+      style={{ fontSize: "var(--font-filelist-item)" }}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
@@ -74,7 +76,7 @@ export function FileListItem({
       {/* Name - flexible */}
       <span
         className={clsx(
-          "flex-1 truncate text-[13px] min-w-0",
+          "flex-1 truncate min-w-0",
           selected ? "text-text font-semibold" : entry.is_dir ? "text-text font-medium" : "text-text"
         )}
       >
@@ -93,7 +95,7 @@ export function FileListItem({
             />
           ))}
           {tags.length > 3 && (
-            <span className="text-[9px] text-text-muted">+{tags.length - 3}</span>
+            <span className="text-[--font-xs] text-text-muted">+{tags.length - 3}</span>
           )}
         </div>
       )}
@@ -101,8 +103,8 @@ export function FileListItem({
       {/* Type */}
       {typeCol?.visible && (
         <span
-          className="text-right text-text-secondary text-[11px] shrink-0 truncate"
-          style={{ width: `${typeCol.width}px` }}
+          className="text-right text-text-secondary shrink-0 truncate"
+          style={{ width: `${typeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
         >
           {getTypeLabel(entry)}
         </span>
@@ -111,8 +113,8 @@ export function FileListItem({
       {/* Size */}
       {sizeCol?.visible && (
         <span
-          className="text-right text-text-secondary text-[11px] tabular-nums shrink-0"
-          style={{ width: `${sizeCol.width}px` }}
+          className="text-right text-text-secondary tabular-nums shrink-0"
+          style={{ width: `${sizeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
         >
           {entry.is_dir ? "—" : formatSize(entry.size)}
         </span>
@@ -121,8 +123,8 @@ export function FileListItem({
       {/* Date */}
       {modifiedCol?.visible && (
         <span
-          className="text-right text-text-secondary text-[11px] tabular-nums shrink-0 truncate"
-          style={{ width: `${modifiedCol.width}px` }}
+          className="text-right text-text-secondary tabular-nums shrink-0 truncate"
+          style={{ width: `${modifiedCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
         >
           {formatDate(entry.modified)}
         </span>

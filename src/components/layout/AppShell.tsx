@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 import { ContentPanel } from "./ContentPanel";
@@ -7,20 +7,39 @@ import { PreviewPanel } from "../preview/PreviewPanel";
 import { ResizeHandle } from "./ResizeHandle";
 import { SearchBar } from "../search/SearchBar";
 import { SettingsPanel } from "../settings/SettingsPanel";
+import { useSettingsStore } from "../../stores/settingsStore";
 
 export function AppShell() {
-  const [sidebarWidth, setSidebarWidth] = useState(220);
-  const [previewWidth, setPreviewWidth] = useState(420);
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const [sidebarWidth, setSidebarWidth] = useState(settings.sidebar_width || 220);
+  const [previewWidth, setPreviewWidth] = useState(settings.preview_width || 420);
   const [searchVisible, setSearchVisible] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistWidths = useCallback((sw: number, pw: number) => {
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => {
+      updateSettings({ sidebar_width: sw, preview_width: pw });
+    }, 500);
+  }, [updateSettings]);
 
   const handleSidebarResize = useCallback((delta: number) => {
-    setSidebarWidth((w) => Math.max(160, Math.min(400, w + delta)));
-  }, []);
+    setSidebarWidth((w) => {
+      const next = Math.max(160, Math.min(400, w + delta));
+      persistWidths(next, previewWidth);
+      return next;
+    });
+  }, [previewWidth, persistWidths]);
 
   const handlePreviewResize = useCallback((delta: number) => {
-    setPreviewWidth((w) => Math.max(280, Math.min(700, w + delta)));
-  }, []);
+    setPreviewWidth((w) => {
+      const next = Math.max(280, Math.min(700, w + delta));
+      persistWidths(sidebarWidth, next);
+      return next;
+    });
+  }, [sidebarWidth, persistWidths]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {

@@ -22,7 +22,7 @@ export function ContentPanel() {
       <div className="flex-1 flex items-center justify-center">
         <div className="flex items-center gap-2 text-red-400">
           <AlertCircle size={16} />
-          <span className="text-[12px]">{error}</span>
+          <span className="text-[--font-base]">{error}</span>
         </div>
       </div>
     );
@@ -31,7 +31,7 @@ export function ContentPanel() {
   if (entryCount === 0) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <span className="text-text-muted text-[12px]">This folder is empty</span>
+        <span className="text-text-muted text-[--font-base]">This folder is empty</span>
       </div>
     );
   }

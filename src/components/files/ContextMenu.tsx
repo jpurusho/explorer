@@ -15,6 +15,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { detachPreview } from "../../lib/detachPreview";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useTagStore } from "../../stores/tagStore";
+import { useSectionStore } from "../../stores/sectionStore";
 import type { FileEntry, FileType } from "../../types";
 
 interface ContextMenuProps {
@@ -45,7 +46,15 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   const tagFiles = useTagStore((s) => s.tagFiles);
   const untagFiles = useTagStore((s) => s.untagFiles);
   const fileTagMap = useTagStore((s) => s.fileTagMap);
+  const sections = useSectionStore((s) => s.sections);
+  const assignFiles = useSectionStore((s) => s.assignFiles);
+  const removeFiles = useSectionStore((s) => s.removeFiles);
+  const currentPath = useNavigationStore((s) => s.currentPath);
+  const createSection = useSectionStore((s) => s.createSection);
   const [showTagSubmenu, setShowTagSubmenu] = useState(false);
+  const [showSectionSubmenu, setShowSectionSubmenu] = useState(false);
+  const [creatingSection, setCreatingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -141,7 +150,14 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   items.push({
     label: "Tags",
     icon: <Tag size={13} />,
-    action: () => setShowTagSubmenu(!showTagSubmenu),
+    action: () => { setShowTagSubmenu(!showTagSubmenu); setShowSectionSubmenu(false); },
+  });
+
+  // Sections submenu trigger
+  items.push({
+    label: "Move to Section",
+    icon: <FolderOpen size={13} />,
+    action: () => { setShowSectionSubmenu(!showSectionSubmenu); setShowTagSubmenu(false); },
   });
 
   items.push({ label: "", icon: null, action: () => {}, separator: true });
@@ -196,7 +212,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
             key={idx}
             onClick={item.action}
             disabled={item.disabled}
-            className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[12px] hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className={item.destructive ? "text-red-400 shrink-0" : "text-text-muted shrink-0"}>{item.icon}</span>
             <span className={item.destructive ? "text-red-400" : "text-text-secondary"}>{item.label}</span>
@@ -220,17 +236,87 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
                     tagFiles(paths, tag.id);
                   }
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[11px] hover:bg-bg-hover transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors"
               >
                 <div
                   className="w-[8px] h-[8px] rounded-full shrink-0"
                   style={{ backgroundColor: tag.color }}
                 />
                 <span className="text-text-secondary flex-1">{tag.name}</span>
-                {hasTag && <span className="text-accent text-[10px]">✓</span>}
+                {hasTag && <span className="text-accent text-[--font-xs]">✓</span>}
               </button>
             );
           })}
+        </div>
+      )}
+
+      {showSectionSubmenu && (
+        <div className="border-t border-border mt-1 pt-1">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => {
+                const paths = entries.map((e) => e.path);
+                assignFiles(section.id, paths);
+                onClose();
+              }}
+              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors"
+            >
+              <div
+                className="w-[8px] h-[8px] rounded shrink-0"
+                style={{ backgroundColor: section.color }}
+              />
+              <span className="text-text-secondary flex-1">{section.name}</span>
+            </button>
+          ))}
+
+          <button
+            onClick={() => {
+              const paths = entries.map((e) => e.path);
+              const sectionForFile = useSectionStore.getState().getSectionForPath(paths[0]);
+              if (sectionForFile) {
+                removeFiles(sectionForFile.id, paths);
+              }
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors text-text-muted"
+          >
+            <span className="w-[8px] shrink-0">—</span>
+            <span className="flex-1">Unsorted</span>
+          </button>
+
+          <div className="h-[1px] bg-border my-1 mx-2" />
+
+          {!creatingSection ? (
+            <button
+              onClick={() => setCreatingSection(true)}
+              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors text-accent"
+            >
+              <span className="text-[--font-md]">+</span>
+              <span>New Section</span>
+            </button>
+          ) : (
+            <div className="px-3 py-1">
+              <input
+                autoFocus
+                value={newSectionName}
+                onChange={(e) => setNewSectionName(e.target.value)}
+                onKeyDown={async (e) => {
+                  if (e.key === "Enter" && newSectionName.trim()) {
+                    const colors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"];
+                    const color = colors[sections.length % colors.length];
+                    const section = await createSection(currentPath, newSectionName.trim(), color);
+                    const paths = entries.map((en) => en.path);
+                    await assignFiles(section.id, paths);
+                    onClose();
+                  }
+                  if (e.key === "Escape") setCreatingSection(false);
+                }}
+                placeholder="Section name..."
+                className="w-full bg-bg border border-border rounded px-2 py-1 text-[--font-sm] text-text outline-none focus:border-accent"
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

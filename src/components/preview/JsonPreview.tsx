@@ -125,7 +125,7 @@ function JsonNode({ data, keyName, depth, isLast }: {
           {keyEl}
           <span className="text-text-muted">[</span>
           {!expanded && (
-            <span className="text-text-muted/70 ml-1 text-[10px]">{data.length} items</span>
+            <span className="text-text-muted/70 ml-1 text-[--font-xs]">{data.length} items</span>
           )}
           {!expanded && <span className="text-text-muted ml-0.5">]</span>}
           {!expanded && !isLast && <span className="text-text-muted">,</span>}
@@ -171,7 +171,7 @@ function JsonNode({ data, keyName, depth, isLast }: {
           {keyEl}
           <span className="text-text-muted">{"{"}</span>
           {!expanded && (
-            <span className="text-text-muted/70 ml-1 text-[10px]">{entries.length} keys</span>
+            <span className="text-text-muted/70 ml-1 text-[--font-xs]">{entries.length} keys</span>
           )}
           {!expanded && <span className="text-text-muted ml-0.5">{"}"}</span>}
           {!expanded && !isLast && <span className="text-text-muted">,</span>}
@@ -202,10 +202,10 @@ export function JsonPreview({ content }: JsonPreviewProps) {
       <div className="h-full flex flex-col overflow-hidden">
         <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/10 border-b border-amber-500/20">
           <AlertTriangle size={13} className="text-amber-400 shrink-0" />
-          <span className="text-[11px] text-amber-300">Invalid JSON — showing raw content</span>
+          <span className="text-[--font-sm] text-amber-300">Invalid JSON — showing raw content</span>
         </div>
         <div className="flex-1 overflow-auto p-4">
-          <pre className="text-[11px] text-text-secondary font-mono whitespace-pre-wrap break-all leading-relaxed">
+          <pre className="text-[--font-sm] text-text-secondary font-mono whitespace-pre-wrap break-all leading-relaxed">
             {content}
           </pre>
         </div>
@@ -218,12 +218,12 @@ export function JsonPreview({ content }: JsonPreviewProps) {
       {result.fixed && (
         <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20">
           <AlertTriangle size={12} className="text-amber-400 shrink-0" />
-          <span className="text-[10px] text-amber-300">
+          <span className="text-[--font-xs] text-amber-300">
             Auto-fixed: {result.fixDescription || "syntax issues"}
           </span>
         </div>
       )}
-      <div className="flex-1 overflow-auto pl-6 pr-8 py-3 font-mono text-[11px] leading-[1.6]">
+      <div className="flex-1 overflow-auto pl-6 pr-8 py-3 font-mono text-[--font-sm] leading-[1.6]">
         <JsonNode data={result.data} depth={0} isLast={true} />
       </div>
     </div>

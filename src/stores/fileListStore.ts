@@ -42,6 +42,7 @@ interface FileListState {
   // Column actions
   setColumnWidth: (id: ColumnId, width: number) => void;
   toggleColumnVisibility: (id: ColumnId) => void;
+  syncFromSettings: (settings: { column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
 
   // Multi-select actions
   selectIndex: (index: number) => void;
@@ -91,6 +92,23 @@ function computeVisible(
     ? entries
     : entries.filter((e) => !e.is_hidden);
   return sortEntries(filtered, sortBy, sortDirection);
+}
+
+let _saveTimer: ReturnType<typeof setTimeout> | null = null;
+function saveColumnSettings(columns: ColumnConfig[]) {
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(async () => {
+    const { useSettingsStore } = await import("./settingsStore");
+    const col = (id: ColumnId) => columns.find((c) => c.id === id)!;
+    useSettingsStore.getState().updateSettings({
+      column_type_width: col("type").width,
+      column_size_width: col("size").width,
+      column_modified_width: col("modified").width,
+      column_type_visible: col("type").visible,
+      column_size_visible: col("size").visible,
+      column_modified_visible: col("modified").visible,
+    });
+  }, 500);
 }
 
 export const useFileListStore = create<FileListState>((set, get) => ({
@@ -153,19 +171,33 @@ export const useFileListStore = create<FileListState>((set, get) => ({
 
   setColumnWidth: (id, width) => {
     const { columns } = get();
-    set({
-      columns: columns.map((col) =>
-        col.id === id ? { ...col, width: Math.max(col.minWidth, width) } : col
-      ),
-    });
+    const updated = columns.map((col) =>
+      col.id === id ? { ...col, width: Math.max(col.minWidth, width) } : col
+    );
+    set({ columns: updated });
+    saveColumnSettings(updated);
   },
 
   toggleColumnVisibility: (id) => {
     const { columns } = get();
+    const updated = columns.map((col) =>
+      col.id === id ? { ...col, visible: !col.visible } : col
+    );
+    set({ columns: updated });
+    saveColumnSettings(updated);
+  },
+
+  syncFromSettings: (settings) => {
     set({
-      columns: columns.map((col) =>
-        col.id === id ? { ...col, visible: !col.visible } : col
-      ),
+      viewMode: (settings.default_view as ViewMode) || "list",
+      showHiddenFiles: settings.show_hidden_files,
+      sortBy: (settings.sort_by as SortField) || "name",
+      sortDirection: (settings.sort_direction as SortDirection) || "asc",
+      columns: [
+        { id: "type", label: "Type", width: settings.column_type_width, minWidth: 40, visible: settings.column_type_visible },
+        { id: "size", label: "Size", width: settings.column_size_width, minWidth: 44, visible: settings.column_size_visible },
+        { id: "modified", label: "Modified", width: settings.column_modified_width, minWidth: 70, visible: settings.column_modified_visible },
+      ],
     });
   },
 

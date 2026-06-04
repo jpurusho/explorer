@@ -57,7 +57,7 @@ function ImageThumbnail({ path }: { path: string }) {
   if (!src) {
     return (
       <div className="w-full h-32 bg-bg-tertiary flex items-center justify-center">
-        <span className="text-text-muted text-[10px]">Loading...</span>
+        <span className="text-text-muted text-[--font-xs]">Loading...</span>
       </div>
     );
   }
@@ -151,7 +151,7 @@ function VideoThumbnail({ path, onDuration }: { path: string; onDuration: (d: nu
       {posterSrc ? (
         <img src={posterSrc} alt="" className="w-full h-full object-cover" />
       ) : (
-        <div className="text-text-muted text-[10px]">Loading...</div>
+        <div className="text-text-muted text-[--font-xs]">Loading...</div>
       )}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div className="w-8 h-8 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
@@ -212,12 +212,12 @@ function TextSnippetPreview({ path }: { path: string }) {
       className="w-full h-32 bg-bg-tertiary overflow-hidden relative px-2 py-1.5"
     >
       {snippet !== null ? (
-        <pre className="text-[9px] leading-[1.4] font-mono text-text-muted whitespace-pre-wrap break-all overflow-hidden h-full pointer-events-none select-none">
+        <pre className="text-[--font-xs] leading-[1.4] font-mono text-text-muted whitespace-pre-wrap break-all overflow-hidden h-full pointer-events-none select-none">
           {snippet}
         </pre>
       ) : (
         <div className="w-full h-full flex items-center justify-center">
-          <span className="text-text-muted text-[10px]">...</span>
+          <span className="text-text-muted text-[--font-xs]">...</span>
         </div>
       )}
       <div className="absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-bg-tertiary to-transparent pointer-events-none" />
@@ -281,23 +281,23 @@ export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMen
 
       <div className="px-2.5 py-2">
         <p className={clsx(
-          "text-[11.5px] truncate leading-tight",
+          "text-[--font-sm] truncate leading-tight",
           selected ? "text-text font-medium" : "text-text"
         )}>
           {entry.name}
         </p>
         <div className="flex items-center justify-between mt-1">
-          <span className="text-[10px] text-text-muted">
+          <span className="text-[--font-xs] text-text-muted">
             {isDir ? "Folder" : formatSize(entry.size)}
           </span>
           <div className="flex items-center gap-1.5">
             {isVideo && duration !== null && (
-              <span className="text-[9px] text-text-muted tabular-nums">
+              <span className="text-[--font-xs] text-text-muted tabular-nums">
                 {formatDuration(duration)}
               </span>
             )}
             {!isDir && ext && (
-              <span className="text-[9px] text-text-muted/70 uppercase">
+              <span className="text-[--font-xs] text-text-muted/70 uppercase">
                 {ext}
               </span>
             )}

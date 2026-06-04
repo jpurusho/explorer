@@ -75,7 +75,7 @@ function ColumnVisibilityMenu({
         {columns.map((col) => (
           <button
             key={col.id}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[11px] text-text hover:bg-bg-hover transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[--font-sm] text-text hover:bg-bg-hover transition-colors"
             onClick={() => onToggle(col.id)}
           >
             {col.visible ? (
@@ -123,12 +123,12 @@ function ColumnHeader() {
   const visibleColumns = columns.filter((c) => c.visible);
 
   return (
-    <div className="flex items-center gap-3 py-1.5 ml-4 mr-4 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10 overflow-hidden">
+    <div className="flex items-center gap-3 py-1.5 ml-4 mr-4 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10 overflow-hidden" style={{ fontSize: "var(--font-filelist-header)" }}>
       <div className="w-4 shrink-0" /> {/* icon space */}
 
       {/* Name column - always visible, flexible */}
       <button
-        className="flex-1 flex items-center gap-1 text-[10px] text-text-secondary font-semibold uppercase tracking-wider min-w-0 cursor-pointer hover:text-text transition-colors text-left"
+        className="flex-1 flex items-center gap-1 text-text-secondary font-semibold uppercase tracking-wider min-w-0 cursor-pointer hover:text-text transition-colors text-left"
         onClick={handleNameSort}
       >
         <span className="truncate">Name</span>
@@ -143,7 +143,7 @@ function ColumnHeader() {
           style={{ width: `${col.width}px` }}
         >
           <button
-            className="w-full flex items-center justify-end gap-1 text-[10px] text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
+            className="w-full flex items-center justify-end gap-1 text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
             onClick={() => handleSort(columnSortField[col.id])}
           >
             <SortIndicator field={columnSortField[col.id]} />
@@ -222,7 +222,7 @@ export function FileList() {
     e.dataTransfer.effectAllowed = "copyMove";
 
     const ghost = document.createElement("div");
-    ghost.className = "fixed -top-[100px] left-0 px-3 py-1.5 bg-accent/90 text-white text-[11px] rounded-md font-medium shadow-lg";
+    ghost.className = "fixed -top-[100px] left-0 px-3 py-1.5 bg-accent/90 text-white text-[--font-sm] rounded-md font-medium shadow-lg";
     ghost.textContent = paths.length > 1 ? `${paths.length} items` : entry.name;
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 0, 0);

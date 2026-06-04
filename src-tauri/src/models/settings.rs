@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct AppSettings {
     pub theme: String,
     pub default_view: String,
@@ -8,8 +9,16 @@ pub struct AppSettings {
     pub sort_by: String,
     pub sort_direction: String,
     pub sidebar_width: u32,
+    pub preview_width: u32,
     pub favorites: Vec<String>,
     pub recent_paths: Vec<String>,
+    pub column_type_width: u32,
+    pub column_size_width: u32,
+    pub column_modified_width: u32,
+    pub column_type_visible: bool,
+    pub column_size_visible: bool,
+    pub column_modified_visible: bool,
+    pub font_theme: String,
 }
 
 impl Default for AppSettings {
@@ -25,6 +34,7 @@ impl Default for AppSettings {
             sort_by: "name".to_string(),
             sort_direction: "asc".to_string(),
             sidebar_width: 240,
+            preview_width: 420,
             favorites: vec![
                 home.clone(),
                 format!("{}/Documents", home),
@@ -32,6 +42,13 @@ impl Default for AppSettings {
                 format!("{}/Desktop", home),
             ],
             recent_paths: vec![],
+            column_type_width: 50,
+            column_size_width: 58,
+            column_modified_width: 90,
+            column_type_visible: true,
+            column_size_visible: true,
+            column_modified_visible: true,
+            font_theme: "default".to_string(),
         }
     }
 }
