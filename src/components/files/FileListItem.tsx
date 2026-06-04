@@ -111,7 +111,7 @@ export function FileListItem({
           </td>
 
           {/* Name cell */}
-          <td className="py-[5px] px-2 align-middle border-r border-border/20 overflow-hidden">
+          <td className="py-[5px] px-2 align-middle border-r border-border/40 overflow-hidden">
             <div className="flex items-center gap-2 min-w-0 overflow-hidden">
               {renaming ? (
                 <input
@@ -158,7 +158,7 @@ export function FileListItem({
           {visibleColumns.map((col) => (
             <td
               key={col.id}
-              className="py-[5px] px-2 text-right text-text-secondary tabular-nums truncate border-r border-border/20 align-middle overflow-hidden"
+              className="py-[5px] px-2 text-right text-text-secondary tabular-nums truncate border-r border-border/40 align-middle overflow-hidden"
               style={{ fontSize: "var(--font-filelist-meta)" }}
             >
               {getCellValue(col.id, entry)}

@@ -140,6 +140,7 @@ export function FileList() {
   const handleResizeStart = useCallback((colId: ColumnId, currentWidth: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    console.log("RESIZE START", colId, currentWidth);
     const startX = e.clientX;
     const startWidth = currentWidth;
 
@@ -209,13 +210,13 @@ export function FileList() {
                   <SortIndicator field={columnSortField[col.id]} />
                   <span className="truncate">{col.label}</span>
                 </div>
-                {/* Resize handle */}
+                {/* Resize handle — wider hit area, visible line */}
                 <div
-                  className="absolute top-0 right-0 bottom-0 w-[5px] cursor-col-resize z-30 group/handle"
+                  className="absolute top-0 -right-[4px] bottom-0 w-[9px] cursor-col-resize z-30 group/handle"
                   onMouseDown={(e) => handleResizeStart(col.id, col.width, e)}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="absolute inset-y-0 right-0 w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
+                  <div className="absolute top-0 bottom-0 left-[4px] w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
                 </div>
               </th>
             ))}
