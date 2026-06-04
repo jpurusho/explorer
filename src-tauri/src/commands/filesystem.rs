@@ -1,6 +1,7 @@
 use crate::models::file_entry::{classify_file_type, ExifData, FileContent, FileEntry, FileMetadata};
 use crate::utils::errors::AppError;
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
@@ -200,6 +201,50 @@ pub async fn get_file_entries(paths: Vec<String>) -> Result<Vec<FileEntry>, AppE
         });
     }
     Ok(entries)
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct GitStatus {
+    pub is_repo: bool,
+    pub branch: String,
+    pub changed: u32,
+    pub staged: u32,
+    pub untracked: u32,
+    pub ahead: u32,
+    pub behind: u32,
+}
+
+#[tauri::command]
+pub async fn get_git_status(path: String) -> Result<GitStatus, AppError> {
+    let repo = match git2::Repository::discover(&path) {
+        Ok(r) => r,
+        Err(_) => return Ok(GitStatus { is_repo: false, branch: String::new(), changed: 0, staged: 0, untracked: 0, ahead: 0, behind: 0 }),
+    };
+
+    let branch = repo.head().ok()
+        .and_then(|h| h.shorthand().map(|s| s.to_string()))
+        .unwrap_or_else(|| "HEAD".to_string());
+
+    let mut changed = 0u32;
+    let mut staged = 0u32;
+    let mut untracked = 0u32;
+
+    if let Ok(statuses) = repo.statuses(None) {
+        for s in statuses.iter() {
+            let st = s.status();
+            if st.intersects(git2::Status::WT_MODIFIED | git2::Status::WT_DELETED | git2::Status::WT_RENAMED | git2::Status::WT_TYPECHANGE) {
+                changed += 1;
+            }
+            if st.intersects(git2::Status::INDEX_NEW | git2::Status::INDEX_MODIFIED | git2::Status::INDEX_DELETED | git2::Status::INDEX_RENAMED | git2::Status::INDEX_TYPECHANGE) {
+                staged += 1;
+            }
+            if st.contains(git2::Status::WT_NEW) {
+                untracked += 1;
+            }
+        }
+    }
+
+    Ok(GitStatus { is_repo: true, branch, changed, staged, untracked, ahead: 0, behind: 0 })
 }
 
 #[tauri::command]

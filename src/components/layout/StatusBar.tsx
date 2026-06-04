@@ -1,7 +1,18 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
-import { Folder, File, Eye } from "lucide-react";
+import { Folder, File, Eye, GitBranch } from "lucide-react";
+
+interface GitStatus {
+  is_repo: boolean;
+  branch: string;
+  changed: number;
+  staged: number;
+  untracked: number;
+  ahead: number;
+  behind: number;
+}
 
 function formatTotalSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -16,6 +27,14 @@ export function StatusBar() {
   const selectedIndex = useFileListStore((s) => s.selectedIndex);
   const currentPath = useNavigationStore((s) => s.currentPath);
   const showHiddenFiles = useFileListStore((s) => s.showHiddenFiles);
+  const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
+
+  useEffect(() => {
+    if (!currentPath) return;
+    invoke<GitStatus>("get_git_status", { path: currentPath })
+      .then(setGitStatus)
+      .catch(() => setGitStatus(null));
+  }, [currentPath]);
 
   const stats = useMemo(() => {
     const folders = visibleEntries.filter((e) => e.is_dir).length;
@@ -39,7 +58,7 @@ export function StatusBar() {
       <div className="w-[1px] h-3.5 bg-border shrink-0" />
 
       {/* File stats */}
-      <div className="flex items-center gap-3 text-text-muted">
+      <div className="flex items-center gap-3 text-text-muted shrink-0">
         <span className="flex items-center gap-1">
           <Folder size={11} className="text-folder" />
           <span className="tabular-nums">{stats.folders}</span>
@@ -55,10 +74,32 @@ export function StatusBar() {
       {showHiddenFiles && (
         <>
           <div className="w-[1px] h-3.5 bg-border shrink-0" />
-          <span className="flex items-center gap-1 text-accent">
+          <span className="flex items-center gap-1 text-accent shrink-0">
             <Eye size={11} />
             <span>Hidden</span>
           </span>
+        </>
+      )}
+
+      {/* Git status */}
+      {gitStatus?.is_repo && (
+        <>
+          <div className="w-[1px] h-3.5 bg-border shrink-0" />
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="flex items-center gap-1 text-accent">
+              <GitBranch size={11} />
+              <span className="font-medium">{gitStatus.branch}</span>
+            </span>
+            {gitStatus.changed > 0 && (
+              <span className="text-amber-400 tabular-nums">~{gitStatus.changed}</span>
+            )}
+            {gitStatus.staged > 0 && (
+              <span className="text-green-400 tabular-nums">+{gitStatus.staged}</span>
+            )}
+            {gitStatus.untracked > 0 && (
+              <span className="text-text-muted tabular-nums">?{gitStatus.untracked}</span>
+            )}
+          </div>
         </>
       )}
 
