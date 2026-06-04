@@ -22,16 +22,19 @@ function ResizeHandle({
   currentWidth: number;
   onWidthChange: (newWidth: number) => void;
 }) {
+  const widthRef = useRef(currentWidth);
+  widthRef.current = currentWidth;
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
       const startX = e.clientX;
-      const startWidth = currentWidth;
+      const startWidth = widthRef.current;
 
       const handleMouseMove = (moveEvent: MouseEvent) => {
         const delta = moveEvent.clientX - startX;
-        onWidthChange(startWidth + delta);
+        onWidthChange(Math.max(40, startWidth + delta));
       };
 
       const handleMouseUp = () => {
@@ -46,15 +49,15 @@ function ResizeHandle({
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
     },
-    [currentWidth, onWidthChange]
+    [onWidthChange]
   );
 
   return (
     <div
-      className="absolute -right-[4px] top-0 bottom-0 w-[10px] cursor-col-resize z-20 group/handle"
+      className="absolute right-[-5px] top-0 bottom-0 w-[10px] cursor-col-resize z-20 group/handle"
       onMouseDown={handleMouseDown}
     >
-      <div className="absolute left-[4px] top-[4px] bottom-[4px] w-[2px] bg-border/50 opacity-0 group-hover/handle:opacity-100 transition-opacity rounded" />
+      <div className="absolute left-[4px] top-[2px] bottom-[2px] w-[2px] bg-border/0 group-hover/handle:bg-accent/60 transition-colors rounded" />
     </div>
   );
 }
