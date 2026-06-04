@@ -819,22 +819,30 @@ export function Sidebar() {
     if (homeDir) loadRoot();
   }, [homeDir, refreshTrigger]);
 
-  const [foldersHeight, setFoldersHeight] = useState(300);
-  const [workspacesHeight, setWorkspacesHeight] = useState(150);
+  const [foldersHeight, setFoldersHeight] = useState(250);
+  const [workspacesHeight, setWorkspacesHeight] = useState(120);
 
-  const handleDividerDrag = (setter: (h: number) => void, startHeight: number) => (e: React.MouseEvent) => {
+  const startDividerDrag = (aboveSetter: React.Dispatch<React.SetStateAction<number>>, belowSetter?: React.Dispatch<React.SetStateAction<number>>) => (e: React.MouseEvent) => {
     e.preventDefault();
     const startY = e.clientY;
+    const aboveStart = aboveSetter === setFoldersHeight ? foldersHeight : workspacesHeight;
+    const belowStart = belowSetter === setWorkspacesHeight ? workspacesHeight : 0;
+
     const onMove = (ev: MouseEvent) => {
       const delta = ev.clientY - startY;
-      setter(Math.max(60, startHeight + delta));
+      aboveSetter(Math.max(60, aboveStart + delta));
+      if (belowSetter) {
+        belowSetter(Math.max(60, belowStart - delta));
+      }
     };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
       document.body.style.cursor = "";
+      document.body.style.userSelect = "";
     };
     document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
   };
@@ -876,13 +884,8 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Draggable divider: Favorites ↔ Folders */}
-      <div
-        className="h-[5px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover group"
-        onMouseDown={handleDividerDrag(setFoldersHeight, foldersHeight)}
-      >
-        <div className="w-8 h-[1px] bg-border group-hover:bg-accent/50 transition-colors" />
-      </div>
+      {/* Divider: Favorites ↔ Folders */}
+      <div className="h-[1px] bg-border shrink-0 mx-4" />
 
       {/* Folders — resizable height */}
       {showFolders && (
@@ -911,10 +914,10 @@ export function Sidebar() {
 
       {/* Draggable divider: Folders ↔ Workspaces */}
       <div
-        className="h-[5px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover group"
-        onMouseDown={handleDividerDrag(setWorkspacesHeight, workspacesHeight)}
+        className="h-[7px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover/50 group mx-2 rounded"
+        onMouseDown={startDividerDrag(setFoldersHeight, setWorkspacesHeight)}
       >
-        <div className="w-8 h-[1px] bg-border group-hover:bg-accent/50 transition-colors" />
+        <div className="w-10 h-[1px] bg-border group-hover:bg-accent transition-colors" />
       </div>
 
       {/* Workspaces — resizable height */}
@@ -930,9 +933,10 @@ export function Sidebar() {
 
       {/* Draggable divider: Workspaces ↔ Tags */}
       <div
-        className="h-[5px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover group"
+        className="h-[7px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover/50 group mx-2 rounded"
+        onMouseDown={startDividerDrag(setWorkspacesHeight)}
       >
-        <div className="w-8 h-[1px] bg-border group-hover:bg-accent/50 transition-colors" />
+        <div className="w-10 h-[1px] bg-border group-hover:bg-accent transition-colors" />
       </div>
 
       {/* Tags — fills remaining space */}
