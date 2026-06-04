@@ -145,11 +145,11 @@ function ColumnHeader() {
       </button>
 
       {/* Data columns - sortable + resizable */}
-      {visibleColumns.map((col) => (
+      {visibleColumns.map((col, index) => (
         <div
           key={col.id}
           className="relative shrink-0"
-          style={{ width: `${col.width}px` }}
+          style={{ width: `${col.width}px`, zIndex: visibleColumns.length - index }}
         >
           <button
             className="w-full flex items-center justify-end gap-1 text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
