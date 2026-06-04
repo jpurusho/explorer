@@ -135,32 +135,41 @@ export function FileListItem({
 
       {/* Type */}
       {typeCol?.visible && (
-        <span
-          className="text-right text-text-secondary shrink-0 truncate"
-          style={{ width: `${typeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
-        >
-          {getTypeLabel(entry)}
-        </span>
+        <>
+          <div className="w-[1px] h-4 bg-border/30 shrink-0" />
+          <span
+            className="text-right text-text-secondary shrink-0 truncate"
+            style={{ width: `${typeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
+          >
+            {getTypeLabel(entry)}
+          </span>
+        </>
       )}
 
       {/* Size */}
       {sizeCol?.visible && (
-        <span
-          className="text-right text-text-secondary tabular-nums shrink-0"
-          style={{ width: `${sizeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
-        >
-          {entry.is_dir ? "—" : formatSize(entry.size)}
-        </span>
+        <>
+          <div className="w-[1px] h-4 bg-border/30 shrink-0" />
+          <span
+            className="text-right text-text-secondary tabular-nums shrink-0"
+            style={{ width: `${sizeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
+          >
+            {entry.is_dir ? "—" : formatSize(entry.size)}
+          </span>
+        </>
       )}
 
       {/* Date */}
       {modifiedCol?.visible && (
-        <span
-          className="text-right text-text-secondary tabular-nums shrink-0 truncate"
-          style={{ width: `${modifiedCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
-        >
-          {formatDate(entry.modified)}
-        </span>
+        <>
+          <div className="w-[1px] h-4 bg-border/30 shrink-0" />
+          <span
+            className="text-right text-text-secondary tabular-nums shrink-0 truncate"
+            style={{ width: `${modifiedCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
+          >
+            {formatDate(entry.modified)}
+          </span>
+        </>
       )}
 
       {/* Spacer to match the visibility toggle button in the header */}
