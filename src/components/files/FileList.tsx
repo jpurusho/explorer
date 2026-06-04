@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useMemo } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
 import { useFileListStore } from "../../stores/fileListStore";
@@ -14,53 +14,6 @@ const columnSortField: Record<ColumnId, SortField> = {
   size: "size",
   modified: "modified",
 };
-
-function ResizeHandle({
-  currentWidth,
-  onWidthChange,
-}: {
-  currentWidth: number;
-  onWidthChange: (newWidth: number) => void;
-}) {
-  const widthRef = useRef(currentWidth);
-  widthRef.current = currentWidth;
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const startX = e.clientX;
-      const startWidth = widthRef.current;
-
-      const handleMouseMove = (moveEvent: MouseEvent) => {
-        const delta = moveEvent.clientX - startX;
-        onWidthChange(Math.max(40, startWidth + delta));
-      };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-
-      document.body.style.cursor = "col-resize";
-      document.body.style.userSelect = "none";
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-    },
-    [onWidthChange]
-  );
-
-  return (
-    <div
-      className="absolute top-0 bottom-0 right-0 w-[5px] cursor-col-resize z-30 group/handle"
-      onMouseDown={handleMouseDown}
-    >
-      <div className="absolute inset-y-0 right-0 w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
-    </div>
-  );
-}
 
 function ColumnVisibilityMenu({
   columns,
@@ -95,86 +48,6 @@ function ColumnVisibilityMenu({
   );
 }
 
-function ColumnHeader() {
-  const sortBy = useFileListStore((s) => s.sortBy);
-  const sortDirection = useFileListStore((s) => s.sortDirection);
-  const setSortBy = useFileListStore((s) => s.setSortBy);
-  const toggleSortDirection = useFileListStore((s) => s.toggleSortDirection);
-  const columns = useFileListStore((s) => s.columns);
-  const setColumnWidth = useFileListStore((s) => s.setColumnWidth);
-  const toggleColumnVisibility = useFileListStore((s) => s.toggleColumnVisibility);
-  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
-
-  const handleSort = (field: SortField) => {
-    if (sortBy === field) {
-      toggleSortDirection();
-    } else {
-      setSortBy(field);
-    }
-  };
-
-  const handleNameSort = () => handleSort("name");
-
-  const SortIndicator = ({ field }: { field: SortField }) => {
-    if (sortBy !== field) return null;
-    return sortDirection === "asc" ? (
-      <ArrowUp size={10} className="text-accent shrink-0" />
-    ) : (
-      <ArrowDown size={10} className="text-accent shrink-0" />
-    );
-  };
-
-  const visibleColumns = columns.filter((c) => c.visible);
-  const gridTemplate = `16px minmax(100px, 1fr) ${visibleColumns.map((c) => `${c.width}px`).join(" ")}`;
-
-  return (
-  <>
-    <div
-      className="grid items-center py-1.5 mx-3 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10 gap-x-3"
-      style={{ fontSize: "var(--font-filelist-header)", gridTemplateColumns: gridTemplate }}
-      onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
-    >
-      <div /> {/* icon space */}
-
-      {/* Name */}
-      <button
-        className="flex items-center gap-1 text-text-secondary font-semibold uppercase tracking-wider min-w-0 cursor-pointer hover:text-text transition-colors text-left"
-        onClick={handleNameSort}
-      >
-        <span className="truncate">Name</span>
-        <SortIndicator field="name" />
-      </button>
-
-      {/* Data columns */}
-      {visibleColumns.map((col) => (
-        <div key={col.id} className="relative flex items-center justify-end">
-          <button
-            className="flex items-center justify-end gap-1 text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
-            onClick={() => handleSort(columnSortField[col.id])}
-          >
-            <SortIndicator field={columnSortField[col.id]} />
-            <span className="truncate">{col.label}</span>
-          </button>
-          <ResizeHandle
-            currentWidth={col.width}
-            onWidthChange={(newWidth) => setColumnWidth(col.id, newWidth)}
-          />
-        </div>
-      ))}
-    </div>
-
-    {/* Column visibility menu */}
-    {showVisibilityMenu && (
-      <ColumnVisibilityMenu
-        columns={columns}
-        onToggle={toggleColumnVisibility}
-        onClose={() => setShowVisibilityMenu(false)}
-      />
-    )}
-  </>
-  );
-}
-
 export function FileList() {
   const parentRef = useRef<HTMLDivElement>(null);
   const entries = useFileListStore((s) => s.visibleEntries);
@@ -183,8 +56,19 @@ export function FileList() {
   const toggleIndex = useFileListStore((s) => s.toggleIndex);
   const selectRange = useFileListStore((s) => s.selectRange);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
+  const sortBy = useFileListStore((s) => s.sortBy);
+  const sortDirection = useFileListStore((s) => s.sortDirection);
+  const setSortBy = useFileListStore((s) => s.setSortBy);
+  const toggleSortDirection = useFileListStore((s) => s.toggleSortDirection);
+  const columns = useFileListStore((s) => s.columns);
+  const setColumnWidth = useFileListStore((s) => s.setColumnWidth);
+  const toggleColumnVisibility = useFileListStore((s) => s.toggleColumnVisibility);
+
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry } | null>(null);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
+  const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
+
+  const visibleColumns = useMemo(() => columns.filter((c) => c.visible), [columns]);
 
   const virtualizer = useVirtualizer({
     count: entries.length,
@@ -195,7 +79,7 @@ export function FileList() {
 
   const lastClickRef = useRef<{ index: number; time: number }>({ index: -1, time: 0 });
 
-  const handleClick = (index: number, e: React.MouseEvent) => {
+  const handleClick = useCallback((index: number, e: React.MouseEvent) => {
     const now = Date.now();
     const last = lastClickRef.current;
 
@@ -218,17 +102,17 @@ export function FileList() {
     } else {
       selectIndex(index);
     }
-  };
+  }, [entries, navigateTo, toggleIndex, selectRange, selectIndex]);
 
-  const handleContextMenu = (e: React.MouseEvent, entry: FileEntry, index: number) => {
+  const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileEntry, index: number) => {
     e.preventDefault();
     if (!selectedIndices.has(index)) {
       selectIndex(index);
     }
     setContextMenu({ x: e.clientX, y: e.clientY, entry });
-  };
+  }, [selectedIndices, selectIndex]);
 
-  const handleDragStart = (e: React.DragEvent, entry: FileEntry, index: number) => {
+  const handleDragStart = useCallback((e: React.DragEvent, entry: FileEntry, index: number) => {
     if (!selectedIndices.has(index)) {
       selectIndex(index);
     }
@@ -243,60 +127,165 @@ export function FileList() {
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 0, 0);
     requestAnimationFrame(() => document.body.removeChild(ghost));
+  }, [selectedIndices, selectIndex]);
+
+  const handleSort = useCallback((field: SortField) => {
+    if (sortBy === field) {
+      toggleSortDirection();
+    } else {
+      setSortBy(field);
+    }
+  }, [sortBy, toggleSortDirection, setSortBy]);
+
+  const handleResizeStart = useCallback((colId: ColumnId, currentWidth: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startWidth = currentWidth;
+
+    const handleMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      setColumnWidth(colId, Math.max(40, startWidth + delta));
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+  }, [setColumnWidth]);
+
+  const SortIndicator = ({ field }: { field: SortField }) => {
+    if (sortBy !== field) return null;
+    return sortDirection === "asc" ? (
+      <ArrowUp size={10} className="text-accent shrink-0" />
+    ) : (
+      <ArrowDown size={10} className="text-accent shrink-0" />
+    );
   };
 
   return (
     <div ref={parentRef} className="h-full overflow-y-auto overflow-x-hidden pt-2 file-list-font">
-      <ColumnHeader />
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: "100%",
-          position: "relative",
-        }}
+      <table
+        className="w-full border-collapse"
+        style={{ tableLayout: "fixed", fontSize: "var(--font-filelist-item)" }}
       >
-        {virtualizer.getVirtualItems().map((virtualRow) => {
-          const entry = entries[virtualRow.index];
-          return (
-            <div
-              key={virtualRow.key}
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                width: "100%",
-                height: `${virtualRow.size}px`,
-                transform: `translateY(${virtualRow.start}px)`,
-              }}
+        <colgroup>
+          <col style={{ width: "24px" }} />
+          <col />
+          {visibleColumns.map((col) => (
+            <col key={col.id} style={{ width: `${col.width}px` }} />
+          ))}
+        </colgroup>
+
+        <thead
+          className="sticky top-0 z-10 bg-bg"
+          onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
+        >
+          <tr style={{ fontSize: "var(--font-filelist-header)" }}>
+            <th className="border-b border-border py-1.5 px-1" />
+            <th
+              className="border-b border-border py-1.5 px-2 text-left cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+              onClick={() => handleSort("name")}
             >
-              <FileListItem
-                entry={entry}
-                selected={selectedIndices.has(virtualRow.index)}
-                renaming={renamingIndex === virtualRow.index}
-                onRename={async (newName) => {
-                  const { invoke } = await import("@tauri-apps/api/core");
-                  await invoke("rename_item", { path: entry.path, newName });
-                  setRenamingIndex(null);
-                  useNavigationStore.getState().refreshCurrent();
-                }}
-                onCancelRename={() => setRenamingIndex(null)}
-                onClick={(e) => handleClick(virtualRow.index, e)}
-                onDoubleClick={() => {
-                  if (entry.is_dir) navigateTo(entry.path);
-                }}
-                onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
-                draggable={renamingIndex !== virtualRow.index}
-                onDragStart={(e) => handleDragStart(e, entry, virtualRow.index)}
-                onFileDrop={entry.is_dir ? async (paths) => {
-                  const { invoke } = await import("@tauri-apps/api/core");
-                  await invoke("move_items", { paths, destination: entry.path });
-                  useNavigationStore.getState().refreshCurrent();
-                } : undefined}
-              />
-            </div>
-          );
-        })}
-      </div>
+              <div className="flex items-center gap-1">
+                <span className="truncate">Name</span>
+                <SortIndicator field="name" />
+              </div>
+            </th>
+            {visibleColumns.map((col) => (
+              <th
+                key={col.id}
+                className="relative border-b border-border py-1.5 px-2 text-right cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+                onClick={() => handleSort(columnSortField[col.id])}
+              >
+                <div className="flex items-center justify-end gap-1">
+                  <SortIndicator field={columnSortField[col.id]} />
+                  <span className="truncate">{col.label}</span>
+                </div>
+                {/* Resize handle */}
+                <div
+                  className="absolute top-0 right-0 bottom-0 w-[5px] cursor-col-resize z-30 group/handle"
+                  onMouseDown={(e) => handleResizeStart(col.id, col.width, e)}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="absolute inset-y-0 right-0 w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+
+        <tbody>
+          {/* Spacer row to create virtual scroll space */}
+          <tr>
+            <td
+              colSpan={2 + visibleColumns.length}
+              style={{ height: `${virtualizer.getTotalSize()}px`, padding: 0, border: "none" }}
+            >
+              <div style={{ position: "relative", width: "100%", height: "100%" }}>
+                {virtualizer.getVirtualItems().map((virtualRow) => {
+                  const entry = entries[virtualRow.index];
+                  return (
+                    <div
+                      key={virtualRow.key}
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: `${virtualRow.size}px`,
+                        transform: `translateY(${virtualRow.start}px)`,
+                      }}
+                    >
+                      <FileListItem
+                        entry={entry}
+                        selected={selectedIndices.has(virtualRow.index)}
+                        renaming={renamingIndex === virtualRow.index}
+                        visibleColumns={visibleColumns}
+                        onRename={async (newName) => {
+                          const { invoke } = await import("@tauri-apps/api/core");
+                          await invoke("rename_item", { path: entry.path, newName });
+                          setRenamingIndex(null);
+                          useNavigationStore.getState().refreshCurrent();
+                        }}
+                        onCancelRename={() => setRenamingIndex(null)}
+                        onClick={(e) => handleClick(virtualRow.index, e)}
+                        onDoubleClick={() => {
+                          if (entry.is_dir) navigateTo(entry.path);
+                        }}
+                        onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
+                        draggable={renamingIndex !== virtualRow.index}
+                        onDragStart={(e) => handleDragStart(e, entry, virtualRow.index)}
+                        onFileDrop={entry.is_dir ? async (paths) => {
+                          const { invoke } = await import("@tauri-apps/api/core");
+                          await invoke("move_items", { paths, destination: entry.path });
+                          useNavigationStore.getState().refreshCurrent();
+                        } : undefined}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Column visibility menu */}
+      {showVisibilityMenu && (
+        <ColumnVisibilityMenu
+          columns={columns}
+          onToggle={toggleColumnVisibility}
+          onClose={() => setShowVisibilityMenu(false)}
+        />
+      )}
 
       {contextMenu && (
         <ContextMenu

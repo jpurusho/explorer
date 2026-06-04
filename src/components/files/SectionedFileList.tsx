@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useMemo } from "react";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useSectionStore } from "../../stores/sectionStore";
@@ -20,6 +20,8 @@ export function SectionedFileList() {
   const toggleCollapsed = useSectionStore((s) => s.toggleCollapsed);
   const toggleHidden = useSectionStore((s) => s.toggleHidden);
   const deleteSection = useSectionStore((s) => s.deleteSection);
+  const columns = useFileListStore((s) => s.columns);
+  const visibleColumns = useMemo(() => columns.filter((c) => c.visible), [columns]);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry } | null>(null);
 
   const handleClick = (index: number, e: React.MouseEvent) => {
@@ -78,6 +80,7 @@ export function SectionedFileList() {
               key={entry.path}
               entry={entry}
               selected={selectedIndices.has(index)}
+              visibleColumns={visibleColumns}
               onClick={(e) => handleClick(index, e)}
               onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
               onContextMenu={(e) => handleContextMenu(e, entry, index)}
@@ -108,6 +111,7 @@ export function SectionedFileList() {
           key={entry.path}
           entry={entry}
           selected={selectedIndices.has(index)}
+          visibleColumns={visibleColumns}
           onClick={(e) => handleClick(index, e)}
           onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
           onContextMenu={(e) => handleContextMenu(e, entry, index)}
