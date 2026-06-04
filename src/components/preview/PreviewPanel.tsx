@@ -254,7 +254,7 @@ export function PreviewPanel() {
       </div>
 
       {/* Preview/editor content */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0 select-text">
         {renderContent()}
       </div>
     </div>
