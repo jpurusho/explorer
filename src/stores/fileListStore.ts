@@ -139,12 +139,20 @@ export const useFileListStore = create<FileListState>((set, get) => ({
 
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
-  setViewMode: (viewMode) => set({ viewMode }),
+  setViewMode: (viewMode) => {
+    set({ viewMode });
+    import("./settingsStore").then(({ useSettingsStore }) => {
+      useSettingsStore.getState().updateSettings({ default_view: viewMode });
+    });
+  },
 
   setSortBy: (sortBy) => {
     const { entries, showHiddenFiles, sortDirection } = get();
     const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection);
     set({ sortBy, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
+    import("./settingsStore").then(({ useSettingsStore }) => {
+      useSettingsStore.getState().updateSettings({ sort_by: sortBy });
+    });
   },
 
   toggleSortDirection: () => {
@@ -152,6 +160,9 @@ export const useFileListStore = create<FileListState>((set, get) => ({
     const newDir = sortDirection === "asc" ? "desc" : "asc";
     const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, newDir);
     set({ sortDirection: newDir, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
+    import("./settingsStore").then(({ useSettingsStore }) => {
+      useSettingsStore.getState().updateSettings({ sort_direction: newDir });
+    });
   },
 
   setSelectedIndex: (index) => {
@@ -167,6 +178,9 @@ export const useFileListStore = create<FileListState>((set, get) => ({
     const newShow = !showHiddenFiles;
     const visibleEntries = computeVisible(entries, newShow, sortBy, sortDirection);
     set({ showHiddenFiles: newShow, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
+    import("./settingsStore").then(({ useSettingsStore }) => {
+      useSettingsStore.getState().updateSettings({ show_hidden_files: newShow });
+    });
   },
 
   setColumnWidth: (id, width) => {
