@@ -72,7 +72,7 @@ function FontSizeSlider() {
       <input
         type="range"
         min="10"
-        max="20"
+        max="30"
         step="0.5"
         value={sliderValue}
         onChange={handleChange}
