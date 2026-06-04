@@ -496,13 +496,14 @@ function SectionsPanel() {
             {/* Horizontal divider between sections */}
             {idx > 0 && <div className="mx-1 my-1" style={{ height: "1px", backgroundColor: "var(--section-border)" }} />}
 
-            {/* Section header — rectangular label with background */}
+            {/* Section header — drop target for folders */}
             <div
-              className="group/item cursor-default transition-all [&.drag-over]:ring-1 [&.drag-over]:ring-accent/50"
+              className="group/item cursor-default transition-all"
               onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: section.id }); }}
-              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; e.currentTarget.classList.add("drag-over"); }}
-              onDragLeave={(e) => { e.currentTarget.classList.remove("drag-over"); }}
-              onDrop={(e) => { e.currentTarget.classList.remove("drag-over"); handleDrop(e, section.id); }}
+              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; }}
+              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); (e.currentTarget.querySelector('[data-section-pill]') as HTMLElement)?.classList.add('ring-2', 'ring-accent'); }}
+              onDragLeave={(e) => { e.stopPropagation(); (e.currentTarget.querySelector('[data-section-pill]') as HTMLElement)?.classList.remove('ring-2', 'ring-accent'); }}
+              onDrop={(e) => { e.preventDefault(); e.stopPropagation(); (e.currentTarget.querySelector('[data-section-pill]') as HTMLElement)?.classList.remove('ring-2', 'ring-accent'); handleDrop(e, section.id); }}
             >
               {renamingId === section.id ? (
                 <div className="px-1 py-1">
@@ -521,7 +522,8 @@ function SectionsPanel() {
                 </div>
               ) : (
                 <div
-                  className="flex items-center gap-3"
+                  data-section-pill
+                  className="flex items-center gap-3 transition-all"
                   style={{
                     backgroundColor: "var(--section-bg)",
                     color: "var(--section-text)",
