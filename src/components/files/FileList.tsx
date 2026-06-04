@@ -123,7 +123,12 @@ function ColumnHeader() {
   const visibleColumns = columns.filter((c) => c.visible);
 
   return (
-    <div className="flex items-center gap-3 py-1.5 ml-4 mr-4 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10 overflow-hidden" style={{ fontSize: "var(--font-filelist-header)" }}>
+  <>
+    <div
+      className="flex items-center gap-3 py-1.5 ml-4 mr-4 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10 overflow-hidden"
+      style={{ fontSize: "var(--font-filelist-header)" }}
+      onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
+    >
       <div className="w-4 shrink-0" /> {/* icon space */}
 
       {/* Name column - always visible, flexible */}
@@ -156,24 +161,17 @@ function ColumnHeader() {
         </div>
       ))}
 
-      {/* Column visibility toggle */}
-      <div className="relative shrink-0">
-        <button
-          className="text-text-secondary hover:text-text transition-colors p-0.5"
-          onClick={() => setShowVisibilityMenu(!showVisibilityMenu)}
-          title="Toggle columns"
-        >
-          <Eye size={10} />
-        </button>
-        {showVisibilityMenu && (
-          <ColumnVisibilityMenu
-            columns={columns}
-            onToggle={toggleColumnVisibility}
-            onClose={() => setShowVisibilityMenu(false)}
-          />
-        )}
-      </div>
     </div>
+
+    {/* Column visibility menu (triggered by right-click on header) */}
+    {showVisibilityMenu && (
+      <ColumnVisibilityMenu
+        columns={columns}
+        onToggle={toggleColumnVisibility}
+        onClose={() => setShowVisibilityMenu(false)}
+      />
+    )}
+  </>
   );
 }
 

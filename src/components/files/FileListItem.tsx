@@ -164,7 +164,6 @@ export function FileListItem({
       )}
 
       {/* Spacer to match the visibility toggle button in the header */}
-      <div className="w-[18px] shrink-0" />
     </div>
   );
 }
