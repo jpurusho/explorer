@@ -61,13 +61,13 @@ export function useKeyboard() {
             }
             return;
           case "a":
-            if (!isEditing) {
+            if (!isEditing && !window.getSelection()?.toString()) {
               e.preventDefault();
               fileStore.selectAll();
             }
             return;
           case "c":
-            if (!isEditing) {
+            if (!isEditing && !window.getSelection()?.toString()) {
               e.preventDefault();
               clipboard = fileStore.getSelectedPaths();
               clipboardOp = "copy";
