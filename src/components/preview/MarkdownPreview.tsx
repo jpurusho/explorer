@@ -100,7 +100,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="pl-6 pr-8 py-5 prose-explorer max-w-full">
+      <div className="px-[--panel-px] py-5 prose-explorer max-w-full">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{ code: renderCode }}

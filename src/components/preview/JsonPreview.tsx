@@ -223,7 +223,7 @@ export function JsonPreview({ content }: JsonPreviewProps) {
           </span>
         </div>
       )}
-      <div className="flex-1 overflow-auto pl-6 pr-8 py-3 font-mono text-[--font-sm] leading-[1.6]">
+      <div className="flex-1 overflow-auto px-[--panel-px] py-3 font-mono text-[--font-sm] leading-[1.6]">
         <JsonNode data={result.data} depth={0} isLast={true} />
       </div>
     </div>

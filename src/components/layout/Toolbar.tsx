@@ -26,7 +26,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
   const pathParts = currentPath.split("/").filter(Boolean);
 
   return (
-    <div className="h-[--toolbar-height] bg-bg-secondary border-b border-border flex items-center gap-3 pl-5 pr-14" style={{ fontSize: "var(--font-toolbar-breadcrumb)" }}>
+    <div className="h-[--toolbar-height] bg-bg-secondary border-b border-border flex items-center gap-3 px-[--panel-px]" style={{ fontSize: "var(--font-toolbar-breadcrumb)" }}>
       {/* Nav buttons */}
       <div className="flex items-center gap-0.5">
         <button

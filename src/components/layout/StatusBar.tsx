@@ -28,7 +28,7 @@ export function StatusBar() {
   const currentFolder = currentPath.split("/").pop() || "/";
 
   return (
-    <div className="h-[--statusbar-height] bg-bg-secondary border-t border-border flex items-center pl-5 pr-14 gap-4" style={{ fontSize: "var(--font-statusbar-text)" }}>
+    <div className="h-[--statusbar-height] bg-bg-secondary border-t border-border flex items-center px-[--panel-px] gap-4" style={{ fontSize: "var(--font-statusbar-text)" }}>
       {/* Current location */}
       <div className="flex items-center gap-1.5 text-text-secondary min-w-0 shrink">
         <Folder size={12} className="text-folder shrink-0" />

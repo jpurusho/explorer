@@ -13,6 +13,8 @@ export interface SectionStyle {
 export interface LayoutConfig {
   toolbarHeight: number;
   statusBarHeight: number;
+  panelPaddingX: number;
+  panelPaddingY: number;
   radiusSm: number;
   radiusMd: number;
   radiusLg: number;
@@ -99,9 +101,11 @@ function applyCssVariables(theme: FontThemeConfig) {
   root.style.setProperty("--font-lg", `${g.lg}px`);
 
   // Layout dimensions
-  const l = theme.layout || { toolbarHeight: 42, statusBarHeight: 30, radiusSm: 3, radiusMd: 5, radiusLg: 8, radiusXl: 12 };
+  const l = theme.layout || { toolbarHeight: 42, statusBarHeight: 30, panelPaddingX: 20, panelPaddingY: 12, radiusSm: 3, radiusMd: 5, radiusLg: 8, radiusXl: 12 };
   root.style.setProperty("--toolbar-height", `${l.toolbarHeight}px`);
   root.style.setProperty("--statusbar-height", `${l.statusBarHeight}px`);
+  root.style.setProperty("--panel-px", `${l.panelPaddingX}px`);
+  root.style.setProperty("--panel-py", `${l.panelPaddingY}px`);
   root.style.setProperty("--radius-sm", `${l.radiusSm}px`);
   root.style.setProperty("--radius-md", `${l.radiusMd}px`);
   root.style.setProperty("--radius-lg", `${l.radiusLg}px`);

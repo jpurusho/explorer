@@ -49,7 +49,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   return (
     <div className="h-full bg-bg flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between pl-6 pr-14 py-3.5 border-b border-border shrink-0 bg-bg-secondary">
+      <div className="flex items-center justify-between px-[--panel-px] py-3.5 border-b border-border shrink-0 bg-bg-secondary">
         <h2 className="text-[--font-lg] font-semibold text-text">Settings</h2>
         <button
           onClick={onClose}
@@ -60,7 +60,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       </div>
 
       {/* Content — generous horizontal padding */}
-      <div className="flex-1 overflow-auto py-6 pl-6 pr-8">
+      <div className="flex-1 overflow-auto py-6 px-[--panel-px]">
         <SettingsSection title="Appearance">
           <div className="py-3 border-b border-border/30">
             <span className="text-[--font-md] text-text-secondary block mb-3">Theme</span>

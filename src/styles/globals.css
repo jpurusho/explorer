@@ -62,6 +62,10 @@
   --toolbar-height: 42px;
   --statusbar-height: 30px;
 
+  /* Panel inner padding */
+  --panel-px: 20px;
+  --panel-py: 12px;
+
   /* Border radius tokens */
   --radius-sm: 3px;
   --radius-md: 5px;
