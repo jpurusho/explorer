@@ -62,21 +62,20 @@ export function FileListItem({
   const [isDragTarget, setIsDragTarget] = useState(false);
   const [renameValue, setRenameValue] = useState(entry.name);
 
-  const typeCol = columns.find((c) => c.id === "type");
-  const sizeCol = columns.find((c) => c.id === "size");
-  const modifiedCol = columns.find((c) => c.id === "modified");
+  const visibleColumns = columns.filter((c) => c.visible);
+  const gridTemplate = `16px 1fr ${visibleColumns.map((c) => `${c.width}px`).join(" ")}`;
 
   return (
     <div
       className={clsx(
-        "flex items-center gap-3 py-[5px] cursor-default rounded-[5px] ml-3 mr-3 px-3 overflow-hidden",
+        "grid items-center py-[5px] cursor-default rounded-[5px] mx-3 px-3 gap-x-3",
         "transition-colors duration-75",
         selected
           ? "bg-accent/10 text-text"
           : "hover:bg-bg-hover text-text-secondary",
         isDragTarget && "ring-1 ring-accent/50 bg-accent/8"
       )}
-      style={{ fontSize: "var(--font-filelist-item)" }}
+      style={{ fontSize: "var(--font-filelist-item)", gridTemplateColumns: gridTemplate }}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
@@ -133,44 +132,16 @@ export function FileListItem({
         </div>
       )}
 
-      {/* Type */}
-      {typeCol?.visible && (
-        <>
-          <div className="w-[1px] h-4 bg-border/30 shrink-0" />
-          <span
-            className="text-right text-text-secondary shrink-0 truncate"
-            style={{ width: `${typeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
-          >
-            {getTypeLabel(entry)}
-          </span>
-        </>
-      )}
-
-      {/* Size */}
-      {sizeCol?.visible && (
-        <>
-          <div className="w-[1px] h-4 bg-border/30 shrink-0" />
-          <span
-            className="text-right text-text-secondary tabular-nums shrink-0"
-            style={{ width: `${sizeCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
-          >
-            {entry.is_dir ? "—" : formatSize(entry.size)}
-          </span>
-        </>
-      )}
-
-      {/* Date */}
-      {modifiedCol?.visible && (
-        <>
-          <div className="w-[1px] h-4 bg-border/30 shrink-0" />
-          <span
-            className="text-right text-text-secondary tabular-nums shrink-0 truncate"
-            style={{ width: `${modifiedCol.width}px`, fontSize: "var(--font-filelist-meta)" }}
-          >
-            {formatDate(entry.modified)}
-          </span>
-        </>
-      )}
+      {/* Data columns — rendered in order matching grid template */}
+      {visibleColumns.map((col) => (
+        <span
+          key={col.id}
+          className="text-right text-text-secondary tabular-nums truncate border-l border-border/20 pl-2"
+          style={{ fontSize: "var(--font-filelist-meta)" }}
+        >
+          {col.id === "type" ? getTypeLabel(entry) : col.id === "size" ? (entry.is_dir ? "—" : formatSize(entry.size)) : formatDate(entry.modified)}
+        </span>
+      ))}
 
       {/* Spacer to match the visibility toggle button in the header */}
     </div>

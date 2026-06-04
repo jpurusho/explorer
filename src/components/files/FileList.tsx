@@ -54,7 +54,7 @@ function ResizeHandle({
 
   return (
     <div
-      className="absolute top-0 bottom-0 right-0 w-[7px] cursor-col-resize z-30 flex items-center justify-center translate-x-[3px] group/handle"
+      className="absolute top-0 bottom-0 -right-[3px] w-[7px] cursor-col-resize z-30 flex items-center justify-center group/handle"
       onMouseDown={handleMouseDown}
     >
       <div className="w-[1px] h-full bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
@@ -125,34 +125,31 @@ function ColumnHeader() {
   };
 
   const visibleColumns = columns.filter((c) => c.visible);
+  const gridTemplate = `16px 1fr ${visibleColumns.map((c) => `${c.width}px`).join(" ")}`;
 
   return (
   <>
     <div
-      className="flex items-center gap-3 py-1.5 ml-4 mr-4 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10"
-      style={{ fontSize: "var(--font-filelist-header)" }}
+      className="grid items-center py-1.5 mx-3 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10 gap-x-3"
+      style={{ fontSize: "var(--font-filelist-header)", gridTemplateColumns: gridTemplate }}
       onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
     >
-      <div className="w-4 shrink-0" /> {/* icon space */}
+      <div /> {/* icon space */}
 
-      {/* Name column - always visible, flexible */}
+      {/* Name */}
       <button
-        className="flex-1 flex items-center gap-1 text-text-secondary font-semibold uppercase tracking-wider min-w-0 cursor-pointer hover:text-text transition-colors text-left"
+        className="flex items-center gap-1 text-text-secondary font-semibold uppercase tracking-wider min-w-0 cursor-pointer hover:text-text transition-colors text-left"
         onClick={handleNameSort}
       >
         <span className="truncate">Name</span>
         <SortIndicator field="name" />
       </button>
 
-      {/* Data columns - sortable + resizable */}
+      {/* Data columns */}
       {visibleColumns.map((col) => (
-        <div
-          key={col.id}
-          className="relative shrink-0"
-          style={{ width: `${col.width}px` }}
-        >
+        <div key={col.id} className="relative flex items-center justify-end">
           <button
-            className="w-full flex items-center justify-end gap-1 text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
+            className="flex items-center justify-end gap-1 text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
             onClick={() => handleSort(columnSortField[col.id])}
           >
             <SortIndicator field={columnSortField[col.id]} />
@@ -164,10 +161,9 @@ function ColumnHeader() {
           />
         </div>
       ))}
-
     </div>
 
-    {/* Column visibility menu (triggered by right-click on header) */}
+    {/* Column visibility menu */}
     {showVisibilityMenu && (
       <ColumnVisibilityMenu
         columns={columns}
