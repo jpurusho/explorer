@@ -46,6 +46,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   const fileType = single?.file_type as FileType | undefined;
   const refreshDirectory = useNavigationStore((s) => s.refreshCurrent);
   const allTags = useTagStore((s) => s.tags);
+  const activeTagFilter = useTagStore((s) => s.activeTagFilter);
   const tagFiles = useTagStore((s) => s.tagFiles);
   const untagFiles = useTagStore((s) => s.untagFiles);
   const fileTagMap = useTagStore((s) => s.fileTagMap);
@@ -115,6 +116,24 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   };
 
   const items: MenuItem[] = [];
+
+  // Remove from active tag (when in tag filter view)
+  if (activeTagFilter !== null) {
+    const activeTag = allTags.find((t) => t.id === activeTagFilter);
+    if (activeTag) {
+      items.push({
+        label: `Remove "${activeTag.name}" tag`,
+        icon: <Tag size={13} />,
+        action: () => {
+          const paths = entries.map((e) => e.path);
+          untagFiles(paths, activeTagFilter).then(() => refreshDirectory?.());
+          onClose();
+        },
+        destructive: true,
+      });
+      items.push({ label: "", icon: null, action: () => {}, separator: true });
+    }
+  }
 
   // Open
   if (single) {

@@ -852,7 +852,7 @@ export function Sidebar() {
         )}
 
         {/* Divider */}
-        <div className="h-[1px] bg-border my-8" />
+        <div className="h-[1px] bg-border mt-10 mb-6" />
 
         {/* Workspaces */}
         {showWorkspaces ? (
@@ -866,7 +866,7 @@ export function Sidebar() {
         ) : null}
 
         {/* Divider */}
-        <div className="h-[1px] bg-border my-8" />
+        <div className="h-[1px] bg-border mt-10 mb-6" />
 
         {/* Tags */}
         {showTags ? (
