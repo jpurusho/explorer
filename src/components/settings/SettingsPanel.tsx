@@ -1,4 +1,4 @@
-import { X, Check } from "lucide-react";
+import { X } from "lucide-react";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useFontThemeStore } from "../../stores/fontThemeStore";
@@ -61,46 +61,63 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
       {/* Content */}
       <div className="flex-1 overflow-auto py-6" style={{ padding: "24px var(--panel-px)" }}>
-        <SettingsSection title="Appearance">
-          <div className="py-3 border-b border-border/30">
-            <span className="text-[var(--font-md)] text-text-secondary block mb-3">Theme</span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setTheme("system")}
-                className={clsx(
-                  "px-3 py-1.5 rounded-[5px] text-[var(--font-sm)] font-medium border transition-all",
-                  settings.theme === "system"
-                    ? "border-accent bg-accent/10 text-accent"
-                    : "border-border bg-bg-tertiary text-text-secondary hover:border-text-muted"
-                )}
-              >
-                {settings.theme === "system" && <Check size={10} className="inline mr-1.5" />}
-                System
-              </button>
-              {themes.map((t) => (
+        <SettingsSection title="Color Theme">
+          <p className="text-[var(--font-sm)] text-text-muted mb-3">Controls the overall color scheme of the application.</p>
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => setTheme("system")}
+              className={clsx(
+                "flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all",
+                settings.theme === "system"
+                  ? "border-accent bg-accent/8"
+                  : "border-border hover:border-text-muted"
+              )}
+            >
+              <div className="w-full h-6 rounded flex overflow-hidden border border-border/50">
+                <div className="flex-1 bg-[#1c1c1e]" /><div className="flex-1 bg-[#ffffff]" />
+              </div>
+              <span className="text-[var(--font-xs)] text-text-secondary">System</span>
+            </button>
+            {themes.map((t) => {
+              const swatches: Record<string, string[]> = {
+                light: ["#ffffff", "#f8f8fa", "#0066ff"],
+                dark: ["#1c1c1e", "#232326", "#4da8ff"],
+                dracula: ["#282a36", "#343746", "#bd93f9"],
+                nord: ["#2e3440", "#3b4252", "#88c0d0"],
+                solarized: ["#002b36", "#073642", "#268bd2"],
+              };
+              const colors = swatches[t.id] || ["#333", "#444", "#66f"];
+              return (
                 <button
                   key={t.id}
                   onClick={() => setTheme(t.id)}
                   className={clsx(
-                    "px-3 py-1.5 rounded-[5px] text-[var(--font-sm)] font-medium border transition-all",
+                    "flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all",
                     settings.theme === t.id
-                      ? "border-accent bg-accent/10 text-accent"
-                      : "border-border bg-bg-tertiary text-text-secondary hover:border-text-muted"
+                      ? "border-accent bg-accent/8"
+                      : "border-border hover:border-text-muted"
                   )}
                 >
-                  {settings.theme === t.id && <Check size={10} className="inline mr-1.5" />}
-                  {t.label}
+                  <div className="w-full h-6 rounded flex overflow-hidden border border-border/50">
+                    <div className="flex-1" style={{ backgroundColor: colors[0] }} />
+                    <div className="flex-1" style={{ backgroundColor: colors[1] }} />
+                    <div className="w-2" style={{ backgroundColor: colors[2] }} />
+                  </div>
+                  <span className="text-[var(--font-xs)] text-text-secondary">{t.label}</span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </SettingsSection>
 
-        <SettingsSection title="Font Theme">
-          <div className="py-3 border-b border-border/30">
-            <span className="text-[var(--font-md)] text-text-secondary block mb-3">Size Preset</span>
-            <div className="flex flex-wrap gap-2">
-              {availableThemes.map((t) => (
+        <SettingsSection title="Font Size">
+          <p className="text-[var(--font-sm)] text-text-muted mb-3">
+            Choose a size preset. Fine-tune in ~/.config/explorer/themes/*.json (live reload).
+          </p>
+          <div className="flex flex-col gap-2">
+            {availableThemes.map((t) => {
+              const sampleSize = t.fonts?.fileList?.item || 13;
+              return (
                 <button
                   key={t.name}
                   onClick={() => {
@@ -108,20 +125,22 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     updateSettings({ font_theme: t.name.toLowerCase() });
                   }}
                   className={clsx(
-                    "px-3 py-1.5 rounded-[5px] text-[var(--font-sm)] font-medium border transition-all",
+                    "flex items-center justify-between p-3 rounded-lg border transition-all text-left",
                     currentFontTheme?.name === t.name
-                      ? "border-accent bg-accent/10 text-accent"
-                      : "border-border bg-bg-tertiary text-text-secondary hover:border-text-muted"
+                      ? "border-accent bg-accent/8"
+                      : "border-border hover:border-text-muted"
                   )}
                 >
-                  {currentFontTheme?.name === t.name && <Check size={10} className="inline mr-1.5" />}
-                  {t.name}
+                  <div>
+                    <span className="text-[var(--font-md)] text-text font-medium">{t.name}</span>
+                    <span className="text-[var(--font-xs)] text-text-muted ml-2">({sampleSize}px base)</span>
+                  </div>
+                  <span className="text-text-secondary" style={{ fontSize: `${sampleSize}px` }}>
+                    Sample Text Aa
+                  </span>
                 </button>
-              ))}
-            </div>
-            <p className="text-[var(--font-xs)] text-text-muted mt-2">
-              Edit ~/.config/explorer/themes/*.json for fine control. Changes apply live.
-            </p>
+              );
+            })}
           </div>
         </SettingsSection>
 
