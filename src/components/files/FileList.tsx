@@ -144,13 +144,9 @@ function ColumnHeader() {
         <SortIndicator field="name" />
       </button>
 
-      {/* Data columns - sortable + resizable (handles between columns) */}
+      {/* Data columns - sortable + resizable (handle AFTER each column = at right edge) */}
       {visibleColumns.map((col) => (
         <React.Fragment key={col.id}>
-          <ResizeHandle
-            currentWidth={col.width}
-            onWidthChange={(newWidth) => setColumnWidth(col.id, newWidth)}
-          />
           <div
             className="shrink-0"
             style={{ width: `${col.width}px` }}
@@ -163,6 +159,10 @@ function ColumnHeader() {
               <span className="truncate">{col.label}</span>
             </button>
           </div>
+          <ResizeHandle
+            currentWidth={col.width}
+            onWidthChange={(newWidth) => setColumnWidth(col.id, newWidth)}
+          />
         </React.Fragment>
       ))}
 
