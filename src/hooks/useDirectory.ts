@@ -31,7 +31,16 @@ export function useDirectory() {
       })
       .catch((err) => {
         if (cancelled) return;
-        fileStore.setError(err instanceof Error ? err.message : String(err));
+        const msg = err instanceof Error ? err.message : String(err);
+        // If path doesn't exist, navigate to parent
+        if (msg.includes("not exist") || msg.includes("Not found") || msg.includes("NotFound")) {
+          const parent = currentPath.split("/").slice(0, -1).join("/") || "/";
+          if (parent !== currentPath) {
+            useNavigationStore.getState().navigateTo(parent);
+            return;
+          }
+        }
+        fileStore.setError(msg);
         fileStore.setEntries([]);
       })
       .finally(() => {
