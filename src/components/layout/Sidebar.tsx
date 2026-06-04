@@ -523,18 +523,25 @@ function SectionsPanel() {
                 </div>
               ) : (
                 <div
-                  className={clsx("flex items-center gap-3 transition-all", dragOverSectionId === section.id && "ring-2 ring-accent scale-[1.02]")}
+                  className={clsx("flex items-center gap-3 transition-all relative", dragOverSectionId === section.id && "ring-2 ring-accent scale-[1.02] brightness-125")}
                   style={{
                     backgroundColor: "var(--section-bg)",
                     color: "var(--section-text)",
                     borderRadius: "var(--section-radius)",
                     padding: "var(--section-padding-v) var(--section-padding-h)",
+                    minHeight: "44px",
                   }}
                   onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: section.id }); }}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
-                  onDragLeave={() => setDragOverSectionId(null)}
-                  onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(null); handleDrop(e, section.id); }}
                 >
+                  {/* Invisible drop overlay — catches all drag events without child interference */}
+                  <div
+                    className="absolute inset-0 z-40"
+                    style={{ borderRadius: "var(--section-radius)" }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
+                    onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
+                    onDragLeave={() => setDragOverSectionId(null)}
+                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(null); handleDrop(e, section.id); }}
+                  />
                   {/* Color accent icon */}
                   <div
                     className="w-[28px] h-[28px] rounded-[6px] flex items-center justify-center shrink-0"
