@@ -3,6 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
 
+let clipboard: string[] = [];
+let clipboardOp: "copy" | "cut" | null = null;
+
 export function useKeyboard() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -45,7 +48,6 @@ export function useKeyboard() {
             return;
           case "Backspace":
             if (e.shiftKey) {
-              // Cmd+Shift+Delete = trash selected items
               e.preventDefault();
               const paths = fileStore.getSelectedPaths();
               if (paths.length > 0) {
@@ -62,6 +64,65 @@ export function useKeyboard() {
             if (!isEditing) {
               e.preventDefault();
               fileStore.selectAll();
+            }
+            return;
+          case "c":
+            if (!isEditing) {
+              e.preventDefault();
+              clipboard = fileStore.getSelectedPaths();
+              clipboardOp = "copy";
+            }
+            return;
+          case "x":
+            if (!isEditing) {
+              e.preventDefault();
+              clipboard = fileStore.getSelectedPaths();
+              clipboardOp = "cut";
+            }
+            return;
+          case "v":
+            if (!isEditing && clipboard.length > 0) {
+              e.preventDefault();
+              const dest = navStore.currentPath;
+              if (clipboardOp === "copy") {
+                invoke("copy_items", { paths: clipboard, destination: dest }).then(() => {
+                  navStore.refreshCurrent();
+                });
+              } else if (clipboardOp === "cut") {
+                invoke("move_items", { paths: clipboard, destination: dest }).then(() => {
+                  clipboard = [];
+                  clipboardOp = null;
+                  navStore.refreshCurrent();
+                });
+              }
+            }
+            return;
+          case "d":
+            if (!isEditing) {
+              e.preventDefault();
+              const paths = fileStore.getSelectedPaths();
+              const dest = navStore.currentPath;
+              if (paths.length > 0) {
+                invoke("copy_items", { paths, destination: dest }).then(() => {
+                  navStore.refreshCurrent();
+                });
+              }
+            }
+            return;
+          case "N":
+            if (e.shiftKey && !isEditing) {
+              e.preventDefault();
+              const dest = navStore.currentPath;
+              invoke("create_folder", { path: `${dest}/untitled folder` }).then(() => {
+                navStore.refreshCurrent();
+              }).catch(() => {
+                let i = 2;
+                const tryCreate = (): Promise<void> =>
+                  invoke("create_folder", { path: `${dest}/untitled folder ${i}` })
+                    .then(() => navStore.refreshCurrent())
+                    .catch(() => { i++; if (i < 100) return tryCreate(); });
+                tryCreate();
+              });
             }
             return;
         }

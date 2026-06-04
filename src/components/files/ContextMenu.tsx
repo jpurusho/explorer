@@ -3,12 +3,15 @@ import {
   ExternalLink,
   Copy,
   FolderOpen,
+  FolderPlus,
   Trash2,
   Pencil,
   Info,
   FileText,
   Eye,
   Clipboard,
+  ClipboardPaste,
+  Scissors,
   Tag,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
@@ -145,6 +148,66 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
     icon: <Copy size={13} />,
     action: handleCopyNames,
   });
+
+  // File operations
+  items.push({
+    label: "Copy Files",
+    icon: <Copy size={13} />,
+    action: () => {
+      (window as any).__explorerClipboard = { paths: entries.map((e) => e.path), op: "copy" };
+      onClose();
+    },
+  });
+
+  items.push({
+    label: "Cut Files",
+    icon: <Scissors size={13} />,
+    action: () => {
+      (window as any).__explorerClipboard = { paths: entries.map((e) => e.path), op: "cut" };
+      onClose();
+    },
+  });
+
+  if ((window as any).__explorerClipboard?.paths?.length > 0) {
+    items.push({
+      label: "Paste",
+      icon: <ClipboardPaste size={13} />,
+      action: async () => {
+        const cb = (window as any).__explorerClipboard;
+        const dest = currentPath;
+        if (cb.op === "copy") {
+          await invoke("copy_items", { paths: cb.paths, destination: dest });
+        } else {
+          await invoke("move_items", { paths: cb.paths, destination: dest });
+          (window as any).__explorerClipboard = null;
+        }
+        refreshDirectory?.();
+        onClose();
+      },
+    });
+  }
+
+  items.push({
+    label: "New Folder",
+    icon: <FolderPlus size={13} />,
+    action: async () => {
+      const dest = currentPath;
+      try {
+        await invoke("create_folder", { path: `${dest}/untitled folder` });
+      } catch {
+        for (let i = 2; i < 100; i++) {
+          try {
+            await invoke("create_folder", { path: `${dest}/untitled folder ${i}` });
+            break;
+          } catch { continue; }
+        }
+      }
+      refreshDirectory?.();
+      onClose();
+    },
+  });
+
+  items.push({ label: "", icon: null, action: () => {}, separator: true });
 
   // Tags submenu trigger
   items.push({

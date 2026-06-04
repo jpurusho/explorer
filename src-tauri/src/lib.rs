@@ -3,7 +3,7 @@ mod db;
 mod models;
 mod utils;
 
-use commands::file_ops::{copy_items, move_items, rename_item, trash_items};
+use commands::file_ops::{copy_items, create_folder, move_items, rename_item, trash_items};
 use commands::filesystem::{generate_thumbnail, get_file_metadata, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
 use commands::sections::{get_all_sections, get_sections, create_section, update_section, delete_section, assign_files_to_section, remove_files_from_section, reorder_sections};
 use commands::settings::{load_settings, save_settings, list_font_themes, load_font_theme, write_log};
@@ -40,6 +40,7 @@ pub fn run() {
             move_items,
             copy_items,
             rename_item,
+            create_folder,
             get_all_tags,
             create_tag,
             update_tag,

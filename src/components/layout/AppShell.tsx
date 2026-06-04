@@ -27,7 +27,7 @@ export function AppShell() {
 
   const handleSidebarResize = useCallback((delta: number) => {
     setSidebarWidth((w) => {
-      const next = Math.max(160, Math.min(400, w + delta));
+      const next = Math.max(100, w + delta);
       persistWidths(next, previewWidth);
       return next;
     });
@@ -35,7 +35,7 @@ export function AppShell() {
 
   const handlePreviewResize = useCallback((delta: number) => {
     setPreviewWidth((w) => {
-      const next = Math.max(280, Math.min(700, w + delta));
+      const next = Math.max(200, w + delta);
       persistWidths(sidebarWidth, next);
       return next;
     });

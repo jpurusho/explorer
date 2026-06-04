@@ -160,6 +160,16 @@ pub async fn rename_item(path: String, new_name: String) -> Result<String, AppEr
     Ok(target.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+pub async fn create_folder(path: String) -> Result<(), AppError> {
+    let folder_path = Path::new(&path);
+    if folder_path.exists() {
+        return Err(AppError::Other(format!("Already exists: {}", path)));
+    }
+    std::fs::create_dir(&folder_path)?;
+    Ok(())
+}
+
 fn copy_recursive(source: &Path, target: &Path) -> std::io::Result<()> {
     if source.is_dir() {
         std::fs::create_dir_all(target)?;
