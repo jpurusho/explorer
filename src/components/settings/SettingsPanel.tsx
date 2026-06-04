@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { X } from "lucide-react";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
@@ -37,30 +37,37 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
 function FontSizeSlider() {
   const currentTheme = useFontThemeStore((s) => s.currentTheme);
   const applyTheme = useFontThemeStore((s) => s.applyTheme);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
   const baseSize = currentTheme?.fonts?.fileList?.item || 14;
   const [sliderValue, setSliderValue] = useState(baseSize);
+  const originalBaseRef = useRef(baseSize);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBase = parseFloat(e.target.value);
     setSliderValue(newBase);
 
     if (!currentTheme) return;
-    const scale = newBase / (currentTheme.fonts.fileList.item || 14);
+    const scale = newBase / originalBaseRef.current;
     const scaled = (v: number) => Math.round(v * scale * 2) / 2;
 
     const newTheme = {
       ...currentTheme,
       fonts: {
-        sidebar: { heading: scaled(currentTheme.fonts.sidebar.heading), item: scaled(currentTheme.fonts.sidebar.item), section: scaled(currentTheme.fonts.sidebar.section), badge: scaled(currentTheme.fonts.sidebar.badge) },
-        fileList: { header: scaled(currentTheme.fonts.fileList.header), item: newBase, meta: scaled(currentTheme.fonts.fileList.meta) },
-        preview: { title: scaled(currentTheme.fonts.preview.title), meta: scaled(currentTheme.fonts.preview.meta), body: scaled(currentTheme.fonts.preview.body) },
-        toolbar: { breadcrumb: scaled(currentTheme.fonts.toolbar.breadcrumb), button: scaled(currentTheme.fonts.toolbar.button) },
-        statusBar: { text: scaled(currentTheme.fonts.statusBar.text) },
-        editor: { code: scaled(currentTheme.fonts.editor.code) },
-        global: { xs: scaled(currentTheme.fonts.global?.xs || 10), sm: scaled(currentTheme.fonts.global?.sm || 11), base: scaled(currentTheme.fonts.global?.base || 12), md: scaled(currentTheme.fonts.global?.md || 13), lg: scaled(currentTheme.fonts.global?.lg || 14) },
+        sidebar: { heading: scaled(12), item: scaled(13.5), section: scaled(14), badge: scaled(10) },
+        fileList: { header: scaled(11), item: newBase, meta: scaled(12) },
+        preview: { title: scaled(14), meta: scaled(11), body: scaled(13) },
+        toolbar: { breadcrumb: scaled(13), button: scaled(12) },
+        statusBar: { text: scaled(12.5) },
+        editor: { code: scaled(14) },
+        global: { xs: scaled(10), sm: scaled(11), base: scaled(12), md: scaled(13), lg: scaled(14) },
       },
     };
     applyTheme(newTheme);
+  };
+
+  const handleMouseUp = () => {
+    // Persist when user releases the slider
+    updateSettings({ font_theme: `scale:${sliderValue}` } as any);
   };
 
   return (
@@ -76,6 +83,8 @@ function FontSizeSlider() {
         step="0.5"
         value={sliderValue}
         onChange={handleChange}
+        onMouseUp={handleMouseUp}
+        onTouchEnd={handleMouseUp}
         className="w-full h-2 bg-bg-tertiary rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:cursor-pointer"
       />
       <div className="flex justify-between w-full text-[var(--font-xs)] text-text-muted">
