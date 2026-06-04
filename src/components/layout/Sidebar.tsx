@@ -422,6 +422,7 @@ function SectionsPanel() {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; id: number } | null>(null);
   const [showHiddenSections, setShowHiddenSections] = useState(false);
+  const [dragOverSectionId, setDragOverSectionId] = useState<number | null>(null);
 
   useEffect(() => {
     loadAllSections();
@@ -453,10 +454,17 @@ function SectionsPanel() {
 
   const handleDrop = (e: React.DragEvent, sectionId: number) => {
     e.preventDefault();
+    e.stopPropagation();
     const data = e.dataTransfer.getData("application/x-explorer-files");
     if (data) {
-      const paths = JSON.parse(data) as string[];
-      assignFiles(sectionId, paths);
+      try {
+        const paths = JSON.parse(data) as string[];
+        if (paths.length > 0) {
+          assignFiles(sectionId, paths).then(() => {
+            loadAllSections();
+          });
+        }
+      } catch {}
     }
   };
 
@@ -497,14 +505,7 @@ function SectionsPanel() {
             {idx > 0 && <div className="mx-1 my-1" style={{ height: "1px", backgroundColor: "var(--section-border)" }} />}
 
             {/* Section header — drop target for folders */}
-            <div
-              className="group/item cursor-default transition-all"
-              onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: section.id }); }}
-              onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = "copy"; }}
-              onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); (e.currentTarget.querySelector('[data-section-pill]') as HTMLElement)?.classList.add('ring-2', 'ring-accent'); }}
-              onDragLeave={(e) => { e.stopPropagation(); (e.currentTarget.querySelector('[data-section-pill]') as HTMLElement)?.classList.remove('ring-2', 'ring-accent'); }}
-              onDrop={(e) => { e.preventDefault(); e.stopPropagation(); (e.currentTarget.querySelector('[data-section-pill]') as HTMLElement)?.classList.remove('ring-2', 'ring-accent'); handleDrop(e, section.id); }}
-            >
+            <div className="group/item cursor-default">
               {renamingId === section.id ? (
                 <div className="px-1 py-1">
                   <input
@@ -522,14 +523,17 @@ function SectionsPanel() {
                 </div>
               ) : (
                 <div
-                  data-section-pill
-                  className="flex items-center gap-3 transition-all"
+                  className={clsx("flex items-center gap-3 transition-all", dragOverSectionId === section.id && "ring-2 ring-accent scale-[1.02]")}
                   style={{
                     backgroundColor: "var(--section-bg)",
                     color: "var(--section-text)",
                     borderRadius: "var(--section-radius)",
                     padding: "var(--section-padding-v) var(--section-padding-h)",
                   }}
+                  onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: section.id }); }}
+                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
+                  onDragLeave={() => setDragOverSectionId(null)}
+                  onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(null); handleDrop(e, section.id); }}
                 >
                   {/* Color accent icon */}
                   <div
