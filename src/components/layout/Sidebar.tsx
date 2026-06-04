@@ -98,6 +98,7 @@ function TreeItem({
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify([entry.path]));
     e.dataTransfer.effectAllowed = "copyMove";
+   
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -298,13 +299,31 @@ function TagsSection() {
   const activeTagFilter = useTagStore((s) => s.activeTagFilter);
   const setTagFilter = useTagStore((s) => s.setTagFilter);
   const createTag = useTagStore((s) => s.createTag);
+  const updateTag = useTagStore((s) => s.updateTag);
+  const deleteTag = useTagStore((s) => s.deleteTag);
   const tagFiles = useTagStore((s) => s.tagFiles);
   const [creating, setCreating] = useState(false);
   const [newName, setNewName] = useState("");
+  const [showTags, setShowTags] = useState(true);
+  const [tagCtxMenu, setTagCtxMenu] = useState<{ x: number; y: number; tagId: number } | null>(null);
+  const [renamingTagId, setRenamingTagId] = useState<number | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const tagCtxRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadTags();
   }, []);
+
+  useEffect(() => {
+    if (!tagCtxMenu) return;
+    const handler = (e: MouseEvent) => {
+      if (tagCtxRef.current && !tagCtxRef.current.contains(e.target as Node)) setTagCtxMenu(null);
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setTagCtxMenu(null); };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", esc); };
+  }, [tagCtxMenu]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -323,6 +342,8 @@ function TagsSection() {
       tagFiles(paths, tagId);
     }
   };
+
+  const tagColors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#6366f1", "#14b8a6"];
 
   if (tags.length === 0 && !creating) {
     return (
@@ -343,7 +364,10 @@ function TagsSection() {
   return (
     <div className="px-4 pb-2">
       <div className="flex items-center justify-between mb-2">
-        <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+        <button onClick={() => setShowTags(!showTags)} className="flex items-center gap-1">
+          <FoldIcon expanded={showTags} />
+          <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+        </button>
         <button
           onClick={() => setCreating(true)}
           className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary"
@@ -352,38 +376,60 @@ function TagsSection() {
         </button>
       </div>
 
-      <nav className="flex flex-col gap-[2px]">
-        {tags.map((tag) => (
-          <button
-            key={tag.id}
-            onClick={() => setTagFilter(activeTagFilter === tag.id ? null : tag.id)}
-            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
-            onDrop={(e) => handleDrop(e, tag.id)}
-            className={clsx(
-              "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] text-left w-full",
-              "transition-colors duration-75",
-              activeTagFilter === tag.id
-                ? "bg-accent/12 text-accent font-medium"
-                : "text-text hover:bg-bg-hover"
-            )}
-          >
-            <div
-              className="w-[10px] h-[10px] rounded-full shrink-0"
-              style={{ backgroundColor: tag.color }}
-            />
-            <span className="truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{tag.name}</span>
-          </button>
-        ))}
+      {showTags && (
+        <>
+          <nav className="flex flex-col gap-[2px]">
+            {tags.map((tag) => (
+              renamingTagId === tag.id ? (
+                <div key={tag.id} className="px-2.5 py-[3px]">
+                  <input
+                    autoFocus
+                    value={renameValue}
+                    onChange={(e) => setRenameValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && renameValue.trim()) { updateTag(tag.id, renameValue.trim()); setRenamingTagId(null); }
+                      if (e.key === "Escape") setRenamingTagId(null);
+                    }}
+                    onBlur={() => setRenamingTagId(null)}
+                    className="w-full bg-bg border border-border rounded px-2 py-0.5 text-text outline-none focus:border-accent"
+                    style={{ fontSize: "var(--font-sidebar-item)" }}
+                  />
+                </div>
+              ) : (
+                <button
+                  key={tag.id}
+                  onClick={() => setTagFilter(activeTagFilter === tag.id ? null : tag.id)}
+                  onContextMenu={(e) => { e.preventDefault(); setTagCtxMenu({ x: e.clientX, y: e.clientY, tagId: tag.id }); }}
+                  onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+                  onDrop={(e) => handleDrop(e, tag.id)}
+                  className={clsx(
+                    "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] text-left w-full",
+                    "transition-colors duration-75",
+                    activeTagFilter === tag.id
+                      ? "bg-accent/12 text-accent font-medium"
+                      : "text-text hover:bg-bg-hover"
+                  )}
+                >
+                  <div
+                    className="w-[10px] h-[10px] rounded-full shrink-0"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  <span className="truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{tag.name}</span>
+                </button>
+              )
+            ))}
+          </nav>
 
-        {activeTagFilter !== null && (
-          <button
-            onClick={() => setTagFilter(null)}
-            className="text-[--font-xs] text-text-muted hover:text-text-secondary px-2.5 py-1 text-left"
-          >
-            Clear filter
-          </button>
-        )}
-      </nav>
+          {activeTagFilter !== null && (
+            <button
+              onClick={() => setTagFilter(null)}
+              className="text-[--font-xs] text-accent hover:text-accent/80 px-2.5 py-1.5 text-left font-medium mt-1"
+            >
+              ✕ Clear filter
+            </button>
+          )}
+        </>
+      )}
 
       {creating && (
         <div className="mt-1.5">
@@ -401,6 +447,43 @@ function TagsSection() {
           />
         </div>
       )}
+
+      {/* Tag right-click menu */}
+      {tagCtxMenu && (() => {
+        const tag = tags.find((t) => t.id === tagCtxMenu.tagId);
+        if (!tag) return null;
+        return (
+          <div ref={tagCtxRef} className="fixed z-50 min-w-[160px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl" style={{ left: tagCtxMenu.x, top: tagCtxMenu.y }}>
+            <button
+              onClick={() => { setRenamingTagId(tag.id); setRenameValue(tag.name); setTagCtxMenu(null); }}
+              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+            >
+              <Pencil size={12} className="text-text-muted" /> Rename
+            </button>
+            <div className="h-[1px] bg-border my-1 mx-2" />
+            <div className="px-3 py-1.5">
+              <span className="text-[--font-xs] text-text-muted uppercase tracking-wider">Color</span>
+              <div className="flex flex-wrap gap-1.5 mt-1.5">
+                {tagColors.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => { updateTag(tag.id, undefined, c); setTagCtxMenu(null); }}
+                    className={clsx("w-[14px] h-[14px] rounded-full border-2 hover:scale-125 transition-transform", tag.color === c ? "border-white" : "border-transparent")}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+            <div className="h-[1px] bg-border my-1 mx-2" />
+            <button
+              onClick={() => { deleteTag(tag.id); setTagCtxMenu(null); }}
+              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-red-400"
+            >
+              <Trash2 size={12} /> Delete Tag
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -539,7 +622,7 @@ function SectionsPanel() {
                     style={{ borderRadius: "var(--section-radius)" }}
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
                     onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
-                    onDragLeave={() => setDragOverSectionId(null)}
+                    onDragLeave={() => { setDragOverSectionId(null); }}
                     onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(null); handleDrop(e, section.id); }}
                   />
                   {/* Color accent icon */}
