@@ -107,55 +107,72 @@
   --explorer-scrollbar-hover: #545456;
 }
 
-[data-theme="dracula"] {
-  --explorer-bg: #282a36;
-  --explorer-bg-secondary: #21222c;
-  --explorer-bg-tertiary: #343746;
-  --explorer-bg-hover: #3a3d4e;
-  --explorer-bg-selected: rgba(98, 114, 164, 0.2);
+[data-theme="material"] {
+  --explorer-bg: #212121;
+  --explorer-bg-secondary: #1a1a1a;
+  --explorer-bg-tertiary: #2c2c2c;
+  --explorer-bg-hover: #333333;
+  --explorer-bg-selected: rgba(130, 177, 255, 0.12);
+  --explorer-text: #eeffff;
+  --explorer-text-secondary: #b0bec5;
+  --explorer-text-muted: #616161;
+  --explorer-border: #2c2c2c;
+  --explorer-accent: #82b1ff;
+  --explorer-accent-hover: #a4c6ff;
+  --explorer-folder: #ffcb6b;
+  --explorer-scrollbar: #333333;
+  --explorer-scrollbar-hover: #4a4a4a;
+}
+
+[data-theme="github"] {
+  --explorer-bg: #0d1117;
+  --explorer-bg-secondary: #161b22;
+  --explorer-bg-tertiary: #21262d;
+  --explorer-bg-hover: #1c2128;
+  --explorer-bg-selected: rgba(56, 139, 253, 0.12);
+  --explorer-text: #e6edf3;
+  --explorer-text-secondary: #8b949e;
+  --explorer-text-muted: #6e7681;
+  --explorer-border: #30363d;
+  --explorer-accent: #58a6ff;
+  --explorer-accent-hover: #79c0ff;
+  --explorer-folder: #7ee787;
+  --explorer-scrollbar: #30363d;
+  --explorer-scrollbar-hover: #484f58;
+}
+
+[data-theme="monokai"] {
+  --explorer-bg: #272822;
+  --explorer-bg-secondary: #1e1f1c;
+  --explorer-bg-tertiary: #3e3d32;
+  --explorer-bg-hover: #3e3d32;
+  --explorer-bg-selected: rgba(166, 226, 46, 0.1);
   --explorer-text: #f8f8f2;
-  --explorer-text-secondary: #d4d4d4;
-  --explorer-text-muted: #7e8db5;
-  --explorer-border: #3a3d4e;
-  --explorer-accent: #bd93f9;
-  --explorer-accent-hover: #caa9fa;
-  --explorer-folder: #8be9fd;
-  --explorer-scrollbar: #3a3d4e;
-  --explorer-scrollbar-hover: #6272a4;
+  --explorer-text-secondary: #cfcfc2;
+  --explorer-text-muted: #75715e;
+  --explorer-border: #3e3d32;
+  --explorer-accent: #a6e22e;
+  --explorer-accent-hover: #b8f340;
+  --explorer-folder: #e6db74;
+  --explorer-scrollbar: #3e3d32;
+  --explorer-scrollbar-hover: #575842;
 }
 
-[data-theme="nord"] {
-  --explorer-bg: #2e3440;
-  --explorer-bg-secondary: #3b4252;
-  --explorer-bg-tertiary: #434c5e;
-  --explorer-bg-hover: #3e4555;
-  --explorer-bg-selected: rgba(136, 192, 208, 0.12);
-  --explorer-text: #eceff4;
-  --explorer-text-secondary: #d8dee9;
-  --explorer-text-muted: #8e9ab5;
-  --explorer-border: #434c5e;
-  --explorer-accent: #88c0d0;
-  --explorer-accent-hover: #8fbcbb;
-  --explorer-folder: #81a1c1;
-  --explorer-scrollbar: #434c5e;
-  --explorer-scrollbar-hover: #5e6a82;
-}
-
-[data-theme="solarized"] {
-  --explorer-bg: #002b36;
-  --explorer-bg-secondary: #073642;
-  --explorer-bg-tertiary: #0d4a5a;
-  --explorer-bg-hover: #0a4050;
-  --explorer-bg-selected: rgba(38, 139, 210, 0.15);
-  --explorer-text: #a8b5b5;
-  --explorer-text-secondary: #93a1a1;
-  --explorer-text-muted: #6d8080;
-  --explorer-border: #0d4a5a;
-  --explorer-accent: #268bd2;
-  --explorer-accent-hover: #2aa1f0;
-  --explorer-folder: #2aa198;
-  --explorer-scrollbar: #0d4a5a;
-  --explorer-scrollbar-hover: #1a6070;
+[data-theme="atom"] {
+  --explorer-bg: #282c34;
+  --explorer-bg-secondary: #21252b;
+  --explorer-bg-tertiary: #2c313a;
+  --explorer-bg-hover: #2c313a;
+  --explorer-bg-selected: rgba(97, 175, 239, 0.12);
+  --explorer-text: #abb2bf;
+  --explorer-text-secondary: #9da5b4;
+  --explorer-text-muted: #636d83;
+  --explorer-border: #3e4452;
+  --explorer-accent: #61afef;
+  --explorer-accent-hover: #7ec0f5;
+  --explorer-folder: #e5c07b;
+  --explorer-scrollbar: #3e4452;
+  --explorer-scrollbar-hover: #5c6370;
 }
 
 * {

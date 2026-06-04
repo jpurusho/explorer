@@ -42,7 +42,7 @@ export interface FileContent {
 }
 
 export interface AppSettings {
-  theme: "system" | "light" | "dark" | "dracula" | "nord" | "solarized";
+  theme: "system" | "light" | "dark" | "material" | "github" | "monokai" | "atom";
   default_view: "list" | "grid";
   show_hidden_files: boolean;
   sort_by: "name" | "size" | "modified" | "type";

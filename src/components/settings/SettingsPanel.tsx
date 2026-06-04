@@ -24,9 +24,9 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/30 gap-6">
+    <div className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 gap-6">
       <span className="text-[var(--font-md)] text-text-secondary shrink-0">{label}</span>
-      <div className="flex items-center justify-end min-w-0">
+      <div className="flex items-center justify-end min-w-0 shrink-0">
         {children}
       </div>
     </div>
@@ -82,9 +82,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               const swatches: Record<string, string[]> = {
                 light: ["#ffffff", "#f8f8fa", "#0066ff"],
                 dark: ["#1c1c1e", "#232326", "#4da8ff"],
-                dracula: ["#282a36", "#343746", "#bd93f9"],
-                nord: ["#2e3440", "#3b4252", "#88c0d0"],
-                solarized: ["#002b36", "#073642", "#268bd2"],
+                material: ["#212121", "#2c2c2c", "#82b1ff"],
+                github: ["#0d1117", "#161b22", "#58a6ff"],
+                monokai: ["#272822", "#3e3d32", "#a6e22e"],
+                atom: ["#282c34", "#2c313a", "#61afef"],
               };
               const colors = swatches[t.id] || ["#333", "#444", "#66f"];
               return (
@@ -125,18 +126,18 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     updateSettings({ font_theme: t.name.toLowerCase() });
                   }}
                   className={clsx(
-                    "flex items-center justify-between p-3 rounded-lg border transition-all text-left",
+                    "flex items-center gap-4 p-3 rounded-lg border transition-all text-left",
                     currentFontTheme?.name === t.name
                       ? "border-accent bg-accent/8"
                       : "border-border hover:border-text-muted"
                   )}
                 >
-                  <div>
+                  <div className="shrink-0">
                     <span className="text-[var(--font-md)] text-text font-medium">{t.name}</span>
-                    <span className="text-[var(--font-xs)] text-text-muted ml-2">({sampleSize}px base)</span>
+                    <span className="text-[var(--font-xs)] text-text-muted ml-2">({sampleSize}px)</span>
                   </div>
-                  <span className="text-text-secondary" style={{ fontSize: `${sampleSize}px` }}>
-                    Sample Text Aa
+                  <span className="text-text-secondary truncate" style={{ fontSize: `${sampleSize}px` }}>
+                    The quick brown fox
                   </span>
                 </button>
               );
