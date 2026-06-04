@@ -603,15 +603,28 @@ function SectionsPanel() {
                 {section.files.map((f) => {
                   const name = f.file_path.split("/").pop() || f.file_path;
                   return (
-                    <button
+                    <div
                       key={f.file_path}
-                      onClick={() => navigateTo(f.file_path)}
-                      style={{ fontSize: "var(--font-sidebar-item)" }}
-                      className="flex items-center gap-2 w-full px-2 py-[4px] rounded-[4px] text-left text-text hover:bg-bg-hover truncate transition-colors"
+                      className="flex items-center gap-2 w-full px-2 py-[4px] rounded-[4px] text-text hover:bg-bg-hover transition-colors group/wfile"
                     >
-                      <Folder size={13} className="text-folder shrink-0" strokeWidth={1.75} />
-                      <span className="truncate">{name}</span>
-                    </button>
+                      <button
+                        onClick={() => navigateTo(f.file_path)}
+                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                        style={{ fontSize: "var(--font-sidebar-item)" }}
+                      >
+                        <Folder size={13} className="text-folder shrink-0" strokeWidth={1.75} />
+                        <span className="truncate">{name}</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          useSectionStore.getState().removeFiles(section.id, [f.file_path]);
+                        }}
+                        className="p-0.5 rounded hover:bg-bg-tertiary text-text-muted hover:text-red-400 opacity-0 group-hover/wfile:opacity-100 transition-opacity shrink-0"
+                        title="Remove from workspace"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -839,7 +852,7 @@ export function Sidebar() {
         )}
 
         {/* Divider */}
-        <div className="h-[1px] bg-border my-6" />
+        <div className="h-[1px] bg-border my-8" />
 
         {/* Workspaces */}
         {showWorkspaces ? (
@@ -853,7 +866,7 @@ export function Sidebar() {
         ) : null}
 
         {/* Divider */}
-        <div className="h-[1px] bg-border my-6" />
+        <div className="h-[1px] bg-border my-8" />
 
         {/* Tags */}
         {showTags ? (
