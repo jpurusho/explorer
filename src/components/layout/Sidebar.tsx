@@ -4,6 +4,7 @@ import { clsx } from "clsx";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { useFileListStore } from "../../stores/fileListStore";
 import { useTagStore } from "../../stores/tagStore";
 import { useSectionStore } from "../../stores/sectionStore";
 import type { FileEntry } from "../../types";
@@ -485,7 +486,6 @@ function SectionsPanel() {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; id: number } | null>(null);
   const [showHiddenSections, setShowHiddenSections] = useState(false);
-  const [dragOverSectionId, setDragOverSectionId] = useState<number | null>(null);
 
   useEffect(() => {
     loadAllSections();
@@ -515,21 +515,6 @@ function SectionsPanel() {
     setRenamingId(null);
   };
 
-  const handleDrop = (e: React.DragEvent, sectionId: number) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const data = e.dataTransfer.getData("application/x-explorer-files");
-    if (data) {
-      try {
-        const paths = JSON.parse(data) as string[];
-        if (paths.length > 0) {
-          assignFiles(sectionId, paths).then(() => {
-            loadAllSections();
-          });
-        }
-      } catch {}
-    }
-  };
 
   if (!sectionsEnabled && !creating) {
     return (
@@ -573,15 +558,8 @@ function SectionsPanel() {
                 </div>
               ) : (
                 <div
-                  className={clsx(
-                    "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] w-full relative transition-colors",
-                    dragOverSectionId === section.id ? "bg-accent/15 ring-1 ring-accent" : "hover:bg-bg-hover"
-                  )}
+                  className="flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] w-full transition-colors hover:bg-bg-hover group/ws"
                   onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: section.id }); }}
-                  onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
-                  onDragEnter={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(section.id); }}
-                  onDragLeave={() => setDragOverSectionId(null)}
-                  onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setDragOverSectionId(null); handleDrop(e, section.id); }}
                 >
                   <div className="w-[10px] h-[10px] rounded-[3px] shrink-0" style={{ backgroundColor: section.color }} />
                   <button
@@ -590,6 +568,18 @@ function SectionsPanel() {
                     className="flex-1 text-left text-text truncate"
                   >
                     {section.name}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const paths = useFileListStore.getState().getSelectedPaths();
+                      if (paths.length > 0) {
+                        assignFiles(section.id, paths).then(() => loadAllSections());
+                      }
+                    }}
+                    className="p-0.5 rounded hover:bg-bg-tertiary text-text-muted hover:text-accent opacity-0 group-hover/ws:opacity-100 transition-opacity"
+                    title="Add selected files to this workspace"
+                  >
+                    <Plus size={11} />
                   </button>
                   <span style={{ fontSize: "var(--font-sidebar-badge)" }} className="text-text-muted tabular-nums">{section.files.length}</span>
                   <FoldIcon expanded={expandedSections.has(section.id)} />
