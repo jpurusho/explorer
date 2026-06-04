@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Home, Download, FileText, Monitor, Folder, Plus, Pencil, Trash2 } from "lucide-react";
+import { Home, Download, FileText, Monitor, Folder, Plus, Pencil, Trash2, Clipboard } from "lucide-react";
 import { clsx } from "clsx";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../../stores/navigationStore";
@@ -48,6 +48,7 @@ function TreeItem({
 }) {
   const [expanded, setExpanded] = useState(false);
   const [children, setChildren] = useState<FileEntry[] | null>(null);
+  const refreshTrigger = useNavigationStore((s) => s.refreshTrigger);
   const isActive = currentPath === entry.path;
   const isParentOfCurrent = currentPath.startsWith(entry.path + "/");
 
@@ -62,6 +63,18 @@ function TreeItem({
       }).catch(() => setChildren([]));
     }
   }, [isParentOfCurrent]);
+
+  // Refresh children when directory contents change
+  useEffect(() => {
+    if (expanded && children !== null) {
+      invoke<FileEntry[]>("list_directory", { path: entry.path }).then((entries) => {
+        const dirs = entries
+          .filter((e) => e.is_dir && !e.is_hidden)
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+        setChildren(dirs);
+      }).catch(() => {});
+    }
+  }, [refreshTrigger]);
 
   const toggleExpand = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -80,6 +93,12 @@ function TreeItem({
   };
 
   const [dragOver, setDragOver] = useState(false);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("application/x-explorer-files", JSON.stringify([entry.path]));
+    e.dataTransfer.effectAllowed = "copyMove";
+  };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -100,11 +119,17 @@ function TreeItem({
     const data = e.dataTransfer.getData("application/x-explorer-files");
     if (data) {
       const paths = JSON.parse(data) as string[];
-      const { invoke } = await import("@tauri-apps/api/core");
+      // Don't drop on self
+      if (paths.includes(entry.path)) return;
       await invoke("move_items", { paths, destination: entry.path });
-      const { useNavigationStore } = await import("../../stores/navigationStore");
       useNavigationStore.getState().refreshCurrent();
     }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxMenu({ x: e.clientX, y: e.clientY });
   };
 
   return (
@@ -122,6 +147,9 @@ function TreeItem({
         )}
         style={{ paddingRight: "6px" }}
         onClick={() => onNavigate(entry.path)}
+        onContextMenu={handleContextMenu}
+        draggable
+        onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -184,6 +212,68 @@ function TreeItem({
             />
           ))}
         </div>
+      )}
+
+      {/* Right-click menu */}
+      {ctxMenu && (
+        <TreeItemContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          entry={entry}
+          onClose={() => setCtxMenu(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; entry: FileEntry; onClose: () => void }) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const sections = useSectionStore((s) => s.sections);
+  const assignFiles = useSectionStore((s) => s.assignFiles);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
+    };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("mousedown", handler);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", esc); };
+  }, [onClose]);
+
+  return (
+    <div ref={menuRef} className="fixed z-50 min-w-[180px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl" style={{ left: x, top: y }}>
+      <button
+        onClick={() => { navigator.clipboard.writeText(entry.path); onClose(); }}
+        className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+      >
+        <Clipboard size={12} className="text-text-muted" /> Copy Path
+      </button>
+      <button
+        onClick={async () => {
+          await invoke("trash_items", { paths: [entry.path] });
+          useNavigationStore.getState().refreshCurrent();
+          onClose();
+        }}
+        className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-red-400"
+      >
+        <Trash2 size={12} /> Move to Trash
+      </button>
+      {sections.length > 0 && (
+        <>
+          <div className="h-[1px] bg-border my-1 mx-2" />
+          {sections.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => { assignFiles(s.id, [entry.path]); onClose(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+            >
+              <div className="w-[8px] h-[8px] rounded shrink-0" style={{ backgroundColor: s.color }} />
+              Add to {s.name}
+            </button>
+          ))}
+        </>
       )}
     </div>
   );
@@ -627,6 +717,7 @@ function SidebarContextMenu({ x, y, sectionId, onClose }: { x: number; y: number
 export function Sidebar() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
+  const refreshTrigger = useNavigationStore((s) => s.refreshTrigger);
   const settings = useSettingsStore((s) => s.settings);
 
   const [rootDirs, setRootDirs] = useState<FileEntry[]>([]);
@@ -648,7 +739,7 @@ export function Sidebar() {
       }
     }
     if (homeDir) loadRoot();
-  }, [homeDir]);
+  }, [homeDir, refreshTrigger]);
 
   return (
     <aside className="h-full bg-bg-secondary flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
