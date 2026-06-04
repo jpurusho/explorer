@@ -598,7 +598,16 @@ function SectionsPanel() {
                       className="flex items-center gap-2 w-full px-2 py-[4px] rounded-[4px] text-text hover:bg-bg-hover transition-colors group/wfile"
                     >
                       <button
-                        onClick={() => navigateTo(f.file_path)}
+                        onClick={() => {
+                          // Navigate to the path — if it's a folder, show contents
+                          // If already at this path, force refresh
+                          const navStore = useNavigationStore.getState();
+                          if (navStore.currentPath === f.file_path) {
+                            navStore.refreshCurrent();
+                          } else {
+                            navigateTo(f.file_path);
+                          }
+                        }}
                         className="flex items-center gap-2 flex-1 min-w-0 text-left"
                         style={{ fontSize: "var(--font-sidebar-item)" }}
                       >
