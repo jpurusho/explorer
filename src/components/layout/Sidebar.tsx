@@ -233,6 +233,10 @@ function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; e
   const menuRef = useRef<HTMLDivElement>(null);
   const sections = useSectionStore((s) => s.sections);
   const assignFiles = useSectionStore((s) => s.assignFiles);
+  const tags = useTagStore((s) => s.tags);
+  const tagFiles = useTagStore((s) => s.tagFiles);
+  const untagFiles = useTagStore((s) => s.untagFiles);
+  const fileTagMap = useTagStore((s) => s.fileTagMap);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -262,6 +266,36 @@ function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; e
       >
         <Trash2 size={12} /> Move to Trash
       </button>
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <>
+          <div className="h-[1px] bg-border my-1 mx-2" />
+          {tags.map((tag) => {
+            const hasTag = fileTagMap.get(entry.path)?.some((t) => t.id === tag.id);
+            return (
+              <button
+                key={tag.id}
+                onClick={() => {
+                  if (hasTag) {
+                    untagFiles([entry.path], tag.id);
+                  } else {
+                    tagFiles([entry.path], tag.id);
+                  }
+                  onClose();
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+              >
+                <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                <span className="flex-1">{tag.name}</span>
+                {hasTag && <span className="text-accent text-[--font-xs]">✓</span>}
+              </button>
+            );
+          })}
+        </>
+      )}
+
+      {/* Workspaces */}
       {sections.length > 0 && (
         <>
           <div className="h-[1px] bg-border my-1 mx-2" />
