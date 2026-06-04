@@ -71,17 +71,18 @@ function ColumnVisibilityMenu({
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute right-0 top-full mt-1 bg-bg border border-border rounded-md shadow-lg z-50 py-1 min-w-[120px]">
+      <div className="fixed left-1/3 top-12 bg-bg-secondary border border-border rounded-lg shadow-xl z-50 py-1.5 min-w-[160px]">
+        <div className="px-3 py-1 text-[var(--font-xs)] text-text-muted uppercase tracking-wider">Columns</div>
         {columns.map((col) => (
           <button
             key={col.id}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[var(--font-sm)] text-text hover:bg-bg-hover transition-colors"
+            className="flex items-center gap-2.5 w-full px-3 py-2 text-[var(--font-sm)] text-text hover:bg-bg-hover transition-colors"
             onClick={() => onToggle(col.id)}
           >
             {col.visible ? (
               <Eye size={12} className="text-accent" />
             ) : (
-              <EyeOff size={12} className="text-text-secondary" />
+              <EyeOff size={12} className="text-text-muted" />
             )}
             <span>{col.label}</span>
           </button>

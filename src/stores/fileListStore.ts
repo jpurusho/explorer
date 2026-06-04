@@ -125,7 +125,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   columns: [
     { id: "type", label: "Type", width: 50, minWidth: 40, visible: true },
     { id: "size", label: "Size", width: 58, minWidth: 44, visible: true },
-    { id: "modified", label: "Modified", width: 90, minWidth: 70, visible: true },
+    { id: "modified", label: "Modified", width: 120, minWidth: 80, visible: true },
   ],
 
   selectedIndex: -1,
