@@ -36,20 +36,23 @@ impl Default for AppSettings {
     }
 }
 
-use directories::ProjectDirs;
 use std::path::PathBuf;
 
 pub fn config_dir() -> PathBuf {
-    if let Some(proj) = ProjectDirs::from("com", "jpurshot", "explorer") {
-        proj.config_dir().to_path_buf()
-    } else {
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"));
-        home.join(".explorer")
-    }
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("/tmp"));
+    let dir = home.join(".config").join("explorer");
+    std::fs::create_dir_all(&dir).ok();
+    dir
 }
 
 pub fn config_file_path() -> PathBuf {
     config_dir().join("config.json")
+}
+
+pub fn themes_dir() -> PathBuf {
+    let dir = config_dir().join("themes");
+    std::fs::create_dir_all(&dir).ok();
+    dir
 }
 
 mod dirs {

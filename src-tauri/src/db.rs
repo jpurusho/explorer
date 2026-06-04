@@ -19,12 +19,10 @@ impl DbState {
 }
 
 fn get_db_path() -> PathBuf {
-    directories::ProjectDirs::from("com", "explorer", "Explorer")
-        .map(|d| d.config_dir().join("explorer.db"))
-        .unwrap_or_else(|| {
-            let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
-            PathBuf::from(home).join(".explorer").join("explorer.db")
-        })
+    let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
+    let config_dir = PathBuf::from(&home).join(".config").join("explorer");
+    std::fs::create_dir_all(&config_dir).ok();
+    config_dir.join("explorer.db")
 }
 
 fn run_migrations(conn: &Connection) {
