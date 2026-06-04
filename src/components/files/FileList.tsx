@@ -195,7 +195,24 @@ export function FileList() {
     overscan: 10,
   });
 
+  const lastClickRef = useRef<{ index: number; time: number }>({ index: -1, time: 0 });
+
   const handleClick = (index: number, e: React.MouseEvent) => {
+    const now = Date.now();
+    const last = lastClickRef.current;
+
+    // Detect double-click manually (works with virtualized lists)
+    if (last.index === index && now - last.time < 400) {
+      lastClickRef.current = { index: -1, time: 0 };
+      const entry = entries[index];
+      if (entry?.is_dir) {
+        navigateTo(entry.path);
+        return;
+      }
+    } else {
+      lastClickRef.current = { index, time: now };
+    }
+
     if (e.metaKey) {
       toggleIndex(index);
     } else if (e.shiftKey) {
