@@ -31,3 +31,4 @@ kamadak-exif = "0.5"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 sha2 = "0.10"
 trash = "5"
+rusqlite = { version = "0.31", features = ["bundled"] }

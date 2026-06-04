@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { Home, Download, FileText, Monitor, Folder } from "lucide-react";
+import { Home, Download, FileText, Monitor, Folder, Plus } from "lucide-react";
 import { clsx } from "clsx";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { useTagStore } from "../../stores/tagStore";
 import type { FileEntry } from "../../types";
 
 function FoldIcon({ expanded }: { expanded: boolean }) {
@@ -168,6 +169,119 @@ const defaultFavorites: FavoriteItem[] = [
   { label: "Downloads", suffix: "/Downloads", icon: Download },
 ];
 
+function TagsSection() {
+  const tags = useTagStore((s) => s.tags);
+  const loadTags = useTagStore((s) => s.loadTags);
+  const activeTagFilter = useTagStore((s) => s.activeTagFilter);
+  const setTagFilter = useTagStore((s) => s.setTagFilter);
+  const createTag = useTagStore((s) => s.createTag);
+  const tagFiles = useTagStore((s) => s.tagFiles);
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState("");
+
+  useEffect(() => {
+    loadTags();
+  }, []);
+
+  const handleCreate = async () => {
+    if (!newName.trim()) return;
+    const colors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#6366f1"];
+    const color = colors[tags.length % colors.length];
+    await createTag(newName.trim(), color);
+    setNewName("");
+    setCreating(false);
+  };
+
+  const handleDrop = (e: React.DragEvent, tagId: number) => {
+    e.preventDefault();
+    const data = e.dataTransfer.getData("application/x-explorer-files");
+    if (data) {
+      const paths = JSON.parse(data) as string[];
+      tagFiles(paths, tagId);
+    }
+  };
+
+  if (tags.length === 0 && !creating) {
+    return (
+      <div className="px-4 pb-2">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+          <button
+            onClick={() => setCreating(true)}
+            className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary"
+          >
+            <Plus size={11} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pb-2">
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+        <button
+          onClick={() => setCreating(true)}
+          className="p-0.5 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary"
+        >
+          <Plus size={11} />
+        </button>
+      </div>
+
+      <nav className="flex flex-col gap-[2px]">
+        {tags.map((tag) => (
+          <button
+            key={tag.id}
+            onClick={() => setTagFilter(activeTagFilter === tag.id ? null : tag.id)}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+            onDrop={(e) => handleDrop(e, tag.id)}
+            className={clsx(
+              "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] text-left w-full",
+              "transition-colors duration-75",
+              activeTagFilter === tag.id
+                ? "bg-accent/12 text-accent font-medium"
+                : "text-text hover:bg-bg-hover"
+            )}
+          >
+            <div
+              className="w-[10px] h-[10px] rounded-full shrink-0"
+              style={{ backgroundColor: tag.color }}
+            />
+            <span className="text-[12px] truncate">{tag.name}</span>
+          </button>
+        ))}
+
+        {activeTagFilter !== null && (
+          <button
+            onClick={() => setTagFilter(null)}
+            className="text-[10px] text-text-muted hover:text-text-secondary px-2.5 py-1 text-left"
+          >
+            Clear filter
+          </button>
+        )}
+      </nav>
+
+      {creating && (
+        <div className="mt-1.5">
+          <input
+            autoFocus
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleCreate();
+              if (e.key === "Escape") { setCreating(false); setNewName(""); }
+            }}
+            onBlur={() => { if (!newName.trim()) setCreating(false); }}
+            placeholder="Tag name..."
+            className="w-full bg-bg border border-border rounded px-2 py-1 text-[11px] text-text outline-none focus:border-accent"
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function Sidebar() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
@@ -221,6 +335,9 @@ export function Sidebar() {
           })}
         </nav>
       </div>
+
+      {/* Tags */}
+      <TagsSection />
 
       <div className="flex-1 overflow-auto px-4 pb-4">
         <h3 className="text-[10px] font-semibold text-text-muted uppercase tracking-widest mb-2 mt-3">

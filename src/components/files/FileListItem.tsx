@@ -2,6 +2,7 @@ import { clsx } from "clsx";
 import { format } from "date-fns";
 import { FileIcon } from "./FileIcon";
 import { useFileListStore } from "../../stores/fileListStore";
+import { useTagStore } from "../../stores/tagStore";
 import type { FileEntry, FileType } from "../../types";
 
 interface FileListItemProps {
@@ -47,8 +48,8 @@ export function FileListItem({
   onDragStart,
 }: FileListItemProps) {
   const columns = useFileListStore((s) => s.columns);
+  const tags = useTagStore((s) => s.getTagsForPath(entry.path));
 
-  // Build a map of visible column widths
   const typeCol = columns.find((c) => c.id === "type");
   const sizeCol = columns.find((c) => c.id === "size");
   const modifiedCol = columns.find((c) => c.id === "modified");
@@ -79,6 +80,23 @@ export function FileListItem({
       >
         {entry.name}
       </span>
+
+      {/* Tag pills */}
+      {tags.length > 0 && (
+        <div className="flex items-center gap-1 shrink-0">
+          {tags.slice(0, 3).map((tag) => (
+            <div
+              key={tag.id}
+              className="h-[6px] w-[6px] rounded-full shrink-0"
+              style={{ backgroundColor: tag.color }}
+              title={tag.name}
+            />
+          ))}
+          {tags.length > 3 && (
+            <span className="text-[9px] text-text-muted">+{tags.length - 3}</span>
+          )}
+        </div>
+      )}
 
       {/* Type */}
       {typeCol?.visible && (

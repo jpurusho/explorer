@@ -1,16 +1,20 @@
 mod commands;
+mod db;
 mod models;
 mod utils;
 
 use commands::file_ops::{copy_items, move_items, rename_item, trash_items};
 use commands::filesystem::{generate_thumbnail, get_file_metadata, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
+use commands::sections::{get_sections, create_section, update_section, delete_section, assign_files_to_section, remove_files_from_section, reorder_sections};
 use commands::settings::{load_settings, save_settings};
+use commands::tags::{get_all_tags, create_tag, update_tag, delete_tag, tag_files, untag_files, get_tags_for_files, get_files_by_tag};
 use std::path::PathBuf;
 use std::io::{Read, Seek, SeekFrom};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .manage(db::DbState::new())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -36,6 +40,21 @@ pub fn run() {
             move_items,
             copy_items,
             rename_item,
+            get_all_tags,
+            create_tag,
+            update_tag,
+            delete_tag,
+            tag_files,
+            untag_files,
+            get_tags_for_files,
+            get_files_by_tag,
+            get_sections,
+            create_section,
+            update_section,
+            delete_section,
+            assign_files_to_section,
+            remove_files_from_section,
+            reorder_sections,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

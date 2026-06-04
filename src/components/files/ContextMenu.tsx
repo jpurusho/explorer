@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ExternalLink,
   Copy,
@@ -9,10 +9,12 @@ import {
   FileText,
   Eye,
   Clipboard,
+  Tag,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { detachPreview } from "../../lib/detachPreview";
 import { useNavigationStore } from "../../stores/navigationStore";
+import { useTagStore } from "../../stores/tagStore";
 import type { FileEntry, FileType } from "../../types";
 
 interface ContextMenuProps {
@@ -39,6 +41,11 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   const single = count === 1 ? entries[0] : null;
   const fileType = single?.file_type as FileType | undefined;
   const refreshDirectory = useNavigationStore((s) => s.refreshCurrent);
+  const allTags = useTagStore((s) => s.tags);
+  const tagFiles = useTagStore((s) => s.tagFiles);
+  const untagFiles = useTagStore((s) => s.untagFiles);
+  const fileTagMap = useTagStore((s) => s.fileTagMap);
+  const [showTagSubmenu, setShowTagSubmenu] = useState(false);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -130,6 +137,13 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
     action: handleCopyNames,
   });
 
+  // Tags submenu trigger
+  items.push({
+    label: "Tags",
+    icon: <Tag size={13} />,
+    action: () => setShowTagSubmenu(!showTagSubmenu),
+  });
+
   items.push({ label: "", icon: null, action: () => {}, separator: true });
 
   // Rename (single only)
@@ -189,6 +203,36 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
           </button>
         );
       })}
+
+      {showTagSubmenu && allTags.length > 0 && (
+        <div className="border-t border-border mt-1 pt-1">
+          {allTags.map((tag) => {
+            const paths = entries.map((e) => e.path);
+            const hasTag = paths.some((p) => fileTagMap.get(p)?.some((t) => t.id === tag.id));
+            return (
+              <button
+                key={tag.id}
+                onClick={() => {
+                  const paths = entries.map((e) => e.path);
+                  if (hasTag) {
+                    untagFiles(paths, tag.id);
+                  } else {
+                    tagFiles(paths, tag.id);
+                  }
+                }}
+                className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[11px] hover:bg-bg-hover transition-colors"
+              >
+                <div
+                  className="w-[8px] h-[8px] rounded-full shrink-0"
+                  style={{ backgroundColor: tag.color }}
+                />
+                <span className="text-text-secondary flex-1">{tag.name}</span>
+                {hasTag && <span className="text-accent text-[10px]">✓</span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
