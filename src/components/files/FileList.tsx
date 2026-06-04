@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
 import { useFileListStore } from "../../stores/fileListStore";
@@ -54,10 +54,10 @@ function ResizeHandle({
 
   return (
     <div
-      className="absolute right-[-5px] top-0 bottom-0 w-[10px] cursor-col-resize z-20 group/handle"
+      className="shrink-0 w-[8px] self-stretch cursor-col-resize z-20 group/handle flex items-center justify-center -ml-[4px] -mr-[4px]"
       onMouseDown={handleMouseDown}
     >
-      <div className="absolute left-[4px] top-[2px] bottom-[2px] w-[2px] bg-border/0 group-hover/handle:bg-accent/60 transition-colors rounded" />
+      <div className="w-[2px] h-3 bg-border/0 group-hover/handle:bg-accent transition-colors rounded" />
     </div>
   );
 }
@@ -144,25 +144,26 @@ function ColumnHeader() {
         <SortIndicator field="name" />
       </button>
 
-      {/* Data columns - sortable + resizable */}
-      {visibleColumns.map((col, index) => (
-        <div
-          key={col.id}
-          className="relative shrink-0"
-          style={{ width: `${col.width}px`, zIndex: visibleColumns.length - index }}
-        >
-          <button
-            className="w-full flex items-center justify-end gap-1 text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
-            onClick={() => handleSort(columnSortField[col.id])}
-          >
-            <SortIndicator field={columnSortField[col.id]} />
-            <span className="truncate">{col.label}</span>
-          </button>
+      {/* Data columns - sortable + resizable (handles between columns) */}
+      {visibleColumns.map((col) => (
+        <React.Fragment key={col.id}>
           <ResizeHandle
             currentWidth={col.width}
             onWidthChange={(newWidth) => setColumnWidth(col.id, newWidth)}
           />
-        </div>
+          <div
+            className="shrink-0"
+            style={{ width: `${col.width}px` }}
+          >
+            <button
+              className="w-full flex items-center justify-end gap-1 text-text-secondary font-semibold uppercase tracking-wider cursor-pointer hover:text-text transition-colors"
+              onClick={() => handleSort(columnSortField[col.id])}
+            >
+              <SortIndicator field={columnSortField[col.id]} />
+              <span className="truncate">{col.label}</span>
+            </button>
+          </div>
+        </React.Fragment>
       ))}
 
     </div>
