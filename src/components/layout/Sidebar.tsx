@@ -819,6 +819,26 @@ export function Sidebar() {
     if (homeDir) loadRoot();
   }, [homeDir, refreshTrigger]);
 
+  const [foldersHeight, setFoldersHeight] = useState(300);
+  const [workspacesHeight, setWorkspacesHeight] = useState(150);
+
+  const handleDividerDrag = (setter: (h: number) => void, startHeight: number) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const onMove = (ev: MouseEvent) => {
+      const delta = ev.clientY - startY;
+      setter(Math.max(60, startHeight + delta));
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      document.body.style.cursor = "";
+    };
+    document.body.style.cursor = "row-resize";
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
   return (
     <aside className="h-full bg-bg-secondary flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
       {/* Favorites — compact, non-scrollable */}
@@ -856,63 +876,75 @@ export function Sidebar() {
         </div>
       )}
 
-      {/* Main scrollable area: Folders → Workspaces → Tags */}
-      <div className="flex-1 overflow-auto px-4 pb-4">
-
-        {/* Folders */}
-        {showFolders && (
-          <div>
-            <div className="flex items-center justify-between mb-2 mt-3">
-              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
-                Folders
-              </h3>
-              <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
-            </div>
-            <div className="flex flex-col">
-              {rootDirs.map((entry, idx) => (
-                <TreeItem
-                  key={entry.path}
-                  entry={entry}
-                  depth={0}
-                  isLast={idx === rootDirs.length - 1}
-                  parentLines={[]}
-                  currentPath={currentPath}
-                  onNavigate={navigateTo}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Divider */}
-        <div className="h-[1px] bg-border mt-10 mb-6" />
-
-        {/* Workspaces */}
-        {showWorkspaces ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Workspaces</h3>
-              <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
-            </div>
-            <SectionsPanel />
-          </div>
-        ) : null}
-
-        {/* Divider */}
-        <div className="h-[1px] bg-border mt-10 mb-6" />
-
-        {/* Tags */}
-        {showTags ? (
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
-              <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
-            </div>
-            <TagsSection />
-          </div>
-        ) : null}
-
+      {/* Draggable divider: Favorites ↔ Folders */}
+      <div
+        className="h-[5px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover group"
+        onMouseDown={handleDividerDrag(setFoldersHeight, foldersHeight)}
+      >
+        <div className="w-8 h-[1px] bg-border group-hover:bg-accent/50 transition-colors" />
       </div>
+
+      {/* Folders — resizable height */}
+      {showFolders && (
+        <div className="shrink-0 overflow-auto px-4" style={{ height: `${foldersHeight}px` }}>
+          <div className="flex items-center justify-between mb-2 mt-2">
+            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
+              Folders
+            </h3>
+            <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+          </div>
+          <div className="flex flex-col">
+            {rootDirs.map((entry, idx) => (
+              <TreeItem
+                key={entry.path}
+                entry={entry}
+                depth={0}
+                isLast={idx === rootDirs.length - 1}
+                parentLines={[]}
+                currentPath={currentPath}
+                onNavigate={navigateTo}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Draggable divider: Folders ↔ Workspaces */}
+      <div
+        className="h-[5px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover group"
+        onMouseDown={handleDividerDrag(setWorkspacesHeight, workspacesHeight)}
+      >
+        <div className="w-8 h-[1px] bg-border group-hover:bg-accent/50 transition-colors" />
+      </div>
+
+      {/* Workspaces — resizable height */}
+      {showWorkspaces && (
+        <div className="shrink-0 overflow-auto px-4" style={{ height: `${workspacesHeight}px` }}>
+          <div className="flex items-center justify-between mb-2 mt-2">
+            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Workspaces</h3>
+            <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+          </div>
+          <SectionsPanel />
+        </div>
+      )}
+
+      {/* Draggable divider: Workspaces ↔ Tags */}
+      <div
+        className="h-[5px] shrink-0 cursor-row-resize flex items-center justify-center hover:bg-bg-hover group"
+      >
+        <div className="w-8 h-[1px] bg-border group-hover:bg-accent/50 transition-colors" />
+      </div>
+
+      {/* Tags — fills remaining space */}
+      {showTags && (
+        <div className="flex-1 overflow-auto px-4 pb-4">
+          <div className="flex items-center justify-between mb-2 mt-2">
+            <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+            <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+          </div>
+          <TagsSection />
+        </div>
+      )}
 
       {/* Show hidden panels */}
       {(!showFavorites || !showFolders || !showWorkspaces || !showTags) && (
