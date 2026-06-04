@@ -59,7 +59,7 @@ export function DetachedPreview() {
     if (loading) {
       return (
         <div className="flex items-center justify-center h-full">
-          <span className="text-[--font-sm] text-text-muted">Loading...</span>
+          <span className="text-[var(--font-sm)] text-text-muted">Loading...</span>
         </div>
       );
     }
@@ -67,7 +67,7 @@ export function DetachedPreview() {
     if (!content) {
       return (
         <div className="flex items-center justify-center h-full">
-          <span className="text-[--font-sm] text-text-muted">No preview available</span>
+          <span className="text-[var(--font-sm)] text-text-muted">No preview available</span>
         </div>
       );
     }
@@ -99,7 +99,7 @@ export function DetachedPreview() {
   return (
     <div className="h-screen w-screen bg-bg flex flex-col overflow-hidden">
       <div className="h-8 bg-bg-secondary border-b border-border flex items-center px-4 shrink-0" data-tauri-drag-region>
-        <span className="text-[--font-sm] text-text-secondary font-medium truncate">
+        <span className="text-[var(--font-sm)] text-text-secondary font-medium truncate">
           {fileName}
         </span>
       </div>

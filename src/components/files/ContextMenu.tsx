@@ -294,7 +294,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
             key={idx}
             onClick={item.action}
             disabled={item.disabled}
-            className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <span className={item.destructive ? "text-red-400 shrink-0" : "text-text-muted shrink-0"}>{item.icon}</span>
             <span className={item.destructive ? "text-red-400" : "text-text-secondary"}>{item.label}</span>
@@ -318,14 +318,14 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
                     tagFiles(paths, tag.id);
                   }
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors"
               >
                 <div
                   className="w-[8px] h-[8px] rounded-full shrink-0"
                   style={{ backgroundColor: tag.color }}
                 />
                 <span className="text-text-secondary flex-1">{tag.name}</span>
-                {hasTag && <span className="text-accent text-[--font-xs]">✓</span>}
+                {hasTag && <span className="text-accent text-[var(--font-xs)]">✓</span>}
               </button>
             );
           })}
@@ -342,7 +342,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
                 assignFiles(section.id, paths);
                 onClose();
               }}
-              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors"
+              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors"
             >
               <div
                 className="w-[8px] h-[8px] rounded shrink-0"
@@ -361,7 +361,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
               }
               onClose();
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors text-text-muted"
+            className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors text-text-muted"
           >
             <span className="w-[8px] shrink-0">—</span>
             <span className="flex-1">Unsorted</span>
@@ -372,9 +372,9 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
           {!creatingSection ? (
             <button
               onClick={() => setCreatingSection(true)}
-              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[--font-sm] hover:bg-bg-hover transition-colors text-accent"
+              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors text-accent"
             >
-              <span className="text-[--font-md]">+</span>
+              <span className="text-[var(--font-md)]">+</span>
               <span>New Section</span>
             </button>
           ) : (
@@ -395,7 +395,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
                   if (e.key === "Escape") setCreatingSection(false);
                 }}
                 placeholder="Section name..."
-                className="w-full bg-bg border border-border rounded px-2 py-1 text-[--font-sm] text-text outline-none focus:border-accent"
+                className="w-full bg-bg border border-border rounded px-2 py-1 text-[var(--font-sm)] text-text outline-none focus:border-accent"
               />
             </div>
           )}

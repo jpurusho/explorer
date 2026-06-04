@@ -235,7 +235,7 @@ pre, code, .prose-explorer, .select-text {
 .prose-explorer {
   color: var(--explorer-text-secondary);
   line-height: 1.7;
-  font-size: 12px;
+  font-size: var(--font-preview-body);
 }
 
 .prose-explorer h1,

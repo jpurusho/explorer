@@ -75,7 +75,7 @@ function ColumnVisibilityMenu({
         {columns.map((col) => (
           <button
             key={col.id}
-            className="flex items-center gap-2 w-full px-3 py-1.5 text-[--font-sm] text-text hover:bg-bg-hover transition-colors"
+            className="flex items-center gap-2 w-full px-3 py-1.5 text-[var(--font-sm)] text-text hover:bg-bg-hover transition-colors"
             onClick={() => onToggle(col.id)}
           >
             {col.visible ? (
@@ -240,7 +240,7 @@ export function FileList() {
     e.dataTransfer.effectAllowed = "copyMove";
 
     const ghost = document.createElement("div");
-    ghost.className = "fixed -top-[100px] left-0 px-3 py-1.5 bg-accent/90 text-white text-[--font-sm] rounded-md font-medium shadow-lg";
+    ghost.className = "fixed -top-[100px] left-0 px-3 py-1.5 bg-accent/90 text-white text-[var(--font-sm)] rounded-md font-medium shadow-lg";
     ghost.textContent = paths.length > 1 ? `${paths.length} items` : entry.name;
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 0, 0);

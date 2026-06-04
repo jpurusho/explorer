@@ -128,7 +128,7 @@ export function FileListItem({
             />
           ))}
           {tags.length > 3 && (
-            <span className="text-[--font-xs] text-text-muted">+{tags.length - 3}</span>
+            <span className="text-[var(--font-xs)] text-text-muted">+{tags.length - 3}</span>
           )}
         </div>
       )}

@@ -74,12 +74,12 @@ export function SearchBar({ visible, onClose }: SearchBarProps) {
         onKeyDown={handleKeyDown}
         placeholder="Find in files..."
         className={clsx(
-          "flex-1 bg-transparent outline-none text-[--font-base] text-text",
+          "flex-1 bg-transparent outline-none text-[var(--font-base)] text-text",
           "placeholder:text-text-muted/60"
         )}
       />
       {query && (
-        <span className="text-[--font-xs] text-text-muted tabular-nums shrink-0">
+        <span className="text-[var(--font-xs)] text-text-muted tabular-nums shrink-0">
           {matchIndices.length > 0
             ? `${currentMatch + 1} of ${matchIndices.length}`
             : "No matches"}

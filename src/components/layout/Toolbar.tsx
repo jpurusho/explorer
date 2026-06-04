@@ -26,7 +26,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
   const pathParts = currentPath.split("/").filter(Boolean);
 
   return (
-    <div className="h-[--toolbar-height] bg-bg-secondary border-b border-border flex items-center gap-3 overflow-hidden" style={{ fontSize: "var(--font-toolbar-breadcrumb)", padding: "0 var(--panel-px)" }}>
+    <div className="h-[var(--toolbar-height)] bg-bg-secondary border-b border-border flex items-center gap-3 overflow-hidden" style={{ fontSize: "var(--font-toolbar-breadcrumb)", padding: "0 var(--panel-px)" }}>
       {/* Nav buttons */}
       <div className="flex items-center gap-0.5">
         <button
@@ -68,11 +68,11 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
           const isLast = i === pathParts.length - 1;
           return (
             <span key={fullPath} className="flex items-center gap-0.5 shrink-0">
-              <span className="text-text-muted/40 text-[--font-sm] mx-0.5">/</span>
+              <span className="text-text-muted/40 text-[var(--font-sm)] mx-0.5">/</span>
               <button
                 onClick={() => navigateTo(fullPath)}
                 className={clsx(
-                  "text-[--font-base] px-1.5 py-1 rounded-[4px] hover:bg-bg-hover truncate max-w-[140px] transition-colors",
+                  "text-[var(--font-base)] px-1.5 py-1 rounded-[4px] hover:bg-bg-hover truncate max-w-[140px] transition-colors",
                   isLast ? "text-text font-medium" : "text-text-secondary"
                 )}
               >

@@ -43,7 +43,7 @@ function MermaidBlock({ code }: { code: string }) {
       }
     }).catch(() => {
       if (containerRef.current) {
-        containerRef.current.innerHTML = `<pre class="text-[--font-sm] text-red-400">Failed to render mermaid diagram</pre>`;
+        containerRef.current.innerHTML = `<pre class="text-[var(--font-sm)] text-red-400">Failed to render mermaid diagram</pre>`;
       }
     });
   }, [code]);
@@ -55,7 +55,7 @@ function MermaidBlock({ code }: { code: string }) {
   return (
     <div className="my-4 rounded-md border border-border overflow-hidden">
       <div className="flex items-center justify-end gap-1 px-3 py-1.5 bg-bg-secondary border-b border-border">
-        <span className="text-[--font-xs] text-text-muted mr-2">{Math.round(scale * 100)}%</span>
+        <span className="text-[var(--font-xs)] text-text-muted mr-2">{Math.round(scale * 100)}%</span>
         <button onClick={zoomOut} className="p-1 rounded hover:bg-bg-hover text-text-muted hover:text-text-secondary">
           <ZoomOut size={12} />
         </button>
@@ -100,7 +100,7 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
 
   return (
     <div className="h-full overflow-auto">
-      <div className="px-[var(--panel-px)] py-5 prose-explorer max-w-full">
+      <div className="py-5 prose-explorer max-w-full" style={{ paddingLeft: "calc(var(--panel-px) + 8px)", paddingRight: "var(--panel-px)" }}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{ code: renderCode }}

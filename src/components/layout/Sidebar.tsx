@@ -252,7 +252,7 @@ function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; e
     <div ref={menuRef} className="fixed z-50 min-w-[180px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl" style={{ left: x, top: y }}>
       <button
         onClick={() => { navigator.clipboard.writeText(entry.path); onClose(); }}
-        className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+        className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary"
       >
         <Clipboard size={12} className="text-text-muted" /> Copy Path
       </button>
@@ -262,7 +262,7 @@ function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; e
           useNavigationStore.getState().refreshCurrent();
           onClose();
         }}
-        className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-red-400"
+        className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-red-400"
       >
         <Trash2 size={12} /> Move to Trash
       </button>
@@ -284,11 +284,11 @@ function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; e
                   }
                   onClose();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+                className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary"
               >
                 <div className="w-[8px] h-[8px] rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
                 <span className="flex-1">{tag.name}</span>
-                {hasTag && <span className="text-accent text-[--font-xs]">✓</span>}
+                {hasTag && <span className="text-accent text-[var(--font-xs)]">✓</span>}
               </button>
             );
           })}
@@ -303,7 +303,7 @@ function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; e
             <button
               key={s.id}
               onClick={() => { assignFiles(s.id, [entry.path]); onClose(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary"
             >
               <div className="w-[8px] h-[8px] rounded shrink-0" style={{ backgroundColor: s.color }} />
               Add to {s.name}
@@ -440,7 +440,7 @@ function TagsSection() {
           {activeTagFilter !== null && (
             <button
               onClick={() => setTagFilter(null)}
-              className="text-[--font-xs] text-accent hover:text-accent/80 px-2.5 py-1.5 text-left font-medium mt-1"
+              className="text-[var(--font-xs)] text-accent hover:text-accent/80 px-2.5 py-1.5 text-left font-medium mt-1"
             >
               ✕ Clear filter
             </button>
@@ -458,7 +458,7 @@ function TagsSection() {
             }}
             onBlur={() => { if (!newName.trim()) setCreating(false); }}
             placeholder="Tag name..."
-            className="w-full bg-bg border border-border rounded px-2 py-1 text-[--font-sm] text-text outline-none focus:border-accent"
+            className="w-full bg-bg border border-border rounded px-2 py-1 text-[var(--font-sm)] text-text outline-none focus:border-accent"
           />
         </div>
       )}
@@ -471,13 +471,13 @@ function TagsSection() {
           <div ref={tagCtxRef} className="fixed z-50 min-w-[160px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl" style={{ left: tagCtxMenu.x, top: tagCtxMenu.y }}>
             <button
               onClick={() => { setRenamingTagId(tag.id); setRenameValue(tag.name); setTagCtxMenu(null); }}
-              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary"
+              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary"
             >
               <Pencil size={12} className="text-text-muted" /> Rename
             </button>
             <div className="h-[1px] bg-border my-1 mx-2" />
             <div className="px-3 py-1.5">
-              <span className="text-[--font-xs] text-text-muted uppercase tracking-wider">Color</span>
+              <span className="text-[var(--font-xs)] text-text-muted uppercase tracking-wider">Color</span>
               <div className="flex flex-wrap gap-1.5 mt-1.5">
                 {tagColors.map((c) => (
                   <button
@@ -492,7 +492,7 @@ function TagsSection() {
             <div className="h-[1px] bg-border my-1 mx-2" />
             <button
               onClick={() => { deleteTag(tag.id); setTagCtxMenu(null); }}
-              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-red-400"
+              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-red-400"
             >
               <Trash2 size={12} /> Delete Tag
             </button>
@@ -678,7 +678,7 @@ function SectionsPanel() {
             }}
             onBlur={() => { if (!newName.trim()) setCreating(false); }}
             placeholder="Section name..."
-            className="w-full bg-bg border border-border rounded px-2 py-1 text-[--font-sm] text-text outline-none focus:border-accent"
+            className="w-full bg-bg border border-border rounded px-2 py-1 text-[var(--font-sm)] text-text outline-none focus:border-accent"
           />
         </div>
       )}
@@ -688,7 +688,7 @@ function SectionsPanel() {
         <div className="mt-2">
           <button
             onClick={() => setShowHiddenSections(!showHiddenSections)}
-            className="text-[--font-xs] text-text-muted hover:text-text-secondary px-2"
+            className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary px-2"
           >
             {showHiddenSections ? "Hide hidden sections" : `${sections.filter((s) => s.hidden).length} hidden section(s)`}
           </button>
@@ -700,7 +700,7 @@ function SectionsPanel() {
                   <span style={{ fontSize: "var(--font-sidebar-item)" }} className="flex-1 text-text-muted truncate">{section.name}</span>
                   <button
                     onClick={() => toggleHidden(section.id)}
-                    className="text-[--font-xs] text-accent hover:underline"
+                    className="text-[var(--font-xs)] text-accent hover:underline"
                   >
                     Show
                   </button>
@@ -754,7 +754,7 @@ function SidebarContextMenu({ x, y, sectionId, onClose }: { x: number; y: number
             if (e.key === "Enter" && name.trim()) { updateSection(sectionId, { name: name.trim() }); onClose(); }
             if (e.key === "Escape") onClose();
           }}
-          className="w-full bg-bg border border-border rounded px-2 py-1 text-[--font-base] text-text outline-none focus:border-accent"
+          className="w-full bg-bg border border-border rounded px-2 py-1 text-[var(--font-base)] text-text outline-none focus:border-accent"
         />
       </div>
     );
@@ -762,15 +762,15 @@ function SidebarContextMenu({ x, y, sectionId, onClose }: { x: number; y: number
 
   return (
     <div ref={menuRef} className="fixed z-50 min-w-[180px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl" style={{ left: x, top: y }}>
-      <button onClick={() => setRenaming(true)} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary">
+      <button onClick={() => setRenaming(true)} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary">
         <Pencil size={12} className="text-text-muted" /> Rename
       </button>
-      <button onClick={() => { toggleHidden(sectionId); onClose(); }} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-text-secondary">
+      <button onClick={() => { toggleHidden(sectionId); onClose(); }} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary">
         <Folder size={12} className="text-text-muted" /> {section.hidden ? "Show" : "Hide"}
       </button>
       <div className="h-[1px] bg-border my-1.5 mx-2" />
       <div className="px-3 py-1">
-        <span className="text-[--font-xs] text-text-muted uppercase tracking-wider">Color</span>
+        <span className="text-[var(--font-xs)] text-text-muted uppercase tracking-wider">Color</span>
         <div className="flex flex-wrap gap-1.5 mt-1.5">
           {colors.map((c) => (
             <button
@@ -783,7 +783,7 @@ function SidebarContextMenu({ x, y, sectionId, onClose }: { x: number; y: number
         </div>
       </div>
       <div className="h-[1px] bg-border my-1.5 mx-2" />
-      <button onClick={() => { deleteSection(sectionId); onClose(); }} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[--font-base] hover:bg-bg-hover text-red-400">
+      <button onClick={() => { deleteSection(sectionId); onClose(); }} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-red-400">
         <Trash2 size={12} /> Delete Section
       </button>
     </div>
@@ -831,7 +831,7 @@ export function Sidebar() {
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
                 Favorites
               </h3>
-              <button onClick={() => setShowFavorites(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+              <button onClick={() => setShowFavorites(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <nav className="flex flex-col gap-[2px]">
               {defaultFavorites.map((item) => {
@@ -869,7 +869,7 @@ export function Sidebar() {
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
                 Folders
               </h3>
-              <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+              <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <div className="flex flex-col">
               {rootDirs.map((entry, idx) => (
@@ -895,7 +895,7 @@ export function Sidebar() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Workspaces</h3>
-              <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+              <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <SectionsPanel />
           </div>
@@ -909,7 +909,7 @@ export function Sidebar() {
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
-              <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[--font-xs]">✕</button>
+              <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <TagsSection />
           </div>
@@ -921,16 +921,16 @@ export function Sidebar() {
       {(!showFavorites || !showFolders || !showWorkspaces || !showTags) && (
         <div className="px-4 py-2 border-t border-border shrink-0">
           {!showFavorites && (
-            <button onClick={() => setShowFavorites(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Favorites</button>
+            <button onClick={() => setShowFavorites(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Favorites</button>
           )}
           {!showFolders && (
-            <button onClick={() => setShowFolders(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Folders</button>
+            <button onClick={() => setShowFolders(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Folders</button>
           )}
           {!showWorkspaces && (
-            <button onClick={() => setShowWorkspaces(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Workspaces</button>
+            <button onClick={() => setShowWorkspaces(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Workspaces</button>
           )}
           {!showTags && (
-            <button onClick={() => setShowTags(true)} className="text-[--font-xs] text-text-muted hover:text-text-secondary block py-0.5">Show Tags</button>
+            <button onClick={() => setShowTags(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Tags</button>
           )}
         </div>
       )}

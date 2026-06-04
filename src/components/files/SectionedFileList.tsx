@@ -98,8 +98,8 @@ export function SectionedFileList() {
       {unsorted.length > 0 && sectionGroups.length > 0 && (
         <div className="mb-2">
           <div className="flex items-center gap-2 px-4 py-1.5 mx-2">
-            <span className="text-[--font-sm] text-text-muted font-medium">Unsorted</span>
-            <span className="text-[--font-xs] text-text-muted/60">{unsorted.length}</span>
+            <span className="text-[var(--font-sm)] text-text-muted font-medium">Unsorted</span>
+            <span className="text-[var(--font-xs)] text-text-muted/60">{unsorted.length}</span>
           </div>
         </div>
       )}

@@ -24,7 +24,7 @@ export function VideoPreview({ path, name }: VideoPreviewProps) {
         </video>
       </div>
       <div className="shrink-0 px-6 py-2 bg-bg-secondary border-t border-border">
-        <p className="text-[--font-sm] text-text-muted truncate">{name}</p>
+        <p className="text-[var(--font-sm)] text-text-muted truncate">{name}</p>
       </div>
     </div>
   );

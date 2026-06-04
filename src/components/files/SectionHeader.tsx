@@ -66,13 +66,13 @@ export function SectionHeader({
       </button>
 
       <span
-        className="text-[--font-md] font-bold tracking-wide"
+        className="text-[var(--font-md)] font-bold tracking-wide"
         style={{ color: section.color }}
       >
         {section.name}
       </span>
 
-      <span className="text-[--font-xs] text-text-muted bg-bg-tertiary px-1.5 py-0.5 rounded-full">
+      <span className="text-[var(--font-xs)] text-text-muted bg-bg-tertiary px-1.5 py-0.5 rounded-full">
         {fileCount}
       </span>
 

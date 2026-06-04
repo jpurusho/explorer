@@ -24,7 +24,7 @@ export function PdfPreview({ path }: PdfPreviewProps) {
   if (error) {
     return (
       <div className="h-full flex items-center justify-center p-4">
-        <span className="text-[--font-sm] text-red-400">Cannot load PDF</span>
+        <span className="text-[var(--font-sm)] text-red-400">Cannot load PDF</span>
       </div>
     );
   }
@@ -32,7 +32,7 @@ export function PdfPreview({ path }: PdfPreviewProps) {
   if (!dataUrl) {
     return (
       <div className="h-full flex items-center justify-center">
-        <span className="text-[--font-sm] text-text-muted">Loading PDF...</span>
+        <span className="text-[var(--font-sm)] text-text-muted">Loading PDF...</span>
       </div>
     );
   }

@@ -18,7 +18,7 @@ export function AudioPreview({ path, name }: AudioPreviewProps) {
       <div className="w-24 h-24 rounded-2xl bg-bg-tertiary border border-border flex items-center justify-center">
         <Music size={36} className="text-text-muted" strokeWidth={1.5} />
       </div>
-      <p className="text-[--font-base] text-text-secondary text-center max-w-[250px] truncate">
+      <p className="text-[var(--font-base)] text-text-secondary text-center max-w-[250px] truncate">
         {name}
       </p>
       <audio

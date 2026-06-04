@@ -102,14 +102,14 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
     <div className="h-full flex flex-col overflow-hidden">
       {/* Editor toolbar */}
       <div className="h-8 bg-bg-tertiary/60 border-b border-border flex items-center px-[var(--panel-px)] gap-3 shrink-0">
-        <span className="text-[--font-sm] text-text-secondary font-medium truncate max-w-[160px]">
+        <span className="text-[var(--font-sm)] text-text-secondary font-medium truncate max-w-[160px]">
           {fileName}
         </span>
         {modified && (
-          <span className="text-[--font-xs] text-amber-400 font-medium px-1.5 py-0.5 bg-amber-400/10 rounded">Modified</span>
+          <span className="text-[var(--font-xs)] text-amber-400 font-medium px-1.5 py-0.5 bg-amber-400/10 rounded">Modified</span>
         )}
         {savedMessage && (
-          <span className="text-[--font-xs] text-green-400 font-medium px-1.5 py-0.5 bg-green-400/10 rounded">Saved</span>
+          <span className="text-[var(--font-xs)] text-green-400 font-medium px-1.5 py-0.5 bg-green-400/10 rounded">Saved</span>
         )}
         <div className="flex-1" />
         <button
@@ -124,7 +124,7 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
         >
           <WrapText size={13} />
         </button>
-        <span className="text-[--font-xs] text-text-muted font-mono">VIM</span>
+        <span className="text-[var(--font-xs)] text-text-muted font-mono">VIM</span>
       </div>
 
       {/* Editor container */}
