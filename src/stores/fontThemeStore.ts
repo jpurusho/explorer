@@ -121,6 +121,30 @@ export const useFontThemeStore = create<FontThemeState>((set, get) => ({
   watchedThemeName: null,
 
   loadTheme: async (name) => {
+    // Handle "scale:N" format (persisted from font slider)
+    if (name.startsWith("scale:")) {
+      const baseSize = parseFloat(name.slice(6));
+      if (!isNaN(baseSize)) {
+        const scale = baseSize / 14;
+        const s = (v: number) => Math.round(v * scale * 2) / 2;
+        const scaledTheme: FontThemeConfig = {
+          ...defaultFonts,
+          name: "Scaled",
+          fonts: {
+            sidebar: { heading: s(12), item: s(13.5), section: s(14), badge: s(10) },
+            fileList: { header: s(11), item: baseSize, meta: s(12) },
+            preview: { title: s(14), meta: s(11), body: s(13) },
+            toolbar: { breadcrumb: s(13), button: s(12) },
+            statusBar: { text: s(12.5) },
+            editor: { code: s(14) },
+            global: { xs: s(10), sm: s(11), base: s(12), md: s(13), lg: s(14) },
+          },
+        };
+        get().applyTheme(scaledTheme);
+        return;
+      }
+    }
+
     try {
       const theme = await invoke<FontThemeConfig>("load_font_theme", { name });
       get().applyTheme(theme);

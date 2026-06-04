@@ -51,10 +51,10 @@ function ResizeHandle({
 
   return (
     <div
-      className="absolute right-0 top-0 bottom-0 w-[5px] cursor-col-resize z-20 group/handle"
+      className="absolute -right-[4px] top-0 bottom-0 w-[10px] cursor-col-resize z-20 group/handle"
       onMouseDown={handleMouseDown}
     >
-      <div className="absolute right-[2px] top-[4px] bottom-[4px] w-[1px] bg-border opacity-0 group-hover/handle:opacity-100 transition-opacity" />
+      <div className="absolute left-[4px] top-[4px] bottom-[4px] w-[2px] bg-border/50 opacity-0 group-hover/handle:opacity-100 transition-opacity rounded" />
     </div>
   );
 }
@@ -126,7 +126,7 @@ function ColumnHeader() {
   return (
   <>
     <div
-      className="flex items-center gap-3 py-1.5 ml-4 mr-4 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10 overflow-hidden"
+      className="flex items-center gap-3 py-1.5 ml-4 mr-4 px-3 border-b border-border mb-1 sticky top-0 bg-bg z-10"
       style={{ fontSize: "var(--font-filelist-header)" }}
       onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
     >
