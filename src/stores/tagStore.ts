@@ -79,6 +79,10 @@ export const useTagStore = create<TagState>((set, get) => ({
 
   setTagFilter: (tagId) => {
     set({ activeTagFilter: tagId });
+    // Trigger a refresh so useDirectory picks up the filter change
+    import("./navigationStore").then(({ useNavigationStore }) => {
+      useNavigationStore.getState().refreshCurrent();
+    });
   },
 
   getTagsForPath: (path) => {

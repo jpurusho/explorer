@@ -4,7 +4,7 @@ mod models;
 mod utils;
 
 use commands::file_ops::{copy_items, create_folder, move_items, rename_item, trash_items};
-use commands::filesystem::{generate_thumbnail, get_file_metadata, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
+use commands::filesystem::{generate_thumbnail, get_file_entries, get_file_metadata, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
 use commands::sections::{get_all_sections, get_sections, create_section, update_section, delete_section, assign_files_to_section, remove_files_from_section, reorder_sections};
 use commands::settings::{load_settings, save_settings, list_font_themes, load_font_theme, write_log};
 use commands::tags::{get_all_tags, create_tag, update_tag, delete_tag, tag_files, untag_files, get_tags_for_files, get_files_by_tag};
@@ -29,6 +29,7 @@ pub fn run() {
             list_directory,
             read_file_content,
             get_file_metadata,
+            get_file_entries,
             get_home_directory,
             read_image_base64,
             write_file,

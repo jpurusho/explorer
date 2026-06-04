@@ -168,6 +168,41 @@ pub fn get_home_directory() -> Result<String, AppError> {
 }
 
 #[tauri::command]
+pub async fn get_file_entries(paths: Vec<String>) -> Result<Vec<FileEntry>, AppError> {
+    let mut entries = Vec::new();
+    for path_str in &paths {
+        let path = Path::new(path_str);
+        if !path.exists() {
+            continue;
+        }
+        let metadata = match std::fs::metadata(path) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+        let name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        let is_dir = metadata.is_dir();
+        let is_hidden = name.starts_with('.');
+        let size = if is_dir { 0 } else { metadata.len() };
+        let modified = metadata.modified().ok().and_then(|t| {
+            let dt: DateTime<Utc> = t.into();
+            Some(dt.to_rfc3339())
+        }).unwrap_or_default();
+        let file_type = if is_dir { "directory".to_string() } else { classify_file_type(&name) };
+
+        entries.push(FileEntry {
+            name,
+            path: path_str.clone(),
+            is_dir,
+            is_hidden,
+            size,
+            modified,
+            file_type,
+        });
+    }
+    Ok(entries)
+}
+
+#[tauri::command]
 pub async fn read_image_base64(path: String) -> Result<String, AppError> {
     use base64::Engine;
     let file_path = Path::new(&path);
