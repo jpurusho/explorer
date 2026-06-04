@@ -11,11 +11,11 @@ interface SettingsPanelProps {
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="mb-8">
-      <h3 className="text-[var(--font-xs)] font-semibold text-text-muted uppercase tracking-widest mb-3">
+    <div className="mb-6">
+      <h3 className="text-[var(--font-xs)] font-semibold text-accent/70 uppercase tracking-widest mb-3">
         {title}
       </h3>
-      <div className="flex flex-col gap-0">
+      <div className="bg-bg-secondary rounded-lg border border-border/50 p-4 flex flex-col gap-0">
         {children}
       </div>
     </div>
@@ -49,7 +49,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   return (
     <div className="h-full bg-bg flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-[var(--panel-px)] py-3.5 border-b border-border shrink-0 bg-bg-secondary">
+      <div className="flex items-center justify-between py-3.5 border-b border-border shrink-0 bg-bg-secondary" style={{ padding: "14px var(--panel-px)" }}>
         <h2 className="text-[var(--font-lg)] font-semibold text-text">Settings</h2>
         <button
           onClick={onClose}
@@ -59,8 +59,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         </button>
       </div>
 
-      {/* Content — generous horizontal padding */}
-      <div className="flex-1 overflow-auto py-6 px-[var(--panel-px)]">
+      {/* Content */}
+      <div className="flex-1 overflow-auto py-6" style={{ padding: "24px var(--panel-px)" }}>
         <SettingsSection title="Appearance">
           <div className="py-3 border-b border-border/30">
             <span className="text-[var(--font-md)] text-text-secondary block mb-3">Theme</span>
