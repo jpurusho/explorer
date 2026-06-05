@@ -98,13 +98,13 @@ fn get_index_db_path() -> PathBuf {
 }
 
 fn init_schema(conn: &Connection) {
-    conn.execute_batch("
-        PRAGMA journal_mode = WAL;
-        PRAGMA synchronous = NORMAL;
-        PRAGMA cache_size = -65536;
-        PRAGMA temp_store = MEMORY;
-        PRAGMA mmap_size = 536870912;
+    conn.pragma_update(None, "journal_mode", "WAL").ok();
+    conn.pragma_update(None, "synchronous", "NORMAL").ok();
+    conn.pragma_update(None, "cache_size", "-65536").ok();
+    conn.pragma_update(None, "temp_store", "MEMORY").ok();
+    conn.pragma_update(None, "mmap_size", "536870912").ok();
 
+    conn.execute_batch("
         CREATE TABLE IF NOT EXISTS files (
             path         TEXT PRIMARY KEY,
             name         TEXT NOT NULL,
