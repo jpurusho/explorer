@@ -69,7 +69,7 @@ fn run_migrations(conn: &Connection) {
 
         CREATE INDEX IF NOT EXISTS idx_section_files_section ON section_files(section_id);
         CREATE INDEX IF NOT EXISTS idx_section_files_path ON section_files(file_path);
-
-        PRAGMA journal_mode=WAL;
     ").expect("Failed to run migrations");
+
+    conn.pragma_update(None, "journal_mode", "WAL").ok();
 }
