@@ -27,7 +27,11 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
   const pathParts = currentPath.split("/").filter(Boolean);
 
   return (
-    <div className="h-[var(--toolbar-height)] bg-bg-secondary border-b border-border flex items-center gap-3 overflow-hidden" style={{ fontSize: "var(--font-toolbar-breadcrumb)", padding: "0 var(--panel-px)" }}>
+    <div
+      data-tauri-drag-region
+      className="h-[var(--toolbar-height)] bg-bg-secondary/80 backdrop-blur-xl border-b border-border flex items-center gap-2 overflow-hidden"
+      style={{ fontSize: "var(--font-toolbar-breadcrumb)", paddingLeft: "78px", paddingRight: "var(--panel-px)" }}
+    >
       {/* Nav buttons */}
       <div className="flex items-center gap-0.5">
         <button
@@ -57,10 +61,10 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex-1 flex items-center gap-0.5 overflow-hidden mx-2">
+      <div className="flex-1 flex items-center gap-0 overflow-hidden mx-1">
         <button
           onClick={() => navigateTo("/")}
-          className="text-text-muted hover:text-text shrink-0 px-1.5 py-1 rounded-[4px] hover:bg-bg-hover transition-colors"
+          className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[3px] hover:bg-bg-hover"
         >
           /
         </button>
@@ -68,13 +72,13 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
           const fullPath = "/" + pathParts.slice(0, i + 1).join("/");
           const isLast = i === pathParts.length - 1;
           return (
-            <span key={fullPath} className="flex items-center gap-0.5 shrink-0">
-              <span className="text-text-muted/40 text-[var(--font-sm)] mx-0.5">/</span>
+            <span key={fullPath} className="flex items-center shrink-0">
+              <span className="text-text-muted/30 text-[10px] mx-0.5">/</span>
               <button
                 onClick={() => navigateTo(fullPath)}
                 className={clsx(
-                  "text-[var(--font-base)] px-1.5 py-1 rounded-[4px] hover:bg-bg-hover truncate max-w-[140px] transition-colors",
-                  isLast ? "text-text font-medium" : "text-text-secondary"
+                  "text-[var(--font-base)] px-1 py-0.5 rounded-[3px] hover:bg-bg-hover truncate max-w-[140px]",
+                  isLast ? "text-text font-medium" : "text-text-muted"
                 )}
               >
                 {part}
@@ -85,50 +89,52 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
       </div>
 
       {/* View mode + settings */}
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-0.5">
         <button
           onClick={() => setViewMode("list")}
           className={clsx(
-            "p-1.5 rounded-[5px] transition-colors",
+            "p-1 rounded-[3px]",
             viewMode === "list"
               ? "bg-bg-tertiary text-text"
               : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
           )}
           title="List view (⌘1)"
         >
-          <List size={15} strokeWidth={1.75} />
+          <List size={14} strokeWidth={1.75} />
         </button>
         <button
           onClick={() => setViewMode("grid")}
           className={clsx(
-            "p-1.5 rounded-[5px] transition-colors",
+            "p-1 rounded-[3px]",
             viewMode === "grid"
               ? "bg-bg-tertiary text-text"
               : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
           )}
           title="Grid view (⌘2)"
         >
-          <LayoutGrid size={15} strokeWidth={1.75} />
+          <LayoutGrid size={14} strokeWidth={1.75} />
         </button>
         <button
           onClick={() => setViewMode("columns")}
           className={clsx(
-            "p-1.5 rounded-[5px] transition-colors",
+            "p-1 rounded-[3px]",
             viewMode === "columns"
               ? "bg-bg-tertiary text-text"
               : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
           )}
           title="Column view (⌘3)"
         >
-          <Columns size={15} strokeWidth={1.75} />
+          <Columns size={14} strokeWidth={1.75} />
         </button>
+
+        <div className="w-px h-3.5 bg-border/50 mx-1.5" />
 
         <button
           onClick={onOpenSettings}
-          className="p-1.5 rounded-[5px] text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors ml-2"
-          title="Settings"
+          className="p-1 rounded-[3px] text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+          title="Settings (⌘,)"
         >
-          <Settings size={15} strokeWidth={1.75} />
+          <Settings size={14} strokeWidth={1.75} />
         </button>
       </div>
     </div>

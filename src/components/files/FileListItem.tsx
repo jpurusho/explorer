@@ -112,12 +112,12 @@ export function FileListItem({
       <tbody>
         <tr>
           {/* Icon cell */}
-          <td className="py-[5px] px-1 text-center align-middle">
+          <td className="py-[3px] px-1 text-center align-middle">
             <FileIcon fileType={entry.file_type as FileType} size={16} />
           </td>
 
           {/* Name cell */}
-          <td className="py-[5px] px-2 align-middle border-r border-border/40 overflow-hidden">
+          <td className="py-[3px] px-2 align-middle border-r border-border/40 overflow-hidden">
             <div className="flex items-center gap-2 min-w-0 overflow-hidden">
               {renaming ? (
                 <input
@@ -164,7 +164,7 @@ export function FileListItem({
           {visibleColumns.map((col) => (
             <td
               key={col.id}
-              className="py-[5px] px-2 text-center text-text-secondary tabular-nums truncate border-r border-border/40 align-middle overflow-hidden"
+              className="py-[3px] px-2 text-center text-text-secondary tabular-nums truncate border-r border-border/40 align-middle overflow-hidden"
               style={{ fontSize: "var(--font-filelist-meta)" }}
             >
               {getCellValue(col.id, entry)}

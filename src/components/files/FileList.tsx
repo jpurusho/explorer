@@ -75,7 +75,7 @@ export function FileList() {
   const virtualizer = useVirtualizer({
     count: entries.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 30,
+    estimateSize: () => 26,
     overscan: 10,
   });
 

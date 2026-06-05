@@ -85,12 +85,12 @@ export function AppShell() {
     <>
     <GlobalSearch visible={globalSearchVisible} onClose={() => setGlobalSearchVisible(false)} />
     <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onOpenSettings={() => { setCommandPaletteOpen(false); setSettingsOpen(true); }} onOpenDiff={() => { setCommandPaletteOpen(false); setDiffOpen(true); }} />
-    <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden select-none">
+    <div className="h-screen w-screen flex flex-col bg-bg/90 overflow-hidden select-none">
       <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} />
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
 
       <div className="flex-1 flex overflow-hidden">
-        <div style={{ width: sidebarWidth }} className="shrink-0 border-r border-border">
+        <div style={{ width: sidebarWidth }} className="shrink-0 border-r border-border bg-bg-secondary/60 backdrop-blur-xl">
           <Sidebar />
         </div>
         <ResizeHandle onResize={handleSidebarResize} direction="left" />

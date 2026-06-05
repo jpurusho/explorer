@@ -262,7 +262,7 @@ export function PreviewPanel() {
   return (
     <div className="h-full bg-bg flex flex-col overflow-hidden">
       {/* File info header */}
-      <div className="py-3.5 border-b border-border shrink-0 bg-bg-secondary" style={{ padding: "14px var(--panel-px)" }}>
+      <div className="border-b border-border shrink-0 bg-bg-secondary/60" style={{ padding: "10px var(--panel-px)" }}>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 flex-1 min-w-0 mr-4">
             {/* Back/Forward buttons for preview navigation */}

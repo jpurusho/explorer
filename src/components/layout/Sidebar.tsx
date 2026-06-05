@@ -820,9 +820,9 @@ export function Sidebar() {
   }, [homeDir, refreshTrigger]);
 
   return (
-    <aside className="h-full bg-bg-secondary flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
+    <aside className="h-full bg-transparent flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
       {/* Single scrollable area — all sections flow naturally */}
-      <div className="flex-1 overflow-auto px-4 pt-4 pb-4">
+      <div className="flex-1 overflow-auto px-3 pt-[46px] pb-3">
 
         {/* Favorites */}
         {showFavorites && (
