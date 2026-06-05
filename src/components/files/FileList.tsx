@@ -202,10 +202,10 @@ export function FileList() {
             {visibleColumns.map((col) => (
               <th
                 key={col.id}
-                className="relative border-b border-border py-1.5 px-2 text-right cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+                className="relative border-b border-border py-1.5 px-2 text-center cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
                 onClick={() => handleSort(columnSortField[col.id])}
               >
-                <div className="flex items-center justify-end gap-1">
+                <div className="flex items-center justify-center gap-1">
                   <SortIndicator field={columnSortField[col.id]} />
                   <span className="truncate">{col.label}</span>
                 </div>

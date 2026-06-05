@@ -158,7 +158,7 @@ export function FileListItem({
           {visibleColumns.map((col) => (
             <td
               key={col.id}
-              className="py-[5px] px-2 text-right text-text-secondary tabular-nums truncate border-r border-border/40 align-middle overflow-hidden"
+              className="py-[5px] px-2 text-center text-text-secondary tabular-nums truncate border-r border-border/40 align-middle overflow-hidden"
               style={{ fontSize: "var(--font-filelist-meta)" }}
             >
               {getCellValue(col.id, entry)}
