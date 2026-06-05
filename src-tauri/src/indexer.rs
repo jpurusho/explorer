@@ -385,15 +385,41 @@ impl IndexDb {
     pub fn clear_and_reindex(&self, root: &Path) {
         {
             let conn = self.conn.lock().unwrap();
-            // Drop triggers to avoid FTS overhead during bulk delete
+            // Drop and recreate tables (much faster than DELETE on FTS5)
+            conn.execute("DROP TABLE IF EXISTS trigrams", []).ok();
+            conn.execute("DROP TABLE IF EXISTS files_fts", []).ok();
+            conn.execute("DROP TABLE IF EXISTS files", []).ok();
             conn.execute("DROP TRIGGER IF EXISTS files_ai", []).ok();
             conn.execute("DROP TRIGGER IF EXISTS files_ad", []).ok();
             conn.execute("DROP TRIGGER IF EXISTS files_au", []).ok();
-            conn.execute("DELETE FROM files", []).ok();
-            conn.execute("DELETE FROM trigrams", []).ok();
-            conn.execute("DELETE FROM files_fts", []).ok();
-            // Recreate triggers
+
+            // Recreate schema
             conn.execute_batch("
+                CREATE TABLE IF NOT EXISTS files (
+                    path         TEXT PRIMARY KEY,
+                    name         TEXT NOT NULL,
+                    extension    TEXT,
+                    size_bytes   INTEGER NOT NULL DEFAULT 0,
+                    modified_at  INTEGER NOT NULL DEFAULT 0,
+                    is_dir       INTEGER NOT NULL DEFAULT 0,
+                    indexed_at   INTEGER NOT NULL DEFAULT 0
+                );
+
+                CREATE VIRTUAL TABLE IF NOT EXISTS files_fts USING fts5(
+                    name, path, extension,
+                    content='files',
+                    content_rowid='rowid'
+                );
+
+                CREATE TABLE IF NOT EXISTS trigrams (
+                    trigram TEXT NOT NULL,
+                    path    TEXT NOT NULL REFERENCES files(path) ON DELETE CASCADE,
+                    PRIMARY KEY (trigram, path)
+                );
+                CREATE INDEX IF NOT EXISTS idx_trigram ON trigrams(trigram);
+                CREATE INDEX IF NOT EXISTS idx_ext ON files(extension);
+                CREATE INDEX IF NOT EXISTS idx_modified ON files(modified_at);
+
                 CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
                     INSERT INTO files_fts(rowid, name, path, extension)
                     VALUES (new.rowid, new.name, new.path, new.extension);
@@ -409,6 +435,7 @@ impl IndexDb {
                     VALUES (new.rowid, new.name, new.path, new.extension);
                 END;
             ").ok();
+
             conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('schema_version', '2')", []).ok();
             conn.execute("DELETE FROM index_settings WHERE key='needs_rebuild'", []).ok();
         }
