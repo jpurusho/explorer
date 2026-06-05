@@ -6,6 +6,7 @@ import { StatusBar } from "./StatusBar";
 import { PreviewPanel } from "../preview/PreviewPanel";
 import { ResizeHandle } from "./ResizeHandle";
 import { SearchBar } from "../search/SearchBar";
+import { GlobalSearch } from "../search/GlobalSearch";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import { useSettingsStore } from "../../stores/settingsStore";
 
@@ -15,6 +16,7 @@ export function AppShell() {
   const [sidebarWidth, setSidebarWidth] = useState(settings.sidebar_width || 220);
   const [previewWidth, setPreviewWidth] = useState(settings.preview_width || 420);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [globalSearchVisible, setGlobalSearchVisible] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -47,6 +49,10 @@ export function AppShell() {
         e.preventDefault();
         setSearchVisible(true);
       }
+      if (e.metaKey && e.key === "p") {
+        e.preventDefault();
+        setGlobalSearchVisible(true);
+      }
       if (e.metaKey && e.key === ",") {
         e.preventDefault();
         setSettingsOpen((s) => !s);
@@ -57,6 +63,8 @@ export function AppShell() {
   }, []);
 
   return (
+    <>
+    <GlobalSearch visible={globalSearchVisible} onClose={() => setGlobalSearchVisible(false)} />
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden select-none">
       <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} />
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
@@ -84,5 +92,6 @@ export function AppShell() {
 
       <StatusBar />
     </div>
+    </>
   );
 }

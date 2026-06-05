@@ -31,5 +31,7 @@ kamadak-exif = "0.5"
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp", "gif"] }
 sha2 = "0.10"
 trash = "5"
-rusqlite = { version = "0.31", features = ["bundled"] }
+rusqlite = { version = "0.31", features = ["bundled", "bundled-full"] }
+notify = "6"
+notify-debouncer-full = "0.3"
 git2 = { version = "0.19", features = ["vendored-openssl"] }
