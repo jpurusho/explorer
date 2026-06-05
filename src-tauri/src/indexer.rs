@@ -346,7 +346,7 @@ impl IndexDb {
         }).unwrap().filter_map(|r| r.ok()).collect();
         drop(stmt);
 
-        let total = rows.len();
+        let _total = rows.len();
         let mut count = 0;
         conn.execute("BEGIN", []).ok();
         for (path, name) in &rows {
