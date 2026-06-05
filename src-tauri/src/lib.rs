@@ -19,6 +19,7 @@ pub fn run() {
 
     // Background indexing — Option 4: smart catch-up strategy
     let (file_count, _) = index_db.get_stats();
+    let needs_rebuild = index_db.needs_rebuild();
     let gap_seconds = index_db.seconds_since_shutdown();
     let index_conn = index_db.conn.clone();
     let index_read = index_db.read_conn.clone();
@@ -26,15 +27,14 @@ pub fn run() {
     std::thread::spawn(move || {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
         let db = indexer::IndexDb { conn: index_conn, read_conn: index_read, indexing: index_flag };
-        if file_count == 0 {
-            // First launch — full scan
-            db.index_directory(std::path::Path::new(&home));
+        if needs_rebuild || file_count == 0 {
+            // First launch or schema upgrade — full clean scan
+            db.clear_and_reindex(std::path::Path::new(&home));
         } else if gap_seconds > 172800 {
             // Gap > 48 hours — full incremental mtime rescan
             db.incremental_sync(std::path::Path::new(&home));
         } else {
-            // Gap < 48 hours — quick incremental (only check recent dirs)
-            // For now, still does incremental sync but could use FSEvents replay
+            // Gap < 48 hours — quick incremental
             db.incremental_sync(std::path::Path::new(&home));
         }
     });

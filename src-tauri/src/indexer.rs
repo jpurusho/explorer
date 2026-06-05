@@ -34,37 +34,16 @@ impl IndexDb {
         ).expect("Failed to open read connection");
         read_conn.pragma_update(None, "journal_mode", "WAL").ok();
 
-        // Check schema version — force rebuild if outdated
+        // Check schema version — mark for rebuild if outdated (actual wipe happens in background)
         let version: i64 = conn.query_row(
             "SELECT COALESCE((SELECT CAST(value AS INTEGER) FROM index_settings WHERE key='schema_version'), 0)",
             [], |row| row.get(0)
         ).unwrap_or(0);
 
         if version < 2 {
-            // Schema v2: tighter exclusions + trigrams. Wipe and rebuild.
-            conn.execute("DROP TRIGGER IF EXISTS files_ai", []).ok();
-            conn.execute("DROP TRIGGER IF EXISTS files_ad", []).ok();
-            conn.execute("DROP TRIGGER IF EXISTS files_au", []).ok();
-            conn.execute("DELETE FROM files", []).ok();
-            conn.execute("DELETE FROM trigrams", []).ok();
-            conn.execute("DELETE FROM files_fts", []).ok();
-            conn.execute_batch("
-                CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
-                    INSERT INTO files_fts(rowid, name, path, extension)
-                    VALUES (new.rowid, new.name, new.path, new.extension);
-                END;
-                CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
-                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
-                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
-                END;
-                CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN
-                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
-                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
-                    INSERT INTO files_fts(rowid, name, path, extension)
-                    VALUES (new.rowid, new.name, new.path, new.extension);
-                END;
-            ").ok();
-            conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('schema_version', '2')", []).ok();
+            // Just mark version — the background thread will detect file_count > 0 but old schema
+            // and trigger clear_and_reindex
+            conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('needs_rebuild', '1')", []).ok();
         }
 
         IndexDb {
@@ -76,6 +55,14 @@ impl IndexDb {
 
     pub fn is_indexing(&self) -> bool {
         self.indexing.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn needs_rebuild(&self) -> bool {
+        let conn = self.conn.lock().unwrap();
+        conn.query_row(
+            "SELECT value FROM index_settings WHERE key='needs_rebuild'",
+            [], |row| row.get::<_, String>(0)
+        ).unwrap_or_default() == "1"
     }
 
     pub fn save_shutdown_time(&self) {
@@ -422,6 +409,8 @@ impl IndexDb {
                     VALUES (new.rowid, new.name, new.path, new.extension);
                 END;
             ").ok();
+            conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('schema_version', '2')", []).ok();
+            conn.execute("DELETE FROM index_settings WHERE key='needs_rebuild'", []).ok();
         }
         self.index_directory(root);
     }
