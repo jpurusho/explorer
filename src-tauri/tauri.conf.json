@@ -42,7 +42,15 @@
     ],
     "macOS": {
       "minimumSystemVersion": "12.0"
-    }
+    },
+    "createUpdaterArtifacts": true
   },
-  "plugins": {}
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEU4NEZBOTU0NDg2Qjk3MkUKUldRdWwydElWS2xQNkppY3g2T1JNY0Y2VU93ekdkSEFodXdyVElEYlBhME4yeGZuMmMxelpQbkgK",
+      "endpoints": [
+        "https://github.com/jpurusho/explorer/releases/latest/download/latest.json"
+      ]
+    }
+  }
 }
