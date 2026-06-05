@@ -17,14 +17,17 @@ use std::io::{Read, Seek, SeekFrom};
 pub fn run() {
     let index_db = indexer::IndexDb::new();
 
-    // Background indexing on first launch
-    let index_conn = index_db.conn.clone();
-    let index_flag = index_db.indexing.clone();
-    std::thread::spawn(move || {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
-        let db = indexer::IndexDb { conn: index_conn, indexing: index_flag };
-        db.index_directory(std::path::Path::new(&home));
-    });
+    // Background indexing — only if DB is empty (first launch)
+    let (file_count, _) = index_db.get_stats();
+    if file_count == 0 {
+        let index_conn = index_db.conn.clone();
+        let index_flag = index_db.indexing.clone();
+        std::thread::spawn(move || {
+            let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
+            let db = indexer::IndexDb { conn: index_conn, indexing: index_flag };
+            db.index_directory(std::path::Path::new(&home));
+        });
+    }
 
     tauri::Builder::default()
         .manage(index_db)
