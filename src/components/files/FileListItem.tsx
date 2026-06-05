@@ -73,6 +73,7 @@ export function FileListItem({
   onFileDrop,
 }: FileListItemProps) {
   const nameWidth = useFileListStore((s) => s.nameWidth);
+  const showRowLines = useFileListStore((s) => s.showRowLines);
   const fileTagMap = useTagStore((s) => s.fileTagMap);
   const tags = fileTagMap.get(entry.path) || [];
   const [isDragTarget, setIsDragTarget] = useState(false);
@@ -88,7 +89,8 @@ export function FileListItem({
         selected
           ? "bg-accent/10 text-text"
           : "hover:bg-bg-hover text-text-secondary",
-        isDragTarget && "ring-1 ring-accent/50 bg-accent/8"
+        isDragTarget && "ring-1 ring-accent/50 bg-accent/8",
+        showRowLines && "border-b border-border/30"
       )}
       style={{ tableLayout: "fixed", width: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
       onClick={onClick}

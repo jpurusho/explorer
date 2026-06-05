@@ -104,9 +104,11 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const setTheme = useSettingsStore((s) => s.setTheme);
   const viewMode = useFileListStore((s) => s.viewMode);
   const showHiddenFiles = useFileListStore((s) => s.showHiddenFiles);
+  const showRowLines = useFileListStore((s) => s.showRowLines);
   const sortBy = useFileListStore((s) => s.sortBy);
   const setViewMode = useFileListStore((s) => s.setViewMode);
   const toggleHiddenFiles = useFileListStore((s) => s.toggleHiddenFiles);
+  const setShowRowLines = useFileListStore((s) => s.setShowRowLines);
   const setSortBy = useFileListStore((s) => s.setSortBy);
 
   return (
@@ -221,6 +223,23 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 className={clsx(
                   "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-transform",
                   showHiddenFiles ? "translate-x-[18px]" : "translate-x-[3px]"
+                )}
+              />
+            </button>
+          </SettingRow>
+
+          <SettingRow label="Row lines">
+            <button
+              onClick={() => setShowRowLines(!showRowLines)}
+              className={clsx(
+                "w-9 h-5 rounded-full transition-colors relative shrink-0",
+                showRowLines ? "bg-accent" : "bg-bg-tertiary border border-border"
+              )}
+            >
+              <div
+                className={clsx(
+                  "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-transform",
+                  showRowLines ? "translate-x-[18px]" : "translate-x-[3px]"
                 )}
               />
             </button>

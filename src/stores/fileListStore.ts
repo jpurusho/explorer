@@ -22,6 +22,7 @@ interface FileListState {
   selectedIndices: Set<number>;
   anchorIndex: number;
   showHiddenFiles: boolean;
+  showRowLines: boolean;
   nameWidth: number;
   columns: ColumnConfig[];
 
@@ -44,7 +45,8 @@ interface FileListState {
   setNameWidth: (width: number) => void;
   setColumnWidth: (id: ColumnId, width: number) => void;
   toggleColumnVisibility: (id: ColumnId) => void;
-  syncFromSettings: (settings: { column_name_width: number; column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
+  setShowRowLines: (show: boolean) => void;
+  syncFromSettings: (settings: { show_row_lines: boolean; column_name_width: number; column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
 
   // Multi-select actions
   selectIndex: (index: number) => void;
@@ -124,6 +126,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   selectedIndices: new Set<number>(),
   anchorIndex: -1,
   showHiddenFiles: false,
+  showRowLines: false,
   nameWidth: 300,
   columns: [
     { id: "type", label: "Type", width: 50, minWidth: 40, visible: true },
@@ -186,6 +189,13 @@ export const useFileListStore = create<FileListState>((set, get) => ({
     });
   },
 
+  setShowRowLines: (show) => {
+    set({ showRowLines: show });
+    import("./settingsStore").then(({ useSettingsStore }) => {
+      useSettingsStore.getState().updateSettings({ show_row_lines: show });
+    });
+  },
+
   setNameWidth: (width) => {
     const w = Math.max(100, width);
     set({ nameWidth: w });
@@ -217,6 +227,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   syncFromSettings: (settings) => {
     set({
       nameWidth: settings.column_name_width || 300,
+      showRowLines: settings.show_row_lines ?? false,
       viewMode: (settings.default_view as ViewMode) || "list",
       showHiddenFiles: settings.show_hidden_files,
       sortBy: (settings.sort_by as SortField) || "name",

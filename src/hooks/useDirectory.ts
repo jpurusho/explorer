@@ -13,7 +13,7 @@ export function useDirectory() {
 
   useEffect(() => {
     if (!currentPath) return;
-    let cancelled = false;
+    const targetPath = currentPath;
 
     const fileStore = useFileListStore.getState();
     const tagStore = useTagStore.getState();
@@ -25,45 +25,45 @@ export function useDirectory() {
     const activeTag = tagStore.activeTagFilter;
 
     if (activeTag !== null) {
-      // Virtual tag view: show ALL files with this tag across all directories
       invoke<string[]>("get_files_by_tag", { tagId: activeTag })
         .then((paths) => {
-          if (cancelled) return;
+          if (useNavigationStore.getState().currentPath !== targetPath) return;
           if (paths.length === 0) {
             fileStore.setEntries([]);
             fileStore.setLoading(false);
             return;
           }
           return invoke<FileEntry[]>("get_file_entries", { paths }).then((entries) => {
-            if (cancelled) return;
+            if (useNavigationStore.getState().currentPath !== targetPath) return;
             fileStore.setEntries(entries);
             tagStore.loadTagsForFiles(paths).catch(() => {});
           });
         })
         .catch(() => {
-          if (!cancelled) {
+          if (useNavigationStore.getState().currentPath === targetPath) {
             fileStore.setEntries([]);
           }
         })
         .finally(() => {
-          if (!cancelled) fileStore.setLoading(false);
+          if (useNavigationStore.getState().currentPath === targetPath) {
+            fileStore.setLoading(false);
+          }
         });
     } else {
-      // Normal directory view
-      invoke<FileEntry[]>("list_directory", { path: currentPath })
+      invoke<FileEntry[]>("list_directory", { path: targetPath })
         .then((entries) => {
-          if (cancelled) return;
+          if (useNavigationStore.getState().currentPath !== targetPath) return;
           fileStore.setEntries(entries);
           const paths = entries.map((e) => e.path);
           tagStore.loadTagsForFiles(paths).catch(() => {});
-          sectionStore.loadSections(currentPath).catch(() => {});
+          sectionStore.loadSections(targetPath).catch(() => {});
         })
         .catch((err) => {
-          if (cancelled) return;
+          if (useNavigationStore.getState().currentPath !== targetPath) return;
           const msg = err instanceof Error ? err.message : String(err);
           if (msg.includes("not exist") || msg.includes("Not found") || msg.includes("NotFound")) {
-            const parent = currentPath.split("/").slice(0, -1).join("/") || "/";
-            if (parent !== currentPath) {
+            const parent = targetPath.split("/").slice(0, -1).join("/") || "/";
+            if (parent !== targetPath) {
               useNavigationStore.getState().navigateTo(parent);
               return;
             }
@@ -72,18 +72,21 @@ export function useDirectory() {
           fileStore.setEntries([]);
         })
         .finally(() => {
-          if (!cancelled) fileStore.setLoading(false);
+          if (useNavigationStore.getState().currentPath === targetPath) {
+            fileStore.setLoading(false);
+          }
         });
     }
-
-    return () => { cancelled = true; };
   }, [currentPath, refreshTrigger]);
 
   // Watch current directory for external changes
   useEffect(() => {
     if (!currentPath) return;
 
-    invoke("watch_directory", { path: currentPath }).catch(() => {});
+    // Delay watcher setup to avoid racing with initial list_directory
+    const setupTimeout = setTimeout(() => {
+      invoke("watch_directory", { path: currentPath }).catch(() => {});
+    }, 500);
 
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const unlisten = listen<string>("directory-changed", (event) => {
@@ -96,6 +99,7 @@ export function useDirectory() {
     });
 
     return () => {
+      clearTimeout(setupTimeout);
       if (debounce) clearTimeout(debounce);
       unlisten.then((fn) => fn());
       invoke("unwatch_directory").catch(() => {});
