@@ -34,4 +34,5 @@ trash = "5"
 rusqlite = { version = "0.31", features = ["bundled", "bundled-full"] }
 notify = "6"
 notify-debouncer-full = "0.3"
+strsim = "0.11"
 git2 = { version = "0.19", features = ["vendored-openssl"] }

@@ -147,35 +147,104 @@ impl IndexDb {
     }
 
     pub fn search(&self, query: &str, limit: u32) -> Vec<FileResult> {
+        use strsim::levenshtein;
+        use std::collections::HashMap;
+
         let conn = self.read_conn.lock().unwrap();
-        // Split on dots, spaces, dashes, underscores — add wildcard to each token
-        let tokens: Vec<&str> = query.split(|c: char| c == '.' || c == ' ' || c == '-' || c == '_')
+        let q = query.trim().to_lowercase();
+
+        // --- Layer 1: FTS5 prefix search ---
+        let tokens: Vec<&str> = q.split(|c: char| c == '.' || c == ' ' || c == '-' || c == '_')
             .filter(|s| !s.is_empty())
             .collect();
         let fts_query = tokens.iter().map(|t| format!("{}*", t)).collect::<Vec<_>>().join(" ");
-        let mut stmt = conn
-            .prepare(
-                "SELECT f.path, f.name, f.size_bytes, f.modified_at, f.is_dir
-                 FROM files_fts fts
-                 JOIN files f ON f.rowid = fts.rowid
-                 WHERE files_fts MATCH ?1
-                 ORDER BY rank
-                 LIMIT ?2"
-            )
-            .unwrap();
 
-        stmt.query_map(params![fts_query, limit], |row| {
-            Ok(FileResult {
-                path: row.get(0)?,
-                name: row.get(1)?,
-                size_bytes: row.get(2)?,
-                modified_at: row.get(3)?,
-                is_dir: row.get(4)?,
+        let mut seen: HashMap<String, FileResult> = HashMap::new();
+
+        if let Ok(mut stmt) = conn.prepare(
+            "SELECT f.path, f.name, f.size_bytes, f.modified_at, f.is_dir
+             FROM files_fts fts
+             JOIN files f ON f.rowid = fts.rowid
+             WHERE files_fts MATCH ?1
+             ORDER BY rank
+             LIMIT 100"
+        ) {
+            if let Ok(rows) = stmt.query_map(params![fts_query], |row| {
+                Ok(FileResult {
+                    path: row.get(0)?,
+                    name: row.get(1)?,
+                    size_bytes: row.get(2)?,
+                    modified_at: row.get(3)?,
+                    is_dir: row.get(4)?,
+                })
+            }) {
+                for r in rows.flatten() {
+                    seen.insert(r.path.clone(), r);
+                }
+            }
+        }
+
+        // --- Layer 2: Trigram candidate search (for typo tolerance) ---
+        let tris = generate_trigrams(&q);
+        if tris.len() >= 2 && seen.len() < limit as usize {
+            let placeholders = tris.iter().map(|_| "?").collect::<Vec<_>>().join(",");
+            let sql = format!(
+                "SELECT f.path, f.name, f.size_bytes, f.modified_at, f.is_dir
+                 FROM trigrams t
+                 JOIN files f ON f.path = t.path
+                 WHERE t.trigram IN ({})
+                 GROUP BY t.path
+                 HAVING COUNT(*) >= ?
+                 LIMIT 200",
+                placeholders
+            );
+
+            if let Ok(mut stmt) = conn.prepare(&sql) {
+                let min_matches = (tris.len() / 2).max(2);
+                let mut idx = 1;
+                for tri in &tris {
+                    stmt.raw_bind_parameter(idx, tri.as_str()).ok();
+                    idx += 1;
+                }
+                stmt.raw_bind_parameter(idx, min_matches as i64).ok();
+
+                if let Ok(rows) = stmt.raw_query().mapped(|row| {
+                    Ok(FileResult {
+                        path: row.get(0)?,
+                        name: row.get(1)?,
+                        size_bytes: row.get(2)?,
+                        modified_at: row.get(3)?,
+                        is_dir: row.get(4)?,
+                    })
+                }).collect::<Result<Vec<_>, _>>() {
+                    for r in rows {
+                        seen.entry(r.path.clone()).or_insert(r);
+                    }
+                }
+            }
+        }
+
+        // --- Layer 3: Levenshtein scoring ---
+        let threshold = match q.len() {
+            0..=4 => 1,
+            5..=8 => 2,
+            _ => 3,
+        };
+
+        let mut scored: Vec<(FileResult, usize)> = seen
+            .into_values()
+            .map(|f| {
+                let name_lower = f.name.to_lowercase();
+                // Use minimum of: full name distance, or prefix distance
+                let dist = levenshtein(&q, &name_lower)
+                    .min(levenshtein(&q, &name_lower.get(..q.len().min(name_lower.len())).unwrap_or(&name_lower)));
+                (f, dist)
             })
-        })
-        .unwrap()
-        .filter_map(|r| r.ok())
-        .collect()
+            .filter(|(_, dist)| *dist <= threshold + 2) // slightly generous filter
+            .collect();
+
+        scored.sort_by_key(|(_, dist)| *dist);
+        scored.into_iter().take(limit as usize).map(|(f, _)| f).collect()
     }
 
     pub fn index_directory(&self, root: &Path) {
@@ -310,6 +379,13 @@ fn init_schema(conn: &Connection) {
         CREATE INDEX IF NOT EXISTS idx_ext ON files(extension);
         CREATE INDEX IF NOT EXISTS idx_modified ON files(modified_at);
 
+        CREATE TABLE IF NOT EXISTS trigrams (
+            trigram TEXT NOT NULL,
+            path    TEXT NOT NULL REFERENCES files(path) ON DELETE CASCADE,
+            PRIMARY KEY (trigram, path)
+        );
+        CREATE INDEX IF NOT EXISTS idx_trigram ON trigrams(trigram);
+
         CREATE TABLE IF NOT EXISTS index_settings (
             key   TEXT PRIMARY KEY,
             value TEXT NOT NULL
@@ -330,6 +406,26 @@ fn should_exclude(path: &Path) -> bool {
     false
 }
 
+
+fn generate_trigrams(s: &str) -> Vec<String> {
+    let s = s.to_lowercase();
+    let chars: Vec<char> = s.chars().collect();
+    if chars.len() < 3 {
+        return vec![s.clone()];
+    }
+    chars.windows(3).map(|w| w.iter().collect::<String>()).collect()
+}
+
+fn index_trigrams(conn: &Connection, path_str: &str, name: &str) {
+    conn.execute("DELETE FROM trigrams WHERE path = ?1", params![path_str]).ok();
+    let tris = generate_trigrams(name);
+    for tri in &tris {
+        conn.execute(
+            "INSERT OR IGNORE INTO trigrams (trigram, path) VALUES (?1, ?2)",
+            params![tri, path_str],
+        ).ok();
+    }
+}
 
 fn needs_reindex(conn: &Connection, path: &Path) -> bool {
     let path_str = path.to_string_lossy();
@@ -367,11 +463,12 @@ fn index_single_path(conn: &Connection, path: &Path) {
     let is_dir = metadata.is_dir();
     let now = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs() as i64;
 
+    let path_str = path.to_string_lossy().to_string();
     conn.execute(
         "INSERT OR REPLACE INTO files (path, name, extension, size_bytes, modified_at, is_dir, indexed_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
-            path.to_string_lossy().as_ref(),
+            path_str,
             name,
             extension,
             size_bytes,
@@ -380,4 +477,7 @@ fn index_single_path(conn: &Connection, path: &Path) {
             now
         ],
     ).ok();
+
+    // Index trigrams for fuzzy search
+    index_trigrams(conn, &path_str, &name);
 }
