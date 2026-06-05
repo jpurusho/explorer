@@ -144,9 +144,10 @@ impl IndexDb {
                                 continue;
                             }
 
-                            // Check if file needs update
                             if needs_reindex(&conn, &child) {
-                                index_single_path(&conn, &child);
+                                index_single_file(&conn, &child);
+                                let name = child.file_name().unwrap_or_default().to_string_lossy().to_string();
+                                index_trigrams(&conn, &child.to_string_lossy(), &name);
                                 count += 1;
                             }
 
@@ -280,15 +281,13 @@ impl IndexDb {
                 continue;
             }
 
-            // Lock briefly for a batch of inserts
             {
                 let conn = self.conn.lock().unwrap();
                 conn.execute("BEGIN", []).ok();
 
-                index_single_path(&conn, &path);
+                index_single_file(&conn, &path);
                 count += 1;
 
-                // Index immediate children
                 if path.is_dir() {
                     if let Ok(entries) = fs::read_dir(&path) {
                         for entry in entries.flatten() {
@@ -297,7 +296,7 @@ impl IndexDb {
                             if should_exclude(child_rel) {
                                 continue;
                             }
-                            index_single_path(&conn, &child);
+                            index_single_file(&conn, &child);
                             count += 1;
                             if child.is_dir() {
                                 paths_to_index.push(child);
@@ -308,9 +307,7 @@ impl IndexDb {
 
                 conn.execute("COMMIT", []).ok();
             }
-            // Lock released here — search queries can run between batches
 
-            // Small yield every 1000 items to not starve other threads
             if count % 1000 == 0 {
                 std::thread::sleep(std::time::Duration::from_millis(1));
             }
@@ -321,7 +318,9 @@ impl IndexDb {
     #[allow(dead_code)]
     pub fn upsert_path(&self, path: &Path) {
         let conn = self.conn.lock().unwrap();
-        index_single_path(&conn, path);
+        index_single_file(&conn, path);
+        let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
+        index_trigrams(&conn, &path.to_string_lossy(), &name);
     }
 
     #[allow(dead_code)]
@@ -356,25 +355,38 @@ impl IndexDb {
         self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
         let conn = self.conn.lock().unwrap();
 
-        // Clear existing trigrams
-        conn.execute("DELETE FROM trigrams", []).ok();
+        // Drop and recreate for speed (much faster than DELETE on large tables)
+        conn.execute("DROP TABLE IF EXISTS trigrams", []).ok();
+        conn.execute_batch("
+            CREATE TABLE IF NOT EXISTS trigrams (
+                trigram TEXT NOT NULL,
+                path    TEXT NOT NULL REFERENCES files(path) ON DELETE CASCADE,
+                PRIMARY KEY (trigram, path)
+            );
+            CREATE INDEX IF NOT EXISTS idx_trigram ON trigrams(trigram);
+        ").ok();
 
-        // Rebuild from all file names
         let mut stmt = conn.prepare("SELECT path, name FROM files").unwrap();
         let rows: Vec<(String, String)> = stmt.query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         }).unwrap().filter_map(|r| r.ok()).collect();
         drop(stmt);
 
-        let _total = rows.len();
         let mut count = 0;
         conn.execute("BEGIN", []).ok();
         for (path, name) in &rows {
-            index_trigrams(&conn, path, name);
+            let tris = generate_trigrams(name);
+            for tri in &tris {
+                conn.execute(
+                    "INSERT OR IGNORE INTO trigrams (trigram, path) VALUES (?1, ?2)",
+                    params![tri, path],
+                ).ok();
+            }
             count += 1;
-            if count % 10000 == 0 {
+            if count % 5000 == 0 {
                 conn.execute("COMMIT", []).ok();
                 conn.execute("BEGIN", []).ok();
+                std::thread::sleep(std::time::Duration::from_millis(1));
             }
         }
         conn.execute("COMMIT", []).ok();
@@ -385,7 +397,6 @@ impl IndexDb {
     pub fn clear_and_reindex(&self, root: &Path) {
         {
             let conn = self.conn.lock().unwrap();
-            // Drop and recreate tables (much faster than DELETE on FTS5)
             conn.execute("DROP TABLE IF EXISTS trigrams", []).ok();
             conn.execute("DROP TABLE IF EXISTS files_fts", []).ok();
             conn.execute("DROP TABLE IF EXISTS files", []).ok();
@@ -393,7 +404,6 @@ impl IndexDb {
             conn.execute("DROP TRIGGER IF EXISTS files_ad", []).ok();
             conn.execute("DROP TRIGGER IF EXISTS files_au", []).ok();
 
-            // Recreate schema
             conn.execute_batch("
                 CREATE TABLE IF NOT EXISTS files (
                     path         TEXT PRIMARY KEY,
@@ -439,7 +449,10 @@ impl IndexDb {
             conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('schema_version', '2')", []).ok();
             conn.execute("DELETE FROM index_settings WHERE key='needs_rebuild'", []).ok();
         }
+        // Phase 1: Index all files (fast — no trigrams)
         self.index_directory(root);
+        // Phase 2: Build trigrams in bulk (deferred)
+        self.rebuild_trigrams();
     }
 }
 
@@ -577,7 +590,7 @@ fn needs_reindex(conn: &Connection, path: &Path) -> bool {
     }
 }
 
-fn index_single_path(conn: &Connection, path: &Path) {
+fn index_single_file(conn: &Connection, path: &Path) {
     let metadata = match fs::metadata(path) {
         Ok(m) => m,
         Err(_) => return,
@@ -607,7 +620,4 @@ fn index_single_path(conn: &Connection, path: &Path) {
             now
         ],
     ).ok();
-
-    // Index trigrams for fuzzy search
-    index_trigrams(conn, &path_str, &name);
 }
