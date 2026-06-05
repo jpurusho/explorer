@@ -8,6 +8,7 @@ use std::path::Path;
 
 #[tauri::command]
 pub async fn list_directory(path: String) -> Result<Vec<FileEntry>, AppError> {
+    let start = std::time::Instant::now();
     let dir_path = Path::new(&path);
 
     if !dir_path.exists() {
@@ -67,6 +68,12 @@ pub async fn list_directory(path: String) -> Result<Vec<FileEntry>, AppError> {
             modified,
             file_type,
         });
+    }
+
+    let elapsed = start.elapsed();
+    if elapsed.as_millis() > 50 {
+        eprintln!("[perf] list_directory({}) took {}ms ({} entries)",
+            path, elapsed.as_millis(), entries.len());
     }
 
     Ok(entries)

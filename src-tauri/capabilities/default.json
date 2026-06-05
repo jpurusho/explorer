@@ -19,6 +19,7 @@
     "fs:read-all",
     "fs:write-all",
     "dialog:default",
-    "os:default"
+    "os:default",
+    "updater:default"
   ]
 }

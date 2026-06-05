@@ -18,25 +18,21 @@ use std::io::{Read, Seek, SeekFrom};
 pub fn run() {
     let index_db = indexer::IndexDb::new();
 
-    // Background indexing — Option 4: smart catch-up strategy
     let (file_count, _) = index_db.get_stats();
     let needs_rebuild = index_db.needs_rebuild();
-    let gap_seconds = index_db.seconds_since_shutdown();
+    let _gap_seconds = index_db.seconds_since_shutdown();
     let index_conn = index_db.conn.clone();
     let index_read = index_db.read_conn.clone();
     let index_flag = index_db.indexing.clone();
     std::thread::spawn(move || {
-        let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
         let db = indexer::IndexDb { conn: index_conn, read_conn: index_read, indexing: index_flag };
+        let roots = crate::commands::search::get_index_roots_from_settings();
         if needs_rebuild || file_count == 0 {
-            // First launch or schema upgrade — full clean scan
-            db.clear_and_reindex(std::path::Path::new(&home));
-        } else if gap_seconds > 172800 {
-            // Gap > 48 hours — full incremental mtime rescan
-            db.incremental_sync(std::path::Path::new(&home));
+            db.clear_and_reindex_paths(&roots);
         } else {
-            // Gap < 48 hours — quick incremental
-            db.incremental_sync(std::path::Path::new(&home));
+            for root in &roots {
+                db.incremental_sync(std::path::Path::new(root));
+            }
         }
     });
 
@@ -50,6 +46,7 @@ pub fn run() {
         .manage(db::DbState::new())
         .manage(WatcherState::new())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())

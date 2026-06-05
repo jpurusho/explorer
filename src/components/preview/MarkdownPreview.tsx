@@ -100,48 +100,50 @@ export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPrevi
     return <code {...props}>{children}</code>;
   }, []);
 
-  const renderLink = useCallback(({ href, children, ...props }: any) => {
+  const renderLink = useCallback(({ href, node, children, ...props }: any) => {
+    const linkHref = href || node?.properties?.href || "";
+
     const handleClick = (e: React.MouseEvent) => {
       e.preventDefault();
-      if (!href) return;
+      e.stopPropagation();
+      if (!linkHref) return;
 
-      if (href.startsWith("http://") || href.startsWith("https://")) {
+      if (linkHref.startsWith("http://") || linkHref.startsWith("https://")) {
         return;
       }
 
       if (onNavigate && basePath) {
         const dir = basePath.substring(0, basePath.lastIndexOf("/"));
-        let resolved = href;
-        if (href.startsWith("./")) {
-          resolved = `${dir}/${href.slice(2)}`;
-        } else if (href.startsWith("../")) {
+        let resolved = linkHref;
+        if (linkHref.startsWith("./")) {
+          resolved = `${dir}/${linkHref.slice(2)}`;
+        } else if (linkHref.startsWith("../")) {
           let currentDir = dir;
-          let remaining = href;
+          let remaining = linkHref;
           while (remaining.startsWith("../")) {
             currentDir = currentDir.substring(0, currentDir.lastIndexOf("/"));
             remaining = remaining.slice(3);
           }
           resolved = `${currentDir}/${remaining}`;
-        } else if (!href.startsWith("/")) {
-          resolved = `${dir}/${href}`;
+        } else if (!linkHref.startsWith("/")) {
+          resolved = `${dir}/${linkHref}`;
         }
         resolved = resolved.split("#")[0];
         if (resolved) {
           onNavigate(resolved);
         }
-      } else {
-        console.warn("[MarkdownLink] Missing onNavigate or basePath", { onNavigate: !!onNavigate, basePath });
       }
     };
 
-    const isExternal = href?.startsWith("http://") || href?.startsWith("https://");
+    const isExternal = linkHref.startsWith("http://") || linkHref.startsWith("https://");
+    const isInternal = !isExternal && !!linkHref;
 
     return (
       <a
-        href={href}
+        href={linkHref}
         onClick={handleClick}
-        className={isExternal ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
-        title={isExternal ? href : undefined}
+        className={isExternal ? "cursor-not-allowed opacity-60" : isInternal ? "cursor-pointer underline decoration-accent/40 hover:decoration-accent" : ""}
+        title={isExternal ? linkHref : isInternal ? `Open: ${linkHref}` : undefined}
         {...props}
       >
         {children}

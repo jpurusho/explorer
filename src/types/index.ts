@@ -60,6 +60,7 @@ export interface AppSettings {
   column_size_visible: boolean;
   column_modified_visible: boolean;
   font_theme: string;
+  index_paths: string[];
 }
 
 export interface ExifData {

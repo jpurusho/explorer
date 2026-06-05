@@ -10,6 +10,7 @@ import { useTheme } from "./hooks/useTheme";
 import { useKeyboard } from "./hooks/useKeyboard";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { check } from "@tauri-apps/plugin-updater";
 import { logger } from "./lib/logger";
 
 function MainApp() {
@@ -37,6 +38,14 @@ function MainApp() {
         useNavigationStore.getState().navigateTo(home);
         logger.info(`Navigated to home: ${home}`);
         setReady(true);
+
+        // Check for updates after startup (non-blocking)
+        check().then(async (update) => {
+          if (update) {
+            logger.info(`Update available: ${update.version}`);
+            await update.downloadAndInstall();
+          }
+        }).catch(() => {});
       } catch (err) {
         logger.error(`Init failed: ${err}`);
         console.error("Init failed:", err);

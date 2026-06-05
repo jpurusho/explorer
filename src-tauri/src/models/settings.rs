@@ -21,6 +21,7 @@ pub struct AppSettings {
     pub column_size_visible: bool,
     pub column_modified_visible: bool,
     pub font_theme: String,
+    pub index_paths: Vec<String>,
 }
 
 impl Default for AppSettings {
@@ -53,6 +54,7 @@ impl Default for AppSettings {
             column_size_visible: true,
             column_modified_visible: true,
             font_theme: "default".to_string(),
+            index_paths: vec![],
         }
     }
 }

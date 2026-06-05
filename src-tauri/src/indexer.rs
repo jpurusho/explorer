@@ -2,7 +2,7 @@ use rusqlite::{Connection, params};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::fs;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH, Instant};
 
 const EXCLUDED_DIRS: &[&str] = &[
     ".git", "node_modules", "target", ".Trash", ".cache",
@@ -94,11 +94,14 @@ impl IndexDb {
 
     pub fn incremental_sync(&self, root: &Path) {
         self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
+        let start = Instant::now();
 
-        // 1. Remove stale entries (files that no longer exist)
+        let last_shutdown = self.get_last_shutdown().unwrap_or(0);
+
+        // 1. Remove stale entries (files that no longer exist) — sample-based for speed
         {
             let conn = self.conn.lock().unwrap();
-            let mut stmt = conn.prepare("SELECT path FROM files").unwrap();
+            let mut stmt = conn.prepare("SELECT path FROM files ORDER BY RANDOM() LIMIT 5000").unwrap();
             let paths: Vec<String> = stmt.query_map([], |row| row.get(0))
                 .unwrap()
                 .filter_map(|r| r.ok())
@@ -121,7 +124,7 @@ impl IndexDb {
             }
         }
 
-        // 2. Walk filesystem and add/update only new or modified files
+        // 2. Walk filesystem — skip directories whose mtime < last_shutdown (fast path)
         let mut paths_to_check = vec![root.to_path_buf()];
         let mut count = 0u64;
 
@@ -129,6 +132,31 @@ impl IndexDb {
             let relative = path.strip_prefix(root).unwrap_or(&path);
             if should_exclude(relative) {
                 continue;
+            }
+
+            // Fast skip: if directory hasn't changed since shutdown, skip scanning its contents
+            if path.is_dir() && last_shutdown > 0 {
+                let dir_mtime = fs::metadata(&path).ok()
+                    .and_then(|m| m.modified().ok())
+                    .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+                    .map(|d| d.as_secs() as i64)
+                    .unwrap_or(0);
+
+                if dir_mtime < last_shutdown {
+                    // Directory unchanged — still recurse into subdirs in case deeper dirs changed
+                    if let Ok(entries) = fs::read_dir(&path) {
+                        for entry in entries.flatten() {
+                            let child = entry.path();
+                            if child.is_dir() {
+                                let child_rel = child.strip_prefix(root).unwrap_or(&child);
+                                if !should_exclude(child_rel) {
+                                    paths_to_check.push(child);
+                                }
+                            }
+                        }
+                    }
+                    continue;
+                }
             }
 
             {
@@ -166,6 +194,8 @@ impl IndexDb {
             }
         }
 
+        eprintln!("[indexer] incremental_sync completed: {} updates in {:.1}s",
+            count, start.elapsed().as_secs_f64());
         self.indexing.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
@@ -272,6 +302,7 @@ impl IndexDb {
 
     pub fn index_directory(&self, root: &Path) {
         self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
+        let start = Instant::now();
         let mut count = 0u64;
         let mut paths_to_index = vec![root.to_path_buf()];
 
@@ -312,6 +343,9 @@ impl IndexDb {
                 std::thread::sleep(std::time::Duration::from_millis(1));
             }
         }
+        eprintln!("[indexer] index_directory completed: {} files in {:.1}s ({:.0} files/sec)",
+            count, start.elapsed().as_secs_f64(),
+            count as f64 / start.elapsed().as_secs_f64().max(0.001));
         self.indexing.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
@@ -353,6 +387,7 @@ impl IndexDb {
 
     pub fn rebuild_trigrams(&self) {
         self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
+        let start = Instant::now();
         let conn = self.conn.lock().unwrap();
 
         // Drop and recreate for speed (much faster than DELETE on large tables)
@@ -391,9 +426,76 @@ impl IndexDb {
         }
         conn.execute("COMMIT", []).ok();
 
+        eprintln!("[indexer] rebuild_trigrams completed: {} files in {:.1}s",
+            count, start.elapsed().as_secs_f64());
         self.indexing.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
+    pub fn clear_and_reindex_paths(&self, roots: &[String]) {
+        {
+            let conn = self.conn.lock().unwrap();
+            conn.execute("DROP TABLE IF EXISTS trigrams", []).ok();
+            conn.execute("DROP TABLE IF EXISTS files_fts", []).ok();
+            conn.execute("DROP TABLE IF EXISTS files", []).ok();
+            conn.execute("DROP TRIGGER IF EXISTS files_ai", []).ok();
+            conn.execute("DROP TRIGGER IF EXISTS files_ad", []).ok();
+            conn.execute("DROP TRIGGER IF EXISTS files_au", []).ok();
+
+            conn.execute_batch("
+                CREATE TABLE IF NOT EXISTS files (
+                    path         TEXT PRIMARY KEY,
+                    name         TEXT NOT NULL,
+                    extension    TEXT,
+                    size_bytes   INTEGER NOT NULL DEFAULT 0,
+                    modified_at  INTEGER NOT NULL DEFAULT 0,
+                    is_dir       INTEGER NOT NULL DEFAULT 0,
+                    indexed_at   INTEGER NOT NULL DEFAULT 0
+                );
+                CREATE VIRTUAL TABLE IF NOT EXISTS files_fts USING fts5(
+                    name, path, extension, content='files', content_rowid='rowid'
+                );
+                CREATE TABLE IF NOT EXISTS trigrams (
+                    trigram TEXT NOT NULL,
+                    path    TEXT NOT NULL REFERENCES files(path) ON DELETE CASCADE,
+                    PRIMARY KEY (trigram, path)
+                );
+                CREATE INDEX IF NOT EXISTS idx_trigram ON trigrams(trigram);
+                CREATE INDEX IF NOT EXISTS idx_ext ON files(extension);
+                CREATE INDEX IF NOT EXISTS idx_modified ON files(modified_at);
+                CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
+                    INSERT INTO files_fts(rowid, name, path, extension)
+                    VALUES (new.rowid, new.name, new.path, new.extension);
+                END;
+                CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
+                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
+                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
+                END;
+                CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN
+                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
+                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
+                    INSERT INTO files_fts(rowid, name, path, extension)
+                    VALUES (new.rowid, new.name, new.path, new.extension);
+                END;
+            ").ok();
+
+            conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('schema_version', '2')", []).ok();
+            conn.execute("DELETE FROM index_settings WHERE key='needs_rebuild'", []).ok();
+        }
+        for root in roots {
+            self.index_directory(Path::new(root));
+        }
+        {
+            let conn = self.conn.lock().unwrap();
+            conn.execute("INSERT INTO files_fts(files_fts) VALUES('rebuild')", []).ok();
+        }
+        self.rebuild_trigrams();
+        {
+            let conn = self.conn.lock().unwrap();
+            conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;").ok();
+        }
+    }
+
+    #[allow(dead_code)]
     pub fn clear_and_reindex(&self, root: &Path) {
         {
             let conn = self.conn.lock().unwrap();

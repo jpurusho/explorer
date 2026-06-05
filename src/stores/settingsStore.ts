@@ -32,6 +32,7 @@ const defaultSettings: AppSettings = {
   column_size_visible: true,
   column_modified_visible: true,
   font_theme: "default",
+  index_paths: [],
 };
 
 function resolveTheme(theme: AppSettings["theme"]): ThemeName {

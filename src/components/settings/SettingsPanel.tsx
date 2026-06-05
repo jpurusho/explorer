@@ -389,6 +389,66 @@ function IndexStatsPanel() {
       <p className="text-[var(--font-xs)] text-text-muted">
         Index stored at ~/.config/explorer/index.db
       </p>
+      <IndexPathsEditor />
+    </div>
+  );
+}
+
+function IndexPathsEditor() {
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const [newPath, setNewPath] = useState("");
+
+  const paths = settings.index_paths?.length ? settings.index_paths : [];
+  const displayPaths = paths.length ? paths : ["~ (all of home — default)"];
+
+  const addPath = () => {
+    const trimmed = newPath.trim();
+    if (!trimmed) return;
+    const expanded = trimmed.startsWith("~")
+      ? trimmed.replace("~", `/Users/${settings.favorites[0]?.split("/")[2] || ""}`)
+      : trimmed;
+    const updated = [...(settings.index_paths || []), expanded];
+    updateSettings({ index_paths: updated });
+    setNewPath("");
+  };
+
+  const removePath = (idx: number) => {
+    const updated = (settings.index_paths || []).filter((_, i) => i !== idx);
+    updateSettings({ index_paths: updated });
+  };
+
+  return (
+    <div className="mt-3 pt-3 border-t border-border/30">
+      <div className="text-[var(--font-xs)] text-text-muted uppercase tracking-wider mb-2 font-semibold">Indexed Paths</div>
+      <div className="space-y-1 mb-2">
+        {displayPaths.map((p, i) => (
+          <div key={i} className="flex items-center justify-between gap-2 text-[var(--font-sm)] text-text-secondary bg-bg-tertiary rounded px-2 py-1">
+            <span className="truncate">{p}</span>
+            {paths.length > 0 && (
+              <button onClick={() => removePath(i)} className="text-text-muted hover:text-red-400 shrink-0 text-[var(--font-xs)]">✕</button>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-1.5">
+        <input
+          value={newPath}
+          onChange={(e) => setNewPath(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addPath(); }}
+          placeholder="/path/to/index"
+          className="flex-1 bg-bg-tertiary border border-border rounded px-2 py-1 text-[var(--font-sm)] text-text outline-none placeholder:text-text-muted/40"
+        />
+        <button
+          onClick={addPath}
+          className="px-2 py-1 rounded text-[var(--font-sm)] font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
+        >
+          Add
+        </button>
+      </div>
+      <p className="text-[var(--font-xs)] text-text-muted mt-1.5">
+        Empty = index all of $HOME. Reindex after changing paths.
+      </p>
     </div>
   );
 }
