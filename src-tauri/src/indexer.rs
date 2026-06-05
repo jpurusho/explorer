@@ -54,10 +54,50 @@ impl IndexDb {
     }
 
     pub fn index_directory(&self, root: &Path) {
-        let conn = self.conn.lock().unwrap();
-        conn.execute("BEGIN", []).ok();
-        walk_and_index(&conn, root, root);
-        conn.execute("COMMIT", []).ok();
+        let mut count = 0u64;
+        let mut paths_to_index = vec![root.to_path_buf()];
+
+        while let Some(path) = paths_to_index.pop() {
+            let relative = path.strip_prefix(root).unwrap_or(&path);
+            if should_exclude(relative) {
+                continue;
+            }
+
+            // Lock briefly for a batch of inserts
+            {
+                let conn = self.conn.lock().unwrap();
+                conn.execute("BEGIN", []).ok();
+
+                index_single_path(&conn, &path);
+                count += 1;
+
+                // Index immediate children
+                if path.is_dir() {
+                    if let Ok(entries) = fs::read_dir(&path) {
+                        for entry in entries.flatten() {
+                            let child = entry.path();
+                            let child_rel = child.strip_prefix(root).unwrap_or(&child);
+                            if should_exclude(child_rel) {
+                                continue;
+                            }
+                            index_single_path(&conn, &child);
+                            count += 1;
+                            if child.is_dir() {
+                                paths_to_index.push(child);
+                            }
+                        }
+                    }
+                }
+
+                conn.execute("COMMIT", []).ok();
+            }
+            // Lock released here — search queries can run between batches
+
+            // Small yield every 1000 items to not starve other threads
+            if count % 1000 == 0 {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+        }
     }
 
     pub fn upsert_path(&self, path: &Path) {
@@ -156,22 +196,6 @@ fn should_exclude(path: &Path) -> bool {
     false
 }
 
-fn walk_and_index(conn: &Connection, path: &Path, root: &Path) {
-    let relative = path.strip_prefix(root).unwrap_or(path);
-    if should_exclude(relative) {
-        return;
-    }
-
-    index_single_path(conn, path);
-
-    if path.is_dir() {
-        if let Ok(entries) = fs::read_dir(path) {
-            for entry in entries.flatten() {
-                walk_and_index(conn, &entry.path(), root);
-            }
-        }
-    }
-}
 
 fn index_single_path(conn: &Connection, path: &Path) {
     let metadata = match fs::metadata(path) {
