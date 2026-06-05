@@ -27,7 +27,11 @@ impl IndexDb {
 
     pub fn search(&self, query: &str, limit: u32) -> Vec<FileResult> {
         let conn = self.conn.lock().unwrap();
-        let fts_query = format!("{}*", query.replace(' ', "* "));
+        // Split on dots, spaces, dashes, underscores — add wildcard to each token
+        let tokens: Vec<&str> = query.split(|c: char| c == '.' || c == ' ' || c == '-' || c == '_')
+            .filter(|s| !s.is_empty())
+            .collect();
+        let fts_query = tokens.iter().map(|t| format!("{}*", t)).collect::<Vec<_>>().join(" ");
         let mut stmt = conn
             .prepare(
                 "SELECT f.path, f.name, f.size_bytes, f.modified_at, f.is_dir
