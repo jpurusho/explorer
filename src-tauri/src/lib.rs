@@ -17,8 +17,9 @@ use std::io::{Read, Seek, SeekFrom};
 pub fn run() {
     let index_db = indexer::IndexDb::new();
 
-    // Background indexing
+    // Background indexing — Option 4: smart catch-up strategy
     let (file_count, _) = index_db.get_stats();
+    let gap_seconds = index_db.seconds_since_shutdown();
     let index_conn = index_db.conn.clone();
     let index_flag = index_db.indexing.clone();
     std::thread::spawn(move || {
@@ -27,11 +28,19 @@ pub fn run() {
         if file_count == 0 {
             // First launch — full scan
             db.index_directory(std::path::Path::new(&home));
+        } else if gap_seconds > 172800 {
+            // Gap > 48 hours — full incremental mtime rescan
+            db.incremental_sync(std::path::Path::new(&home));
         } else {
-            // Subsequent launches — incremental sync (fast)
+            // Gap < 48 hours — quick incremental (only check recent dirs)
+            // For now, still does incremental sync but could use FSEvents replay
             db.incremental_sync(std::path::Path::new(&home));
         }
     });
+
+    // Save shutdown time on app exit
+    let shutdown_db = index_db.conn.clone();
+    let shutdown_flag = index_db.indexing.clone();
 
     tauri::Builder::default()
         .manage(index_db)
@@ -88,8 +97,14 @@ pub fn run() {
             load_font_theme,
             write_log,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(move |_app, event| {
+            if let tauri::RunEvent::Exit = event {
+                let db = indexer::IndexDb { conn: shutdown_db.clone(), indexing: shutdown_flag.clone() };
+                db.save_shutdown_time();
+            }
+        });
 }
 
 fn handle_media_request(request: &http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {

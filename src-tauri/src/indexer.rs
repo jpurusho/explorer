@@ -2,7 +2,7 @@ use rusqlite::{Connection, params};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::fs;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 const EXCLUDED_DIRS: &[&str] = &[
     ".git", "node_modules", "target", ".Trash", ".cache",
@@ -29,6 +29,33 @@ impl IndexDb {
 
     pub fn is_indexing(&self) -> bool {
         self.indexing.load(std::sync::atomic::Ordering::Relaxed)
+    }
+
+    pub fn save_shutdown_time(&self) {
+        let conn = self.conn.lock().unwrap();
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        conn.execute(
+            "INSERT OR REPLACE INTO index_settings (key, value) VALUES ('last_shutdown', ?1)",
+            params![now.to_string()],
+        ).ok();
+    }
+
+    pub fn get_last_shutdown(&self) -> Option<i64> {
+        let conn = self.conn.lock().unwrap();
+        conn.query_row(
+            "SELECT value FROM index_settings WHERE key = 'last_shutdown'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .ok()
+        .and_then(|v| v.parse::<i64>().ok())
+    }
+
+    pub fn seconds_since_shutdown(&self) -> i64 {
+        let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
+        let last = self.get_last_shutdown().unwrap_or(0);
+        if last == 0 { return i64::MAX; }
+        now - last
     }
 
     pub fn incremental_sync(&self, root: &Path) {
@@ -270,6 +297,11 @@ fn init_schema(conn: &Connection) {
 
         CREATE INDEX IF NOT EXISTS idx_ext ON files(extension);
         CREATE INDEX IF NOT EXISTS idx_modified ON files(modified_at);
+
+        CREATE TABLE IF NOT EXISTS index_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
     ").expect("Failed to initialize index schema");
 }
 
