@@ -28,6 +28,7 @@ export function StatusBar() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const showHiddenFiles = useFileListStore((s) => s.showHiddenFiles);
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
+  const [indexing, setIndexing] = useState(false);
 
   useEffect(() => {
     if (!currentPath) return;
@@ -35,6 +36,14 @@ export function StatusBar() {
       .then(setGitStatus)
       .catch(() => setGitStatus(null));
   }, [currentPath]);
+
+  // Poll indexing status
+  useEffect(() => {
+    const check = () => invoke<boolean>("is_indexing").then(setIndexing).catch(() => {});
+    check();
+    const interval = setInterval(check, 2000);
+    return () => clearInterval(interval);
+  }, []);
 
   const stats = useMemo(() => {
     const folders = visibleEntries.filter((e) => e.is_dir).length;
@@ -100,6 +109,17 @@ export function StatusBar() {
               <span className="text-text-muted tabular-nums">?{gitStatus.untracked}</span>
             )}
           </div>
+        </>
+      )}
+
+      {/* Indexing indicator */}
+      {indexing && (
+        <>
+          <div className="w-[1px] h-3.5 bg-border shrink-0" />
+          <span className="flex items-center gap-1.5 text-accent shrink-0 animate-pulse">
+            <span className="w-2 h-2 rounded-full bg-accent" />
+            <span>Indexing...</span>
+          </span>
         </>
       )}
 

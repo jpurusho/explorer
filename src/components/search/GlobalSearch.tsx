@@ -58,8 +58,8 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
     }
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    setLoading(true);
     debounceRef.current = setTimeout(async () => {
-      setLoading(true);
       try {
         const res = await invoke<FileResult[]>("search_files", { query: query.trim(), limit: 50 });
         setResults(res);
@@ -69,7 +69,7 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
       } finally {
         setLoading(false);
       }
-    }, 100);
+    }, 200);
   }, [query]);
 
   const handleSelect = (result: FileResult) => {

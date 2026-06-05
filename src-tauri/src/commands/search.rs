@@ -16,6 +16,11 @@ pub fn get_index_stats(index: State<IndexDb>) -> Result<(u64, u64), AppError> {
 }
 
 #[tauri::command]
+pub fn is_indexing(index: State<IndexDb>) -> Result<bool, AppError> {
+    Ok(index.is_indexing())
+}
+
+#[tauri::command]
 pub fn reindex(index: State<IndexDb>) -> Result<(), AppError> {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
     index.index_directory(std::path::Path::new(&home));

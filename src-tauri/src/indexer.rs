@@ -12,6 +12,7 @@ const EXCLUDED_DIRS: &[&str] = &[
 
 pub struct IndexDb {
     pub conn: Arc<Mutex<Connection>>,
+    pub indexing: Arc<std::sync::atomic::AtomicBool>,
 }
 
 impl IndexDb {
@@ -22,7 +23,12 @@ impl IndexDb {
         init_schema(&conn);
         IndexDb {
             conn: Arc::new(Mutex::new(conn)),
+            indexing: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }
+    }
+
+    pub fn is_indexing(&self) -> bool {
+        self.indexing.load(std::sync::atomic::Ordering::Relaxed)
     }
 
     pub fn search(&self, query: &str, limit: u32) -> Vec<FileResult> {
@@ -58,6 +64,7 @@ impl IndexDb {
     }
 
     pub fn index_directory(&self, root: &Path) {
+        self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
         let mut count = 0u64;
         let mut paths_to_index = vec![root.to_path_buf()];
 
@@ -102,6 +109,7 @@ impl IndexDb {
                 std::thread::sleep(std::time::Duration::from_millis(1));
             }
         }
+        self.indexing.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
     #[allow(dead_code)]
