@@ -22,6 +22,7 @@ interface FileListState {
   selectedIndices: Set<number>;
   anchorIndex: number;
   showHiddenFiles: boolean;
+  nameWidth: number;
   columns: ColumnConfig[];
 
   // Computed getters
@@ -40,6 +41,7 @@ interface FileListState {
   toggleHiddenFiles: () => void;
 
   // Column actions
+  setNameWidth: (width: number) => void;
   setColumnWidth: (id: ColumnId, width: number) => void;
   toggleColumnVisibility: (id: ColumnId) => void;
   syncFromSettings: (settings: { column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
@@ -122,6 +124,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   selectedIndices: new Set<number>(),
   anchorIndex: -1,
   showHiddenFiles: false,
+  nameWidth: 300,
   columns: [
     { id: "type", label: "Type", width: 50, minWidth: 40, visible: true },
     { id: "size", label: "Size", width: 58, minWidth: 44, visible: true },
@@ -181,6 +184,10 @@ export const useFileListStore = create<FileListState>((set, get) => ({
     import("./settingsStore").then(({ useSettingsStore }) => {
       useSettingsStore.getState().updateSettings({ show_hidden_files: newShow });
     });
+  },
+
+  setNameWidth: (width) => {
+    set({ nameWidth: Math.max(100, width) });
   },
 
   setColumnWidth: (id, width) => {

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { format } from "date-fns";
 import { FileIcon } from "./FileIcon";
+import { useFileListStore } from "../../stores/fileListStore";
 import { useTagStore } from "../../stores/tagStore";
 import type { FileEntry, FileType } from "../../types";
 import type { ColumnConfig } from "../../stores/fileListStore";
@@ -71,12 +72,13 @@ export function FileListItem({
   onDragStart,
   onFileDrop,
 }: FileListItemProps) {
+  const nameWidth = useFileListStore((s) => s.nameWidth);
   const fileTagMap = useTagStore((s) => s.fileTagMap);
   const tags = fileTagMap.get(entry.path) || [];
   const [isDragTarget, setIsDragTarget] = useState(false);
   const [renameValue, setRenameValue] = useState(entry.name);
 
-  const tableWidth = 24 + 300 + visibleColumns.reduce((s, c) => s + c.width, 0);
+  const tableWidth = 24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0);
 
   return (
     <table
@@ -100,7 +102,7 @@ export function FileListItem({
     >
       <colgroup>
         <col style={{ width: "24px" }} />
-        <col style={{ width: "300px" }} />
+        <col style={{ width: `${nameWidth}px` }} />
         {visibleColumns.map((col) => (
           <col key={col.id} style={{ width: `${col.width}px` }} />
         ))}

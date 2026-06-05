@@ -61,6 +61,8 @@ export function FileList() {
   const setSortBy = useFileListStore((s) => s.setSortBy);
   const toggleSortDirection = useFileListStore((s) => s.toggleSortDirection);
   const columns = useFileListStore((s) => s.columns);
+  const nameWidth = useFileListStore((s) => s.nameWidth);
+  const setNameWidth = useFileListStore((s) => s.setNameWidth);
   const setColumnWidth = useFileListStore((s) => s.setColumnWidth);
   const toggleColumnVisibility = useFileListStore((s) => s.toggleColumnVisibility);
 
@@ -174,11 +176,11 @@ export function FileList() {
     <div ref={parentRef} className="h-full overflow-auto pt-2 file-list-font">
       <table
         className="border-collapse"
-        style={{ tableLayout: "fixed", width: `${24 + 300 + visibleColumns.reduce((s, c) => s + c.width, 0)}px`, fontSize: "var(--font-filelist-item)" }}
+        style={{ tableLayout: "fixed", width: `${24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0)}px`, fontSize: "var(--font-filelist-item)" }}
       >
         <colgroup>
           <col style={{ width: "24px" }} />
-          <col style={{ width: "300px" }} />
+          <col style={{ width: `${nameWidth}px` }} />
           {visibleColumns.map((col) => (
             <col key={col.id} style={{ width: `${col.width}px` }} />
           ))}
@@ -191,12 +193,32 @@ export function FileList() {
           <tr style={{ fontSize: "var(--font-filelist-header)" }}>
             <th className="border-b border-border py-1.5 px-1" />
             <th
-              className="border-b border-border py-1.5 px-2 text-left cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+              className="relative border-b border-border py-1.5 px-2 text-left cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
               onClick={() => handleSort("name")}
             >
               <div className="flex items-center gap-1">
                 <span className="truncate">Name</span>
                 <SortIndicator field="name" />
+              </div>
+              {/* Resize handle for Name column */}
+              <div
+                className="absolute top-0 -right-[5px] w-[11px] cursor-col-resize z-30 group/handle"
+                style={{ height: "2000px" }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const startX = e.clientX;
+                  const startWidth = nameWidth;
+                  const onMove = (ev: MouseEvent) => setNameWidth(Math.max(100, startWidth + ev.clientX - startX));
+                  const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
+                  document.body.style.cursor = "col-resize";
+                  document.body.style.userSelect = "none";
+                  document.addEventListener("mousemove", onMove);
+                  document.addEventListener("mouseup", onUp);
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="absolute top-0 bottom-0 left-[5px] w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[3px] group-hover/handle:-ml-[1px] transition-all" />
               </div>
             </th>
             {visibleColumns.map((col) => (
