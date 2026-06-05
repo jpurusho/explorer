@@ -37,7 +37,8 @@ export function AppShell() {
 
   const handlePreviewResize = useCallback((delta: number) => {
     setPreviewWidth((w) => {
-      const next = Math.max(200, w + delta);
+      const maxWidth = Math.floor(window.innerWidth * 0.6);
+      const next = Math.max(200, Math.min(maxWidth, w + delta));
       persistWidths(sidebarWidth, next);
       return next;
     });
