@@ -3,6 +3,7 @@ import {
   ChevronRight,
   List,
   LayoutGrid,
+  Columns,
   Settings,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -108,6 +109,18 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
           title="Grid view (⌘2)"
         >
           <LayoutGrid size={15} strokeWidth={1.75} />
+        </button>
+        <button
+          onClick={() => setViewMode("columns")}
+          className={clsx(
+            "p-1.5 rounded-[5px] transition-colors",
+            viewMode === "columns"
+              ? "bg-bg-tertiary text-text"
+              : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+          )}
+          title="Column view (⌘3)"
+        >
+          <Columns size={15} strokeWidth={1.75} />
         </button>
 
         <button

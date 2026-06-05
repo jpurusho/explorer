@@ -2,6 +2,32 @@ import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 let windowCounter = 0;
 
+export async function openNewWindow(startPath?: string) {
+  windowCounter++;
+  const label = `explorer-${windowCounter}`;
+  const params = startPath ? new URLSearchParams({ startPath }) : new URLSearchParams();
+
+  try {
+    const webview = new WebviewWindow(label, {
+      url: `/?${params.toString()}`,
+      title: "Explorer",
+      width: 1200,
+      height: 800,
+      minWidth: 600,
+      minHeight: 400,
+      decorations: true,
+      resizable: true,
+      center: true,
+    });
+
+    webview.once("tauri://error", (e) => {
+      console.error(`Failed to create window "${label}":`, e);
+    });
+  } catch (err) {
+    console.error("Error creating new window:", err);
+  }
+}
+
 export async function detachPreview(filePath: string, fileName: string, fileType: string) {
   windowCounter++;
   const label = `preview-${windowCounter}`;

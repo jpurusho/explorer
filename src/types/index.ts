@@ -43,7 +43,7 @@ export interface FileContent {
 
 export interface AppSettings {
   theme: "system" | "light" | "dark" | "material" | "github" | "monokai" | "atom";
-  default_view: "list" | "grid";
+  default_view: "list" | "grid" | "columns";
   show_hidden_files: boolean;
   sort_by: "name" | "size" | "modified" | "type";
   sort_direction: "asc" | "desc";
@@ -76,7 +76,7 @@ export interface ExifData {
   orientation: number | null;
 }
 
-export type ViewMode = "list" | "grid";
+export type ViewMode = "list" | "grid" | "columns";
 
 export type SortField = "name" | "size" | "modified" | "type";
 export type SortDirection = "asc" | "desc";

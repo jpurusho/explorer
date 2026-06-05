@@ -40,6 +40,12 @@ export function useKeyboard() {
               fileStore.setViewMode("grid");
             }
             return;
+          case "3":
+            if (!isEditing) {
+              e.preventDefault();
+              fileStore.setViewMode("columns");
+            }
+            return;
           case ".":
             if (e.shiftKey) {
               e.preventDefault();

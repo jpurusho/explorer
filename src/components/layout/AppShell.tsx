@@ -9,7 +9,9 @@ import { SearchBar } from "../search/SearchBar";
 import { GlobalSearch } from "../search/GlobalSearch";
 import { CommandPalette } from "../CommandPalette";
 import { SettingsPanel } from "../settings/SettingsPanel";
+import { DiffView } from "../preview/DiffView";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { openNewWindow } from "../../lib/detachPreview";
 
 export function AppShell() {
   const settings = useSettingsStore((s) => s.settings);
@@ -20,6 +22,7 @@ export function AppShell() {
   const [globalSearchVisible, setGlobalSearchVisible] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistWidths = useCallback((sw: number, pw: number) => {
@@ -56,9 +59,18 @@ export function AppShell() {
         e.preventDefault();
         setGlobalSearchVisible(true);
       }
+      if (e.metaKey && e.key === "n") {
+        e.preventDefault();
+        openNewWindow();
+      }
       if (e.metaKey && e.key === "k") {
         e.preventDefault();
         setCommandPaletteOpen((s) => !s);
+      }
+      if (e.metaKey && e.key === "d") {
+        e.preventDefault();
+        setDiffOpen((s) => !s);
+        setSettingsOpen(false);
       }
       if (e.metaKey && e.key === ",") {
         e.preventDefault();
@@ -72,7 +84,7 @@ export function AppShell() {
   return (
     <>
     <GlobalSearch visible={globalSearchVisible} onClose={() => setGlobalSearchVisible(false)} />
-    <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onOpenSettings={() => { setCommandPaletteOpen(false); setSettingsOpen(true); }} />
+    <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onOpenSettings={() => { setCommandPaletteOpen(false); setSettingsOpen(true); }} onOpenDiff={() => { setCommandPaletteOpen(false); setDiffOpen(true); }} />
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden select-none">
       <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} />
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
@@ -90,7 +102,9 @@ export function AppShell() {
         <ResizeHandle onResize={handlePreviewResize} direction="right" />
 
         <div style={{ width: previewWidth }} className="shrink-0 overflow-hidden border-l border-border">
-          {settingsOpen ? (
+          {diffOpen ? (
+            <DiffView onClose={() => setDiffOpen(false)} />
+          ) : settingsOpen ? (
             <SettingsPanel onClose={() => setSettingsOpen(false)} />
           ) : (
             <PreviewPanel />

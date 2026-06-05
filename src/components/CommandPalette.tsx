@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  Search, FolderOpen, Settings, Eye, EyeOff, Grid, List,
-  RotateCcw, FolderPlus, ArrowUp
+  Search, FolderOpen, Settings, Eye, EyeOff, Grid, List, Columns,
+  RotateCcw, FolderPlus, ArrowUp, Plus, GitCompare
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { openNewWindow } from "../lib/detachPreview";
 
 interface CommandItem {
   id: string;
@@ -22,9 +23,10 @@ interface CommandPaletteProps {
   open: boolean;
   onClose: () => void;
   onOpenSettings: () => void;
+  onOpenDiff?: () => void;
 }
 
-export function CommandPalette({ open, onClose, onOpenSettings }: CommandPaletteProps) {
+export function CommandPalette({ open, onClose, onOpenSettings, onOpenDiff }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [selectedIdx, setSelectedIdx] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -50,6 +52,7 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
       { id: "go-up", label: "Go to Parent", description: "Navigate up one level", icon: <ArrowUp size={14} />, action: goUp, category: "navigation" },
       { id: "view-list", label: "Switch to List View", icon: <List size={14} />, action: () => setViewMode("list"), category: "settings" },
       { id: "view-grid", label: "Switch to Grid View", icon: <Grid size={14} />, action: () => setViewMode("grid"), category: "settings" },
+      { id: "view-columns", label: "Switch to Column View", icon: <Columns size={14} />, action: () => setViewMode("columns"), category: "settings" },
       { id: "toggle-hidden", label: showHiddenFiles ? "Hide Hidden Files" : "Show Hidden Files", icon: showHiddenFiles ? <EyeOff size={14} /> : <Eye size={14} />, action: toggleHiddenFiles, category: "settings" },
       { id: "open-settings", label: "Open Settings", icon: <Settings size={14} />, action: onOpenSettings, category: "settings" },
       { id: "refresh", label: "Refresh Directory", description: "Reload current folder", icon: <RotateCcw size={14} />, action: refreshCurrent, category: "action" },
@@ -59,6 +62,8 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
         refreshCurrent();
       }, category: "action" },
       { id: "reindex", label: "Rebuild Search Index", description: "Full reindex of all files", icon: <Search size={14} />, action: () => invoke("reindex"), category: "action" },
+      { id: "new-window", label: "New Window", description: "Open a new Explorer window (Cmd+N)", icon: <Plus size={14} />, action: () => openNewWindow(), category: "action" },
+      { id: "compare-files", label: "Compare Files", description: "Side-by-side diff of two selected files (Cmd+D)", icon: <GitCompare size={14} />, action: () => onOpenDiff?.(), category: "action" },
     ];
   }, [showHiddenFiles, navigateTo, goUp, setViewMode, toggleHiddenFiles, refreshCurrent, currentPath, onOpenSettings, settings]);
 

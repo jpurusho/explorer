@@ -208,6 +208,17 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
               >
                 Grid
               </button>
+              <button
+                onClick={() => { setViewMode("columns"); updateSettings({ default_view: "columns" }); }}
+                className={clsx(
+                  "px-3 py-1 rounded-[5px] text-[var(--font-sm)] font-medium transition-colors",
+                  viewMode === "columns"
+                    ? "bg-accent/15 text-accent"
+                    : "bg-bg-tertiary text-text-muted hover:text-text-secondary"
+                )}
+              >
+                Columns
+              </button>
             </div>
           </SettingRow>
 
