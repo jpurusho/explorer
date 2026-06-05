@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
@@ -40,26 +40,26 @@ function FontSizeSlider() {
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const baseSize = currentTheme?.fonts?.fileList?.item || 14;
   const [sliderValue, setSliderValue] = useState(baseSize);
-  const originalBaseRef = useRef(baseSize);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newBase = parseFloat(e.target.value);
     setSliderValue(newBase);
 
     if (!currentTheme) return;
-    const scale = newBase / originalBaseRef.current;
-    const scaled = (v: number) => Math.round(v * scale * 2) / 2;
+
+    const small = Math.round((newBase - 2) * 2) / 2;
+    const tiny = Math.round((newBase - 4) * 2) / 2;
 
     const newTheme = {
       ...currentTheme,
       fonts: {
-        sidebar: { heading: scaled(12), item: scaled(13.5), section: scaled(14), badge: scaled(10) },
-        fileList: { header: scaled(11), item: newBase, meta: scaled(12) },
-        preview: { title: scaled(16), meta: scaled(12), body: scaled(14) },
-        toolbar: { breadcrumb: scaled(13), button: scaled(12) },
-        statusBar: { text: scaled(12.5) },
-        editor: { code: scaled(14) },
-        global: { xs: scaled(10), sm: scaled(11), base: scaled(12), md: scaled(13), lg: scaled(14) },
+        sidebar: { heading: tiny, item: newBase, section: newBase, badge: tiny },
+        fileList: { header: small, item: newBase, meta: newBase },
+        preview: { title: newBase + 2, meta: small, body: newBase },
+        toolbar: { breadcrumb: newBase, button: small },
+        statusBar: { text: newBase },
+        editor: { code: newBase },
+        global: { xs: tiny, sm: small, base: newBase - 1, md: newBase, lg: newBase + 1 },
       },
     };
     applyTheme(newTheme);

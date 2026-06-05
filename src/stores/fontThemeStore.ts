@@ -125,19 +125,19 @@ export const useFontThemeStore = create<FontThemeState>((set, get) => ({
     if (name.startsWith("scale:")) {
       const baseSize = parseFloat(name.slice(6));
       if (!isNaN(baseSize)) {
-        const scale = baseSize / 14;
-        const s = (v: number) => Math.round(v * scale * 2) / 2;
+        const small = Math.round((baseSize - 2) * 2) / 2;
+        const tiny = Math.round((baseSize - 4) * 2) / 2;
         const scaledTheme: FontThemeConfig = {
           ...defaultFonts,
           name: "Scaled",
           fonts: {
-            sidebar: { heading: s(12), item: s(13.5), section: s(14), badge: s(10) },
-            fileList: { header: s(11), item: baseSize, meta: s(12) },
-            preview: { title: s(16), meta: s(12), body: s(14) },
-            toolbar: { breadcrumb: s(13), button: s(12) },
-            statusBar: { text: s(12.5) },
-            editor: { code: s(14) },
-            global: { xs: s(10), sm: s(11), base: s(12), md: s(13), lg: s(14) },
+            sidebar: { heading: tiny, item: baseSize, section: baseSize, badge: tiny },
+            fileList: { header: small, item: baseSize, meta: baseSize },
+            preview: { title: baseSize + 2, meta: small, body: baseSize },
+            toolbar: { breadcrumb: baseSize, button: small },
+            statusBar: { text: baseSize },
+            editor: { code: baseSize },
+            global: { xs: tiny, sm: small, base: baseSize - 1, md: baseSize, lg: baseSize + 1 },
           },
         };
         get().applyTheme(scaledTheme);
