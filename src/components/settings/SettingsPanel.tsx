@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { useFileListStore } from "../../stores/fileListStore";
 import { useFontThemeStore } from "../../stores/fontThemeStore";
 import { themes } from "../../lib/themes";
 import type { AppSettings } from "../../types";
@@ -101,6 +102,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const settings = useSettingsStore((s) => s.settings);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
   const setTheme = useSettingsStore((s) => s.setTheme);
+  const viewMode = useFileListStore((s) => s.viewMode);
+  const showHiddenFiles = useFileListStore((s) => s.showHiddenFiles);
+  const sortBy = useFileListStore((s) => s.sortBy);
+  const setViewMode = useFileListStore((s) => s.setViewMode);
+  const toggleHiddenFiles = useFileListStore((s) => s.toggleHiddenFiles);
+  const setSortBy = useFileListStore((s) => s.setSortBy);
 
   return (
     <div className="h-full bg-bg flex flex-col overflow-hidden">
@@ -178,10 +185,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <SettingRow label="Default view">
             <div className="flex gap-1.5">
               <button
-                onClick={() => updateSettings({ default_view: "list" })}
+                onClick={() => { setViewMode("list"); updateSettings({ default_view: "list" }); }}
                 className={clsx(
                   "px-3 py-1 rounded-[5px] text-[var(--font-sm)] font-medium transition-colors",
-                  settings.default_view === "list"
+                  viewMode === "list"
                     ? "bg-accent/15 text-accent"
                     : "bg-bg-tertiary text-text-muted hover:text-text-secondary"
                 )}
@@ -189,10 +196,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 List
               </button>
               <button
-                onClick={() => updateSettings({ default_view: "grid" })}
+                onClick={() => { setViewMode("grid"); updateSettings({ default_view: "grid" }); }}
                 className={clsx(
                   "px-3 py-1 rounded-[5px] text-[var(--font-sm)] font-medium transition-colors",
-                  settings.default_view === "grid"
+                  viewMode === "grid"
                     ? "bg-accent/15 text-accent"
                     : "bg-bg-tertiary text-text-muted hover:text-text-secondary"
                 )}
@@ -204,16 +211,16 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
           <SettingRow label="Show hidden files">
             <button
-              onClick={() => updateSettings({ show_hidden_files: !settings.show_hidden_files })}
+              onClick={() => { toggleHiddenFiles(); }}
               className={clsx(
                 "w-9 h-5 rounded-full transition-colors relative shrink-0",
-                settings.show_hidden_files ? "bg-accent" : "bg-bg-tertiary border border-border"
+                showHiddenFiles ? "bg-accent" : "bg-bg-tertiary border border-border"
               )}
             >
               <div
                 className={clsx(
                   "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-transform",
-                  settings.show_hidden_files ? "translate-x-[18px]" : "translate-x-[3px]"
+                  showHiddenFiles ? "translate-x-[18px]" : "translate-x-[3px]"
                 )}
               />
             </button>
@@ -221,8 +228,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
           <SettingRow label="Sort by">
             <select
-              value={settings.sort_by}
-              onChange={(e) => updateSettings({ sort_by: e.target.value as AppSettings["sort_by"] })}
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value as AppSettings["sort_by"]); }}
               className="bg-bg-tertiary border border-border rounded-[5px] px-2.5 py-1 text-[var(--font-sm)] text-text-secondary outline-none"
             >
               <option value="name">Name</option>
