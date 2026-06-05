@@ -171,10 +171,10 @@ export function FileList() {
   };
 
   return (
-    <div ref={parentRef} className="h-full overflow-y-auto overflow-x-hidden pt-2 file-list-font">
+    <div ref={parentRef} className="h-full overflow-auto pt-2 file-list-font">
       <table
         className="w-full border-collapse"
-        style={{ tableLayout: "fixed", fontSize: "var(--font-filelist-item)" }}
+        style={{ tableLayout: "fixed", minWidth: "500px", fontSize: "var(--font-filelist-item)" }}
       >
         <colgroup>
           <col style={{ width: "24px" }} />
@@ -209,13 +209,14 @@ export function FileList() {
                   <SortIndicator field={columnSortField[col.id]} />
                   <span className="truncate">{col.label}</span>
                 </div>
-                {/* Resize handle — wider hit area, visible line */}
+                {/* Resize handle — extends full table height, visible line */}
                 <div
-                  className="absolute top-0 -right-[4px] bottom-0 w-[9px] cursor-col-resize z-30 group/handle"
+                  className="absolute top-0 -right-[5px] w-[11px] cursor-col-resize z-30 group/handle"
+                  style={{ height: "2000px" }}
                   onMouseDown={(e) => handleResizeStart(col.id, col.width, e)}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <div className="absolute top-0 bottom-0 left-[4px] w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[2px] transition-all" />
+                  <div className="absolute top-0 bottom-0 left-[5px] w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[3px] group-hover/handle:-ml-[1px] transition-all" />
                 </div>
               </th>
             ))}
