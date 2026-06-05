@@ -46,7 +46,7 @@ jobs:
     needs: check
     strategy:
       matrix:
-        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+        target: [aarch64-apple-darwin]
     steps:
       - uses: actions/checkout@v4
 
