@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { Search, Folder, File, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useNavigationStore } from "../../stores/navigationStore";
+import { useFileListStore } from "../../stores/fileListStore";
 
 interface FileResult {
   path: string;
@@ -77,6 +78,12 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
     } else {
       const parent = result.path.split("/").slice(0, -1).join("/");
       navigateTo(parent);
+      // Select the file after directory loads
+      setTimeout(() => {
+        const store = useFileListStore.getState();
+        const idx = store.visibleEntries.findIndex((e) => e.path === result.path);
+        if (idx >= 0) store.selectIndex(idx);
+      }, 300);
     }
     onClose();
   };
