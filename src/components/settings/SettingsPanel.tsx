@@ -55,7 +55,7 @@ function FontSizeSlider() {
       fonts: {
         sidebar: { heading: scaled(12), item: scaled(13.5), section: scaled(14), badge: scaled(10) },
         fileList: { header: scaled(11), item: newBase, meta: scaled(12) },
-        preview: { title: scaled(14), meta: scaled(11), body: scaled(13) },
+        preview: { title: scaled(16), meta: scaled(12), body: scaled(14) },
         toolbar: { breadcrumb: scaled(13), button: scaled(12) },
         statusBar: { text: scaled(12.5) },
         editor: { code: scaled(14) },

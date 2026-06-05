@@ -133,7 +133,7 @@ export const useFontThemeStore = create<FontThemeState>((set, get) => ({
           fonts: {
             sidebar: { heading: s(12), item: s(13.5), section: s(14), badge: s(10) },
             fileList: { header: s(11), item: baseSize, meta: s(12) },
-            preview: { title: s(14), meta: s(11), body: s(13) },
+            preview: { title: s(16), meta: s(12), body: s(14) },
             toolbar: { breadcrumb: s(13), button: s(12) },
             statusBar: { text: s(12.5) },
             editor: { code: s(14) },
