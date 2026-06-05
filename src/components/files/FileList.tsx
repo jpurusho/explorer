@@ -173,12 +173,12 @@ export function FileList() {
   return (
     <div ref={parentRef} className="h-full overflow-auto pt-2 file-list-font">
       <table
-        className="w-full border-collapse"
-        style={{ tableLayout: "fixed", minWidth: "500px", fontSize: "var(--font-filelist-item)" }}
+        className="border-collapse"
+        style={{ tableLayout: "fixed", width: `${24 + 300 + visibleColumns.reduce((s, c) => s + c.width, 0)}px`, fontSize: "var(--font-filelist-item)" }}
       >
         <colgroup>
           <col style={{ width: "24px" }} />
-          <col />
+          <col style={{ width: "300px" }} />
           {visibleColumns.map((col) => (
             <col key={col.id} style={{ width: `${col.width}px` }} />
           ))}

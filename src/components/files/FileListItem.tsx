@@ -76,17 +76,19 @@ export function FileListItem({
   const [isDragTarget, setIsDragTarget] = useState(false);
   const [renameValue, setRenameValue] = useState(entry.name);
 
+  const tableWidth = 24 + 300 + visibleColumns.reduce((s, c) => s + c.width, 0);
+
   return (
     <table
       className={clsx(
-        "w-full border-collapse cursor-default",
+        "border-collapse cursor-default",
         "transition-colors duration-75",
         selected
           ? "bg-accent/10 text-text"
           : "hover:bg-bg-hover text-text-secondary",
         isDragTarget && "ring-1 ring-accent/50 bg-accent/8"
       )}
-      style={{ tableLayout: "fixed", fontSize: "var(--font-filelist-item)" }}
+      style={{ tableLayout: "fixed", width: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
@@ -98,7 +100,7 @@ export function FileListItem({
     >
       <colgroup>
         <col style={{ width: "24px" }} />
-        <col />
+        <col style={{ width: "300px" }} />
         {visibleColumns.map((col) => (
           <col key={col.id} style={{ width: `${col.width}px` }} />
         ))}
