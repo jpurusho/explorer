@@ -31,6 +31,82 @@ impl IndexDb {
         self.indexing.load(std::sync::atomic::Ordering::Relaxed)
     }
 
+    pub fn incremental_sync(&self, root: &Path) {
+        self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
+
+        // 1. Remove stale entries (files that no longer exist)
+        {
+            let conn = self.conn.lock().unwrap();
+            let mut stmt = conn.prepare("SELECT path FROM files").unwrap();
+            let paths: Vec<String> = stmt.query_map([], |row| row.get(0))
+                .unwrap()
+                .filter_map(|r| r.ok())
+                .collect();
+            drop(stmt);
+
+            let mut to_delete = Vec::new();
+            for path in &paths {
+                if !Path::new(path).exists() {
+                    to_delete.push(path.clone());
+                }
+            }
+
+            if !to_delete.is_empty() {
+                conn.execute("BEGIN", []).ok();
+                for path in &to_delete {
+                    conn.execute("DELETE FROM files WHERE path = ?1", params![path]).ok();
+                }
+                conn.execute("COMMIT", []).ok();
+            }
+        }
+
+        // 2. Walk filesystem and add/update only new or modified files
+        let mut paths_to_check = vec![root.to_path_buf()];
+        let mut count = 0u64;
+
+        while let Some(path) = paths_to_check.pop() {
+            let relative = path.strip_prefix(root).unwrap_or(&path);
+            if should_exclude(relative) {
+                continue;
+            }
+
+            {
+                let conn = self.conn.lock().unwrap();
+                conn.execute("BEGIN", []).ok();
+
+                if path.is_dir() {
+                    if let Ok(entries) = fs::read_dir(&path) {
+                        for entry in entries.flatten() {
+                            let child = entry.path();
+                            let child_rel = child.strip_prefix(root).unwrap_or(&child);
+                            if should_exclude(child_rel) {
+                                continue;
+                            }
+
+                            // Check if file needs update
+                            if needs_reindex(&conn, &child) {
+                                index_single_path(&conn, &child);
+                                count += 1;
+                            }
+
+                            if child.is_dir() {
+                                paths_to_check.push(child);
+                            }
+                        }
+                    }
+                }
+
+                conn.execute("COMMIT", []).ok();
+            }
+
+            if count % 1000 == 0 && count > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(1));
+            }
+        }
+
+        self.indexing.store(false, std::sync::atomic::Ordering::Relaxed);
+    }
+
     pub fn search(&self, query: &str, limit: u32) -> Vec<FileResult> {
         let conn = self.conn.lock().unwrap();
         // Split on dots, spaces, dashes, underscores — add wildcard to each token
@@ -210,6 +286,26 @@ fn should_exclude(path: &Path) -> bool {
     false
 }
 
+
+fn needs_reindex(conn: &Connection, path: &Path) -> bool {
+    let path_str = path.to_string_lossy();
+    let existing: Option<i64> = conn
+        .query_row("SELECT modified_at FROM files WHERE path = ?1", params![path_str.as_ref()], |row| row.get(0))
+        .ok();
+
+    match existing {
+        None => true, // Not in index
+        Some(indexed_mtime) => {
+            // Check if file was modified since last index
+            let current_mtime = fs::metadata(path).ok()
+                .and_then(|m| m.modified().ok())
+                .and_then(|t| t.duration_since(SystemTime::UNIX_EPOCH).ok())
+                .map(|d| d.as_secs() as i64)
+                .unwrap_or(0);
+            current_mtime > indexed_mtime
+        }
+    }
+}
 
 fn index_single_path(conn: &Connection, path: &Path) {
     let metadata = match fs::metadata(path) {
