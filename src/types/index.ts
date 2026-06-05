@@ -54,6 +54,7 @@ export interface AppSettings {
   column_type_width: number;
   column_size_width: number;
   column_modified_width: number;
+  column_name_width: number;
   column_type_visible: boolean;
   column_size_visible: boolean;
   column_modified_visible: boolean;

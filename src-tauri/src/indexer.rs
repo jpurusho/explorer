@@ -451,8 +451,18 @@ impl IndexDb {
         }
         // Phase 1: Index all files (fast — no trigrams)
         self.index_directory(root);
-        // Phase 2: Build trigrams in bulk (deferred)
+        // Phase 2: Rebuild FTS5 content sync
+        {
+            let conn = self.conn.lock().unwrap();
+            conn.execute("INSERT INTO files_fts(files_fts) VALUES('rebuild')", []).ok();
+        }
+        // Phase 3: Build trigrams in bulk (deferred)
         self.rebuild_trigrams();
+        // Phase 4: Compact database
+        {
+            let conn = self.conn.lock().unwrap();
+            conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;").ok();
+        }
     }
 }
 

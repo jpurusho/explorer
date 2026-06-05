@@ -23,6 +23,7 @@ const defaultSettings: AppSettings = {
   preview_width: 420,
   favorites: [],
   recent_paths: [],
+  column_name_width: 300,
   column_type_width: 50,
   column_size_width: 58,
   column_modified_width: 90,

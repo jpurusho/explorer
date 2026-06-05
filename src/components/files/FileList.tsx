@@ -172,134 +172,125 @@ export function FileList() {
     );
   };
 
-  return (
-    <div ref={parentRef} className="h-full overflow-auto pt-2 file-list-font">
-      <table
-        className="border-collapse"
-        style={{ tableLayout: "fixed", width: `${24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0)}px`, fontSize: "var(--font-filelist-item)" }}
-      >
-        <colgroup>
-          <col style={{ width: "24px" }} />
-          <col style={{ width: `${nameWidth}px` }} />
-          {visibleColumns.map((col) => (
-            <col key={col.id} style={{ width: `${col.width}px` }} />
-          ))}
-        </colgroup>
+  const tableWidth = 24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0);
 
-        <thead
-          className="sticky top-0 z-10 bg-bg"
+  return (
+    <div ref={parentRef} className="h-full overflow-auto file-list-font">
+      {/* Sticky header table */}
+      <div className="sticky top-0 z-10 bg-bg">
+        <table
+          className="border-collapse"
+          style={{ tableLayout: "fixed", width: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
           onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
         >
-          <tr style={{ fontSize: "var(--font-filelist-header)" }}>
-            <th className="border-b border-border py-1.5 px-1" />
-            <th
-              className="relative border-b border-border py-1.5 px-2 text-left cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
-              onClick={() => handleSort("name")}
-            >
-              <div className="flex items-center gap-1">
-                <span className="truncate">Name</span>
-                <SortIndicator field="name" />
-              </div>
-              {/* Resize handle for Name column */}
-              <div
-                className="absolute top-0 -right-[5px] w-[11px] cursor-col-resize z-30 group/handle"
-                style={{ height: "2000px" }}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  const startX = e.clientX;
-                  const startWidth = nameWidth;
-                  const onMove = (ev: MouseEvent) => setNameWidth(Math.max(100, startWidth + ev.clientX - startX));
-                  const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
-                  document.body.style.cursor = "col-resize";
-                  document.body.style.userSelect = "none";
-                  document.addEventListener("mousemove", onMove);
-                  document.addEventListener("mouseup", onUp);
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="absolute top-0 bottom-0 left-[5px] w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[3px] group-hover/handle:-ml-[1px] transition-all" />
-              </div>
-            </th>
+          <colgroup>
+            <col style={{ width: "24px" }} />
+            <col style={{ width: `${nameWidth}px` }} />
             {visibleColumns.map((col) => (
+              <col key={col.id} style={{ width: `${col.width}px` }} />
+            ))}
+          </colgroup>
+          <thead>
+            <tr style={{ fontSize: "var(--font-filelist-header)" }}>
+              <th className="border-b border-border py-1.5 px-1" />
               <th
-                key={col.id}
-                className="relative border-b border-border py-1.5 px-2 text-center cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
-                onClick={() => handleSort(columnSortField[col.id])}
+                className="relative border-b border-border py-1.5 px-2 text-left cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+                onClick={() => handleSort("name")}
               >
-                <div className="flex items-center justify-center gap-1">
-                  <SortIndicator field={columnSortField[col.id]} />
-                  <span className="truncate">{col.label}</span>
+                <div className="flex items-center gap-1">
+                  <span className="truncate">Name</span>
+                  <SortIndicator field="name" />
                 </div>
-                {/* Resize handle — extends full table height, visible line */}
                 <div
                   className="absolute top-0 -right-[5px] w-[11px] cursor-col-resize z-30 group/handle"
                   style={{ height: "2000px" }}
-                  onMouseDown={(e) => handleResizeStart(col.id, col.width, e)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const startX = e.clientX;
+                    const startWidth = nameWidth;
+                    const onMove = (ev: MouseEvent) => setNameWidth(Math.max(100, startWidth + ev.clientX - startX));
+                    const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
+                    document.body.style.cursor = "col-resize";
+                    document.body.style.userSelect = "none";
+                    document.addEventListener("mousemove", onMove);
+                    document.addEventListener("mouseup", onUp);
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <div className="absolute top-0 bottom-0 left-[5px] w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[3px] group-hover/handle:-ml-[1px] transition-all" />
                 </div>
               </th>
-            ))}
-          </tr>
-        </thead>
+              {visibleColumns.map((col) => (
+                <th
+                  key={col.id}
+                  className="relative border-b border-border py-1.5 px-2 text-center cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+                  onClick={() => handleSort(columnSortField[col.id])}
+                >
+                  <div className="flex items-center justify-center gap-1">
+                    <SortIndicator field={columnSortField[col.id]} />
+                    <span className="truncate">{col.label}</span>
+                  </div>
+                  <div
+                    className="absolute top-0 -right-[5px] w-[11px] cursor-col-resize z-30 group/handle"
+                    style={{ height: "2000px" }}
+                    onMouseDown={(e) => handleResizeStart(col.id, col.width, e)}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="absolute top-0 bottom-0 left-[5px] w-[1px] bg-border group-hover/handle:bg-accent group-hover/handle:w-[3px] group-hover/handle:-ml-[1px] transition-all" />
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+        </table>
+      </div>
 
-        <tbody>
-          {/* Spacer row to create virtual scroll space */}
-          <tr>
-            <td
-              colSpan={2 + visibleColumns.length}
-              style={{ height: `${virtualizer.getTotalSize()}px`, padding: 0, border: "none" }}
+      {/* Virtualized rows */}
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative", width: `${tableWidth}px` }}>
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const entry = entries[virtualRow.index];
+          return (
+            <div
+              key={virtualRow.key}
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
             >
-              <div style={{ position: "relative", width: "100%", height: "100%" }}>
-                {virtualizer.getVirtualItems().map((virtualRow) => {
-                  const entry = entries[virtualRow.index];
-                  return (
-                    <div
-                      key={virtualRow.key}
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        left: 0,
-                        width: "100%",
-                        height: `${virtualRow.size}px`,
-                        transform: `translateY(${virtualRow.start}px)`,
-                      }}
-                    >
-                      <FileListItem
-                        entry={entry}
-                        selected={selectedIndices.has(virtualRow.index)}
-                        renaming={renamingIndex === virtualRow.index}
-                        visibleColumns={visibleColumns}
-                        onRename={async (newName) => {
-                          const { invoke } = await import("@tauri-apps/api/core");
-                          await invoke("rename_item", { path: entry.path, newName });
-                          setRenamingIndex(null);
-                          useNavigationStore.getState().refreshCurrent();
-                        }}
-                        onCancelRename={() => setRenamingIndex(null)}
-                        onClick={(e) => handleClick(virtualRow.index, e)}
-                        onDoubleClick={() => {
-                          if (entry.is_dir) navigateTo(entry.path);
-                        }}
-                        onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
-                        draggable={renamingIndex !== virtualRow.index}
-                        onDragStart={(e) => handleDragStart(e, entry, virtualRow.index)}
-                        onFileDrop={entry.is_dir ? async (paths) => {
-                          const { invoke } = await import("@tauri-apps/api/core");
-                          await invoke("move_items", { paths, destination: entry.path });
-                          useNavigationStore.getState().refreshCurrent();
-                        } : undefined}
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+              <FileListItem
+                entry={entry}
+                selected={selectedIndices.has(virtualRow.index)}
+                renaming={renamingIndex === virtualRow.index}
+                visibleColumns={visibleColumns}
+                onRename={async (newName) => {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  await invoke("rename_item", { path: entry.path, newName });
+                  setRenamingIndex(null);
+                  useNavigationStore.getState().refreshCurrent();
+                }}
+                onCancelRename={() => setRenamingIndex(null)}
+                onClick={(e) => handleClick(virtualRow.index, e)}
+                onDoubleClick={() => {
+                  if (entry.is_dir) navigateTo(entry.path);
+                }}
+                onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
+                draggable={renamingIndex !== virtualRow.index}
+                onDragStart={(e) => handleDragStart(e, entry, virtualRow.index)}
+                onFileDrop={entry.is_dir ? async (paths) => {
+                  const { invoke } = await import("@tauri-apps/api/core");
+                  await invoke("move_items", { paths, destination: entry.path });
+                  useNavigationStore.getState().refreshCurrent();
+                } : undefined}
+              />
+            </div>
+          );
+        })}
+      </div>
 
       {/* Column visibility menu */}
       {showVisibilityMenu && (

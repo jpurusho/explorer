@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useFileListStore } from "../../stores/fileListStore";
+import { usePreviewNavStore } from "../../stores/previewNavStore";
 import { ImagePreview } from "./ImagePreview";
 import { VideoPreview } from "./VideoPreview";
 import { AudioPreview } from "./AudioPreview";
@@ -8,7 +9,7 @@ import { JsonPreview } from "./JsonPreview";
 import { YamlPreview } from "./YamlPreview";
 import { PdfPreview } from "./PdfPreview";
 import { Editor } from "../editor/Editor";
-import { FileText, Eye, Pencil, ExternalLink } from "lucide-react";
+import { FileText, Eye, Pencil, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { format } from "date-fns";
 import { detachPreview } from "../../lib/detachPreview";
@@ -36,6 +37,11 @@ export function PreviewPanel() {
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
 
+  // Preview navigation for following links within documents
+  const previewNav = usePreviewNavStore();
+  const [navContent, setNavContent] = useState<string | null>(null);
+  const [navPath, setNavPath] = useState<string | null>(null);
+
   // Ref to track the latest request and cancel stale ones
   const requestIdRef = useRef(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,6 +49,62 @@ export function PreviewPanel() {
   const entry = visibleEntries[selectedIndex];
   const fileType = entry?.file_type as FileType | undefined;
   const hasRenderedView = fileType ? renderableTypes.includes(fileType) : false;
+
+  // Reset preview nav when a different file is selected from the file list
+  useEffect(() => {
+    if (selectedPath) {
+      previewNav.reset(selectedPath);
+      setNavContent(null);
+      setNavPath(null);
+    }
+  }, [selectedPath]);
+
+  const handleLinkNavigate = useCallback(async (targetPath: string) => {
+    console.log("[PreviewNav] Navigating to:", targetPath);
+    try {
+      const result = await fetchFileContent(targetPath);
+      console.log("[PreviewNav] Loaded content, length:", result.content.length);
+      usePreviewNavStore.getState().pushPath(targetPath);
+      setNavContent(result.content);
+      setNavPath(targetPath);
+    } catch (err) {
+      console.warn("[PreviewNav] Failed to load:", targetPath, err);
+    }
+  }, []);
+
+  const handleGoBack = useCallback(async () => {
+    const path = previewNav.goBack();
+    if (!path) return;
+    if (path === selectedPath) {
+      setNavContent(null);
+      setNavPath(null);
+      return;
+    }
+    try {
+      const result = await fetchFileContent(path);
+      if (result) {
+        setNavContent(result.content);
+        setNavPath(path);
+      }
+    } catch {}
+  }, [previewNav, selectedPath]);
+
+  const handleGoForward = useCallback(async () => {
+    const path = previewNav.goForward();
+    if (!path) return;
+    if (path === selectedPath) {
+      setNavContent(null);
+      setNavPath(null);
+      return;
+    }
+    try {
+      const result = await fetchFileContent(path);
+      if (result) {
+        setNavContent(result.content);
+        setNavPath(path);
+      }
+    } catch {}
+  }, [previewNav, selectedPath]);
 
   useEffect(() => {
     // Cancel any pending debounce timer
@@ -129,6 +191,11 @@ export function PreviewPanel() {
   }
 
   const renderContent = () => {
+    // If following a linked document, show that regardless of original file type
+    if (isFollowingLink && navContent) {
+      return <MarkdownPreview content={navContent} basePath={navPath!} onNavigate={handleLinkNavigate} />;
+    }
+
     if (fileType === "image") {
       return <ImagePreview path={entry.path} name={entry.name} />;
     }
@@ -164,7 +231,7 @@ export function PreviewPanel() {
     // Rendered view for markdown/json/yaml
     if (!editMode && hasRenderedView) {
       if (fileType === "markdown") {
-        return <MarkdownPreview content={content.content} />;
+        return <MarkdownPreview content={content.content} basePath={entry.path} onNavigate={handleLinkNavigate} />;
       }
       if (fileType === "json") {
         return <JsonPreview content={content.content} />;
@@ -189,15 +256,39 @@ export function PreviewPanel() {
     return null;
   };
 
+  const isFollowingLink = navContent !== null && navPath !== null && navPath !== selectedPath;
+  const displayName = isFollowingLink ? navPath!.split("/").pop() || "" : entry.name;
+
   return (
     <div className="h-full bg-bg flex flex-col overflow-hidden">
       {/* File info header */}
       <div className="py-3.5 border-b border-border shrink-0 bg-bg-secondary" style={{ padding: "14px var(--panel-px)" }}>
         <div className="flex items-center justify-between">
-          <p className="font-medium text-text truncate flex-1 mr-4" style={{ fontSize: "var(--font-preview-title)" }}>{entry.name}</p>
+          <div className="flex items-center gap-1.5 flex-1 min-w-0 mr-4">
+            {/* Back/Forward buttons for preview navigation */}
+            {previewNav.canGoBack() && (
+              <button
+                onClick={handleGoBack}
+                className="p-1 rounded-[4px] transition-colors text-text-muted hover:bg-bg-hover hover:text-text-secondary shrink-0"
+                title="Back"
+              >
+                <ChevronLeft size={14} />
+              </button>
+            )}
+            {previewNav.canGoForward() && (
+              <button
+                onClick={handleGoForward}
+                className="p-1 rounded-[4px] transition-colors text-text-muted hover:bg-bg-hover hover:text-text-secondary shrink-0"
+                title="Forward"
+              >
+                <ChevronRight size={14} />
+              </button>
+            )}
+            <p className="font-medium text-text truncate" style={{ fontSize: "var(--font-preview-title)" }}>{displayName}</p>
+          </div>
           <div className="flex items-center gap-0.5 shrink-0">
             {/* View/Edit toggle for renderable files */}
-            {hasRenderedView && content && (
+            {hasRenderedView && content && !isFollowingLink && (
               <>
                 <button
                   onClick={() => setEditMode(false)}
@@ -235,22 +326,28 @@ export function PreviewPanel() {
             </button>
           </div>
         </div>
-        <div className="flex items-center gap-3 mt-1.5">
-          <span className="text-[var(--font-sm)] text-text-muted tabular-nums">
-            {formatSize(entry.size)}
-          </span>
-          {entry.modified && (
-            <span className="text-[var(--font-sm)] text-text-muted">
-              {(() => { try { return format(new Date(entry.modified), "MMM d, yyyy"); } catch { return ""; } })()}
+        {isFollowingLink ? (
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className="text-[var(--font-xs)] text-text-muted truncate">{navPath}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3 mt-1.5">
+            <span className="text-[var(--font-sm)] text-text-muted tabular-nums">
+              {formatSize(entry.size)}
             </span>
-          )}
-          <span className={clsx(
-            "text-[var(--font-xs)] px-2 py-[2px] rounded-full uppercase tracking-wide font-medium",
-            "bg-bg-tertiary text-text-muted"
-          )}>
-            {entry.file_type}
-          </span>
-        </div>
+            {entry.modified && (
+              <span className="text-[var(--font-sm)] text-text-muted">
+                {(() => { try { return format(new Date(entry.modified), "MMM d, yyyy"); } catch { return ""; } })()}
+              </span>
+            )}
+            <span className={clsx(
+              "text-[var(--font-xs)] px-2 py-[2px] rounded-full uppercase tracking-wide font-medium",
+              "bg-bg-tertiary text-text-muted"
+            )}>
+              {entry.file_type}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Preview/editor content */}

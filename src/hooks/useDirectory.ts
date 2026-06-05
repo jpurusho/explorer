@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
 import { useTagStore } from "../stores/tagStore";
@@ -77,4 +78,27 @@ export function useDirectory() {
 
     return () => { cancelled = true; };
   }, [currentPath, refreshTrigger]);
+
+  // Watch current directory for external changes
+  useEffect(() => {
+    if (!currentPath) return;
+
+    invoke("watch_directory", { path: currentPath }).catch(() => {});
+
+    let debounce: ReturnType<typeof setTimeout> | null = null;
+    const unlisten = listen<string>("directory-changed", (event) => {
+      if (event.payload === currentPath) {
+        if (debounce) clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          useNavigationStore.getState().refreshCurrent();
+        }, 300);
+      }
+    });
+
+    return () => {
+      if (debounce) clearTimeout(debounce);
+      unlisten.then((fn) => fn());
+      invoke("unwatch_directory").catch(() => {});
+    };
+  }, [currentPath]);
 }

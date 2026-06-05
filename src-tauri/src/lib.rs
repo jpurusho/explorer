@@ -10,6 +10,7 @@ use commands::filesystem::{generate_thumbnail, get_file_entries, get_file_metada
 use commands::sections::{get_all_sections, get_sections, create_section, update_section, delete_section, assign_files_to_section, remove_files_from_section, reorder_sections};
 use commands::settings::{load_settings, save_settings, list_font_themes, load_font_theme, write_log};
 use commands::tags::{get_all_tags, create_tag, update_tag, delete_tag, tag_files, untag_files, get_tags_for_files, get_files_by_tag};
+use commands::watcher::{watch_directory, unwatch_directory, WatcherState};
 use std::path::PathBuf;
 use std::io::{Read, Seek, SeekFrom};
 
@@ -47,6 +48,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(index_db)
         .manage(db::DbState::new())
+        .manage(WatcherState::new())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
@@ -99,6 +101,8 @@ pub fn run() {
             list_font_themes,
             load_font_theme,
             write_log,
+            watch_directory,
+            unwatch_directory,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

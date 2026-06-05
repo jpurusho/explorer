@@ -6,6 +6,8 @@ import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 interface MarkdownPreviewProps {
   content: string;
+  basePath?: string;
+  onNavigate?: (path: string) => void;
 }
 
 mermaid.initialize({
@@ -77,7 +79,7 @@ function MermaidBlock({ code }: { code: string }) {
   );
 }
 
-export function MarkdownPreview({ content }: MarkdownPreviewProps) {
+export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPreviewProps) {
   const renderCode = useCallback(({ className, children, ...props }: any) => {
     const match = /language-(\w+)/.exec(className || "");
     const lang = match?.[1];
@@ -98,12 +100,62 @@ export function MarkdownPreview({ content }: MarkdownPreviewProps) {
     return <code {...props}>{children}</code>;
   }, []);
 
+  const renderLink = useCallback(({ href, children, ...props }: any) => {
+    const handleClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (!href) return;
+
+      if (href.startsWith("http://") || href.startsWith("https://")) {
+        return;
+      }
+
+      if (onNavigate && basePath) {
+        const dir = basePath.substring(0, basePath.lastIndexOf("/"));
+        let resolved = href;
+        if (href.startsWith("./")) {
+          resolved = `${dir}/${href.slice(2)}`;
+        } else if (href.startsWith("../")) {
+          let currentDir = dir;
+          let remaining = href;
+          while (remaining.startsWith("../")) {
+            currentDir = currentDir.substring(0, currentDir.lastIndexOf("/"));
+            remaining = remaining.slice(3);
+          }
+          resolved = `${currentDir}/${remaining}`;
+        } else if (!href.startsWith("/")) {
+          resolved = `${dir}/${href}`;
+        }
+        resolved = resolved.split("#")[0];
+        if (resolved) {
+          onNavigate(resolved);
+        }
+      } else {
+        console.warn("[MarkdownLink] Missing onNavigate or basePath", { onNavigate: !!onNavigate, basePath });
+      }
+    };
+
+    const isExternal = href?.startsWith("http://") || href?.startsWith("https://");
+
+    return (
+      <a
+        href={href}
+        onClick={handleClick}
+        className={isExternal ? "cursor-not-allowed opacity-60" : "cursor-pointer"}
+        title={isExternal ? href : undefined}
+        {...props}
+      >
+        {children}
+        {isExternal && <span className="text-[var(--font-xs)] text-text-muted ml-1">(external)</span>}
+      </a>
+    );
+  }, [basePath, onNavigate]);
+
   return (
     <div className="h-full overflow-auto">
       <div className="py-5 prose-explorer max-w-full" style={{ paddingLeft: "calc(var(--panel-px) + 8px)", paddingRight: "var(--panel-px)" }}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
-          components={{ code: renderCode }}
+          components={{ code: renderCode, a: renderLink }}
         >
           {content}
         </ReactMarkdown>

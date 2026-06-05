@@ -44,7 +44,7 @@ interface FileListState {
   setNameWidth: (width: number) => void;
   setColumnWidth: (id: ColumnId, width: number) => void;
   toggleColumnVisibility: (id: ColumnId) => void;
-  syncFromSettings: (settings: { column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
+  syncFromSettings: (settings: { column_name_width: number; column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
 
   // Multi-select actions
   selectIndex: (index: number) => void;
@@ -187,7 +187,13 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   setNameWidth: (width) => {
-    set({ nameWidth: Math.max(100, width) });
+    const w = Math.max(100, width);
+    set({ nameWidth: w });
+    if (_saveTimer) clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(async () => {
+      const { useSettingsStore } = await import("./settingsStore");
+      useSettingsStore.getState().updateSettings({ column_name_width: w });
+    }, 500);
   },
 
   setColumnWidth: (id, width) => {
@@ -210,6 +216,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
 
   syncFromSettings: (settings) => {
     set({
+      nameWidth: settings.column_name_width || 300,
       viewMode: (settings.default_view as ViewMode) || "list",
       showHiddenFiles: settings.show_hidden_files,
       sortBy: (settings.sort_by as SortField) || "name",

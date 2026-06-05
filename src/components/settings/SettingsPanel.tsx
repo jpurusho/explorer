@@ -305,7 +305,11 @@ function IndexStatsPanel() {
 
   useEffect(() => {
     invoke<any>("get_index_stats").then(setStats).catch(() => {});
-  }, [rebuilding]);
+    const interval = setInterval(() => {
+      invoke<any>("get_index_stats").then(setStats).catch(() => {});
+    }, 3000);
+    return () => clearInterval(interval);
+  }, []);
 
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
