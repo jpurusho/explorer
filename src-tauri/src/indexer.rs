@@ -6,8 +6,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 const EXCLUDED_DIRS: &[&str] = &[
     ".git", "node_modules", "target", ".Trash", ".cache",
-    "Library/Caches", "Library/Logs", ".npm", ".cargo/registry",
+    "Library", ".npm", ".cargo",
     "__pycache__", ".venv", "venv", ".DS_Store",
+    "bin", ".orbstack", ".docker",
+    "Pods", "DerivedData", "Build",
 ];
 
 pub struct IndexDb {
@@ -319,6 +321,62 @@ impl IndexDb {
             .unwrap_or(0);
         (file_count, dir_count)
     }
+
+    pub fn get_detailed_stats(&self) -> IndexStats {
+        let conn = self.read_conn.lock().unwrap();
+        let file_count: u64 = conn.query_row("SELECT COUNT(*) FROM files WHERE is_dir = 0", [], |row| row.get(0)).unwrap_or(0);
+        let dir_count: u64 = conn.query_row("SELECT COUNT(*) FROM files WHERE is_dir = 1", [], |row| row.get(0)).unwrap_or(0);
+        let trigram_count: u64 = conn.query_row("SELECT COUNT(*) FROM trigrams", [], |row| row.get(0)).unwrap_or(0);
+        let db_path = get_index_db_path();
+        let db_size = fs::metadata(&db_path).map(|m| m.len()).unwrap_or(0);
+        IndexStats { file_count, dir_count, trigram_count, db_size_bytes: db_size }
+    }
+
+    pub fn rebuild_trigrams(&self) {
+        self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
+        let conn = self.conn.lock().unwrap();
+
+        // Clear existing trigrams
+        conn.execute("DELETE FROM trigrams", []).ok();
+
+        // Rebuild from all file names
+        let mut stmt = conn.prepare("SELECT path, name FROM files").unwrap();
+        let rows: Vec<(String, String)> = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        }).unwrap().filter_map(|r| r.ok()).collect();
+        drop(stmt);
+
+        let total = rows.len();
+        let mut count = 0;
+        conn.execute("BEGIN", []).ok();
+        for (path, name) in &rows {
+            index_trigrams(&conn, path, name);
+            count += 1;
+            if count % 10000 == 0 {
+                conn.execute("COMMIT", []).ok();
+                conn.execute("BEGIN", []).ok();
+            }
+        }
+        conn.execute("COMMIT", []).ok();
+
+        self.indexing.store(false, std::sync::atomic::Ordering::Relaxed);
+    }
+
+    pub fn clear_and_reindex(&self, root: &Path) {
+        let conn = self.conn.lock().unwrap();
+        conn.execute("DELETE FROM files", []).ok();
+        conn.execute("DELETE FROM trigrams", []).ok();
+        drop(conn);
+        self.index_directory(root);
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct IndexStats {
+    pub file_count: u64,
+    pub dir_count: u64,
+    pub trigram_count: u64,
+    pub db_size_bytes: u64,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]

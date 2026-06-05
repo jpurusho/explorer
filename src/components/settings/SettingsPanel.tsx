@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { X } from "lucide-react";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
@@ -282,7 +283,71 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             <span className="text-text-muted">Find</span>
           </div>
         </SettingsSection>
+
+        <SettingsSection title="Search Index">
+          <IndexStatsPanel />
+        </SettingsSection>
       </div>
+    </div>
+  );
+}
+
+function IndexStatsPanel() {
+  const [stats, setStats] = useState<{ file_count: number; dir_count: number; trigram_count: number; db_size_bytes: number } | null>(null);
+  const [rebuilding, setRebuilding] = useState(false);
+
+  useEffect(() => {
+    invoke<any>("get_index_stats").then(setStats).catch(() => {});
+  }, [rebuilding]);
+
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+  };
+
+  return (
+    <div className="space-y-3">
+      {stats && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
+            <div className="text-[var(--font-lg)] text-text font-bold">{stats.file_count.toLocaleString()}</div>
+            <div className="text-[var(--font-xs)] text-text-muted">Files</div>
+          </div>
+          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
+            <div className="text-[var(--font-lg)] text-text font-bold">{stats.dir_count.toLocaleString()}</div>
+            <div className="text-[var(--font-xs)] text-text-muted">Folders</div>
+          </div>
+          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
+            <div className="text-[var(--font-lg)] text-text font-bold">{stats.trigram_count.toLocaleString()}</div>
+            <div className="text-[var(--font-xs)] text-text-muted">Trigrams</div>
+          </div>
+          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
+            <div className="text-[var(--font-lg)] text-text font-bold">{formatBytes(stats.db_size_bytes)}</div>
+            <div className="text-[var(--font-xs)] text-text-muted">Index Size</div>
+          </div>
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button
+          onClick={() => { invoke("rebuild_trigrams"); setRebuilding(true); setTimeout(() => setRebuilding(false), 5000); }}
+          disabled={rebuilding}
+          className="px-3 py-1.5 rounded-lg text-[var(--font-sm)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
+        >
+          {rebuilding ? "Rebuilding..." : "Rebuild Trigrams"}
+        </button>
+        <button
+          onClick={() => { invoke("reindex"); setRebuilding(true); setTimeout(() => setRebuilding(false), 10000); }}
+          disabled={rebuilding}
+          className="px-3 py-1.5 rounded-lg text-[var(--font-sm)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
+        >
+          {rebuilding ? "Reindexing..." : "Full Reindex"}
+        </button>
+      </div>
+      <p className="text-[var(--font-xs)] text-text-muted">
+        Index stored at ~/.config/explorer/index.db
+      </p>
     </div>
   );
 }

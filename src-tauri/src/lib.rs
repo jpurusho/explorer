@@ -5,7 +5,7 @@ mod models;
 mod utils;
 
 use commands::file_ops::{copy_items, create_folder, move_items, rename_item, trash_items};
-use commands::search::{search_files, get_index_stats, is_indexing, reindex};
+use commands::search::{search_files, get_index_stats, is_indexing, reindex, rebuild_trigrams};
 use commands::filesystem::{generate_thumbnail, get_file_entries, get_file_metadata, get_git_status, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
 use commands::sections::{get_all_sections, get_sections, create_section, update_section, delete_section, assign_files_to_section, remove_files_from_section, reorder_sections};
 use commands::settings::{load_settings, save_settings, list_font_themes, load_font_theme, write_log};
@@ -95,6 +95,7 @@ pub fn run() {
             get_index_stats,
             is_indexing,
             reindex,
+            rebuild_trigrams,
             list_font_themes,
             load_font_theme,
             write_log,
