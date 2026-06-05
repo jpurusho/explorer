@@ -104,11 +104,13 @@ impl IndexDb {
         }
     }
 
+    #[allow(dead_code)]
     pub fn upsert_path(&self, path: &Path) {
         let conn = self.conn.lock().unwrap();
         index_single_path(&conn, path);
     }
 
+    #[allow(dead_code)]
     pub fn remove_path(&self, path: &Path) {
         let conn = self.conn.lock().unwrap();
         conn.execute("DELETE FROM files WHERE path = ?1", params![path.to_string_lossy().as_ref()])
