@@ -140,7 +140,6 @@ export function FileList() {
   const handleResizeStart = useCallback((colId: ColumnId, currentWidth: number, e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("RESIZE START", colId, currentWidth);
     const startX = e.clientX;
     const startWidth = currentWidth;
 
