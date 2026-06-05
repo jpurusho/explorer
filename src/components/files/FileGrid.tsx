@@ -49,9 +49,24 @@ export function FileGrid() {
     requestAnimationFrame(() => document.body.removeChild(ghost));
   };
 
+  const [cardSize, setCardSize] = useState(175);
+
   return (
     <div className="h-full overflow-auto p-6 file-list-font">
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(175px,1fr))] gap-4">
+      {/* Card size slider */}
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-[var(--font-xs)] text-text-muted">Size</span>
+        <input
+          type="range"
+          min="120"
+          max="300"
+          step="10"
+          value={cardSize}
+          onChange={(e) => setCardSize(parseInt(e.target.value))}
+          className="w-24 h-1.5 bg-bg-tertiary rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
+        />
+      </div>
+      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardSize}px, 1fr))` }}>
         {entries.map((entry, index) => (
           <FileCard
             key={entry.path}
