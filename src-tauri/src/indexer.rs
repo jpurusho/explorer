@@ -11,7 +11,8 @@ const EXCLUDED_DIRS: &[&str] = &[
 ];
 
 pub struct IndexDb {
-    pub conn: Arc<Mutex<Connection>>,
+    pub conn: Arc<Mutex<Connection>>,       // Write connection (indexer)
+    pub read_conn: Arc<Mutex<Connection>>,  // Read connection (search queries)
     pub indexing: Arc<std::sync::atomic::AtomicBool>,
 }
 
@@ -19,10 +20,21 @@ impl IndexDb {
     pub fn new() -> Self {
         let db_path = get_index_db_path();
         fs::create_dir_all(db_path.parent().unwrap()).ok();
+
+        // Write connection
         let conn = Connection::open(&db_path).expect("Failed to open index database");
         init_schema(&conn);
+
+        // Separate read-only connection — never blocks on writer in WAL mode
+        let read_conn = Connection::open_with_flags(
+            &db_path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY | rusqlite::OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        ).expect("Failed to open read connection");
+        read_conn.pragma_update(None, "journal_mode", "WAL").ok();
+
         IndexDb {
             conn: Arc::new(Mutex::new(conn)),
+            read_conn: Arc::new(Mutex::new(read_conn)),
             indexing: Arc::new(std::sync::atomic::AtomicBool::new(false)),
         }
     }
@@ -135,7 +147,7 @@ impl IndexDb {
     }
 
     pub fn search(&self, query: &str, limit: u32) -> Vec<FileResult> {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.read_conn.lock().unwrap();
         // Split on dots, spaces, dashes, underscores — add wildcard to each token
         let tokens: Vec<&str> = query.split(|c: char| c == '.' || c == ' ' || c == '-' || c == '_')
             .filter(|s| !s.is_empty())
@@ -229,7 +241,7 @@ impl IndexDb {
     }
 
     pub fn get_stats(&self) -> (u64, u64) {
-        let conn = self.conn.lock().unwrap();
+        let conn = self.read_conn.lock().unwrap();
         let file_count: u64 = conn
             .query_row("SELECT COUNT(*) FROM files WHERE is_dir = 0", [], |row| row.get(0))
             .unwrap_or(0);

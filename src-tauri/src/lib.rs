@@ -21,10 +21,11 @@ pub fn run() {
     let (file_count, _) = index_db.get_stats();
     let gap_seconds = index_db.seconds_since_shutdown();
     let index_conn = index_db.conn.clone();
+    let index_read = index_db.read_conn.clone();
     let index_flag = index_db.indexing.clone();
     std::thread::spawn(move || {
         let home = std::env::var("HOME").unwrap_or_else(|_| "/".to_string());
-        let db = indexer::IndexDb { conn: index_conn, indexing: index_flag };
+        let db = indexer::IndexDb { conn: index_conn, read_conn: index_read, indexing: index_flag };
         if file_count == 0 {
             // First launch — full scan
             db.index_directory(std::path::Path::new(&home));
@@ -40,6 +41,7 @@ pub fn run() {
 
     // Save shutdown time on app exit
     let shutdown_db = index_db.conn.clone();
+    let shutdown_read = index_db.read_conn.clone();
     let shutdown_flag = index_db.indexing.clone();
 
     tauri::Builder::default()
@@ -101,7 +103,7 @@ pub fn run() {
         .expect("error while building tauri application")
         .run(move |_app, event| {
             if let tauri::RunEvent::Exit = event {
-                let db = indexer::IndexDb { conn: shutdown_db.clone(), indexing: shutdown_flag.clone() };
+                let db = indexer::IndexDb { conn: shutdown_db.clone(), read_conn: shutdown_read.clone(), indexing: shutdown_flag.clone() };
                 db.save_shutdown_time();
             }
         });
