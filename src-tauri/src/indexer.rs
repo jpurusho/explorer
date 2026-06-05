@@ -363,10 +363,34 @@ impl IndexDb {
     }
 
     pub fn clear_and_reindex(&self, root: &Path) {
-        let conn = self.conn.lock().unwrap();
-        conn.execute("DELETE FROM files", []).ok();
-        conn.execute("DELETE FROM trigrams", []).ok();
-        drop(conn);
+        {
+            let conn = self.conn.lock().unwrap();
+            // Drop triggers to avoid FTS overhead during bulk delete
+            conn.execute("DROP TRIGGER IF EXISTS files_ai", []).ok();
+            conn.execute("DROP TRIGGER IF EXISTS files_ad", []).ok();
+            conn.execute("DROP TRIGGER IF EXISTS files_au", []).ok();
+            conn.execute("DELETE FROM files", []).ok();
+            conn.execute("DELETE FROM trigrams", []).ok();
+            conn.execute("DELETE FROM files_fts", []).ok();
+            // Recreate triggers
+            conn.execute_batch("
+                CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
+                    INSERT INTO files_fts(rowid, name, path, extension)
+                    VALUES (new.rowid, new.name, new.path, new.extension);
+                END;
+                CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
+                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
+                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
+                END;
+                CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN
+                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
+                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
+                    INSERT INTO files_fts(rowid, name, path, extension)
+                    VALUES (new.rowid, new.name, new.path, new.extension);
+                END;
+            ").ok();
+            conn.execute("VACUUM", []).ok();
+        }
         self.index_directory(root);
     }
 }
