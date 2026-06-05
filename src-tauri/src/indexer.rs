@@ -65,7 +65,6 @@ impl IndexDb {
                 END;
             ").ok();
             conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('schema_version', '2')", []).ok();
-            conn.execute("VACUUM", []).ok();
         }
 
         IndexDb {
@@ -423,7 +422,6 @@ impl IndexDb {
                     VALUES (new.rowid, new.name, new.path, new.extension);
                 END;
             ").ok();
-            conn.execute("VACUUM", []).ok();
         }
         self.index_directory(root);
     }
