@@ -28,12 +28,13 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
 
   return (
     <div
-      data-tauri-drag-region
-      className="h-[var(--toolbar-height)] bg-bg-secondary/80 backdrop-blur-xl border-b border-border flex items-center gap-2 overflow-hidden"
-      style={{ fontSize: "var(--font-toolbar-breadcrumb)", paddingLeft: "78px", paddingRight: "var(--panel-px)", WebkitAppRegion: "drag", appRegion: "drag" } as React.CSSProperties}
+      className="h-[var(--toolbar-height)] bg-bg-secondary/80 backdrop-blur-xl border-b border-border flex items-center gap-2 overflow-hidden relative"
+      style={{ fontSize: "var(--font-toolbar-breadcrumb)", paddingLeft: "78px", paddingRight: "var(--panel-px)" }}
     >
+      {/* Invisible drag overlay — covers the full toolbar for window dragging */}
+      <div data-tauri-drag-region className="absolute inset-0 z-0" />
       {/* Nav buttons */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 relative z-10">
         <button
           onClick={goBack}
           disabled={!canGoBack}
@@ -61,7 +62,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
       </div>
 
       {/* Breadcrumb */}
-      <div data-tauri-drag-region className="flex-1 flex items-center gap-0 overflow-hidden mx-1">
+      <div className="flex-1 flex items-center gap-0 overflow-hidden mx-1 relative z-10">
         <button
           onClick={() => navigateTo("/")}
           className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[3px] hover:bg-bg-hover"
@@ -89,7 +90,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
       </div>
 
       {/* View mode + settings */}
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center gap-0.5 relative z-10">
         <button
           onClick={() => setViewMode("list")}
           className={clsx(
