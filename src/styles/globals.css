@@ -13,6 +13,7 @@
   --color-accent: var(--explorer-accent);
   --color-accent-hover: var(--explorer-accent-hover);
   --color-folder: var(--explorer-folder);
+  --color-frame: var(--explorer-frame);
   --color-scrollbar: var(--explorer-scrollbar);
   --color-scrollbar-hover: var(--explorer-scrollbar-hover);
 }
@@ -83,6 +84,7 @@
   --explorer-text-secondary: #333333;
   --explorer-text-muted: #777777;
   --explorer-border: #e0e0e4;
+  --explorer-frame: #c8c8cc;
   --explorer-accent: #0066ff;
   --explorer-accent-hover: #0055dd;
   --explorer-folder: #2196f3;
@@ -100,6 +102,7 @@
   --explorer-text-secondary: #b8b8bd;
   --explorer-text-muted: #7a7a80;
   --explorer-border: #38383a;
+  --explorer-frame: #4a4a4e;
   --explorer-accent: #4da8ff;
   --explorer-accent-hover: #6cb8ff;
   --explorer-folder: #4da8ff;
@@ -117,6 +120,7 @@
   --explorer-text-secondary: #b0bec5;
   --explorer-text-muted: #616161;
   --explorer-border: #2c2c2c;
+  --explorer-frame: #444444;
   --explorer-accent: #82b1ff;
   --explorer-accent-hover: #a4c6ff;
   --explorer-folder: #ffcb6b;
@@ -134,6 +138,7 @@
   --explorer-text-secondary: #8b949e;
   --explorer-text-muted: #6e7681;
   --explorer-border: #30363d;
+  --explorer-frame: #484f58;
   --explorer-accent: #58a6ff;
   --explorer-accent-hover: #79c0ff;
   --explorer-folder: #7ee787;
@@ -151,6 +156,7 @@
   --explorer-text-secondary: #cfcfc2;
   --explorer-text-muted: #75715e;
   --explorer-border: #3e3d32;
+  --explorer-frame: #4e4d42;
   --explorer-accent: #a6e22e;
   --explorer-accent-hover: #b8f340;
   --explorer-folder: #e6db74;
@@ -168,6 +174,7 @@
   --explorer-text-secondary: #9da5b4;
   --explorer-text-muted: #636d83;
   --explorer-border: #3e4452;
+  --explorer-frame: #525a6b;
   --explorer-accent: #61afef;
   --explorer-accent-hover: #7ec0f5;
   --explorer-folder: #e5c07b;
