@@ -61,7 +61,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex-1 flex items-center gap-0 overflow-hidden mx-1">
+      <div data-tauri-drag-region className="flex-1 flex items-center gap-0 overflow-hidden mx-1">
         <button
           onClick={() => navigateTo("/")}
           className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[3px] hover:bg-bg-hover"
