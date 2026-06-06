@@ -85,7 +85,7 @@ export function AppShell() {
     <>
     <GlobalSearch visible={globalSearchVisible} onClose={() => setGlobalSearchVisible(false)} />
     <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onOpenSettings={() => { setCommandPaletteOpen(false); setSettingsOpen(true); }} onOpenDiff={() => { setCommandPaletteOpen(false); setDiffOpen(true); }} />
-    <div className="h-screen w-screen flex flex-col bg-bg/90 overflow-hidden select-none border border-frame rounded-[10px]">
+    <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden select-none">
       <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} />
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
 
