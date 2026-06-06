@@ -38,6 +38,9 @@ function MainApp() {
         logger.info(`Navigated to home: ${home}`);
         setReady(true);
 
+        // Ensure window has focus for drag region to work
+        getCurrentWebviewWindow().setFocus().catch(() => {});
+
         // Check for updates after startup (non-blocking, skipped if updater not configured)
         import("@tauri-apps/plugin-updater").then(({ check }) => {
           check().then(async (update) => {

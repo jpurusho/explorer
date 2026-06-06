@@ -19,8 +19,9 @@
         "minWidth": 800,
         "minHeight": 500,
         "resizable": true,
-        "decorations": true,
-        "titleBarStyle": "Overlay"
+        "decorations": false,
+        "titleBarStyle": "Overlay",
+        "acceptFirstMouse": true
       }
     ],
     "security": {

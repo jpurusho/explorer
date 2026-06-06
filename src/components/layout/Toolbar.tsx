@@ -29,7 +29,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
   return (
     <div
       data-tauri-drag-region
-      className="h-[var(--toolbar-height)] bg-bg-secondary/80 backdrop-blur-xl border-b border-border flex items-center gap-2 overflow-hidden"
+      className="h-[var(--toolbar-height)] bg-bg-secondary/80 backdrop-blur-xl border-b border-border flex items-center gap-2"
       style={{ fontSize: "var(--font-toolbar-breadcrumb)", paddingLeft: "78px", paddingRight: "var(--panel-px)" }}
     >
       {/* Nav buttons */}
