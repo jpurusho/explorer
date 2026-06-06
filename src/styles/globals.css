@@ -214,6 +214,14 @@ nav {
   user-select: none;
 }
 
+/* Allow buttons/links inside drag regions to be clickable */
+[data-tauri-drag-region] button,
+[data-tauri-drag-region] a,
+[data-tauri-drag-region] input {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
 /* Content and preview areas should allow text selection */
 pre, code, .prose-explorer, .select-text {
   user-select: text;

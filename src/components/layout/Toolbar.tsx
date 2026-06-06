@@ -30,7 +30,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
     <div
       data-tauri-drag-region
       className="h-[var(--toolbar-height)] bg-bg-secondary/80 backdrop-blur-xl border-b border-border flex items-center gap-2 overflow-hidden"
-      style={{ fontSize: "var(--font-toolbar-breadcrumb)", paddingLeft: "78px", paddingRight: "var(--panel-px)" }}
+      style={{ fontSize: "var(--font-toolbar-breadcrumb)", paddingLeft: "78px", paddingRight: "var(--panel-px)", WebkitAppRegion: "drag", appRegion: "drag" } as React.CSSProperties}
     >
       {/* Nav buttons */}
       <div className="flex items-center gap-0.5">
@@ -61,7 +61,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
       </div>
 
       {/* Breadcrumb */}
-      <div className="flex-1 flex items-center gap-0 overflow-hidden mx-1">
+      <div data-tauri-drag-region className="flex-1 flex items-center gap-0 overflow-hidden mx-1">
         <button
           onClick={() => navigateTo("/")}
           className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[3px] hover:bg-bg-hover"
@@ -72,8 +72,8 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
           const fullPath = "/" + pathParts.slice(0, i + 1).join("/");
           const isLast = i === pathParts.length - 1;
           return (
-            <span key={fullPath} className="flex items-center shrink-0">
-              <span className="text-text-muted/30 text-[10px] mx-0.5">/</span>
+            <span key={fullPath} className="flex items-center shrink-0" data-tauri-drag-region>
+              <span data-tauri-drag-region className="text-text-muted/30 text-[10px] mx-0.5">/</span>
               <button
                 onClick={() => navigateTo(fullPath)}
                 className={clsx(
