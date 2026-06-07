@@ -73,7 +73,7 @@ export function ColumnView() {
   }, [navigateTo]);
 
   return (
-    <div ref={containerRef} className="h-full flex overflow-x-auto overflow-y-hidden file-list-font">
+    <div ref={containerRef} className="h-full min-h-0 flex overflow-x-auto overflow-y-hidden file-list-font">
       {columns.map((col, colIdx) => (
         <div
           key={col.path}

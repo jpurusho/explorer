@@ -424,7 +424,7 @@ function TagsSection() {
                     "transition-colors duration-75",
                     activeTagFilter === tag.id
                       ? "bg-accent/12 text-accent font-medium"
-                      : "text-text hover:bg-bg-hover"
+                      : "text-text-secondary hover:bg-bg-hover"
                   )}
                 >
                   <div
@@ -599,7 +599,7 @@ function SectionsPanel() {
                   <button
                     onClick={() => toggleExpanded(section.id)}
                     style={{ fontSize: "var(--font-sidebar-item)" }}
-                    className="flex-1 text-left text-text truncate"
+                    className="flex-1 text-left text-text-secondary truncate"
                   >
                     {section.name}
                   </button>
