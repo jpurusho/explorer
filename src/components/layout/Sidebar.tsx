@@ -822,7 +822,7 @@ export function Sidebar() {
   return (
     <aside className="h-full bg-transparent flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
       {/* Single scrollable area — all sections flow naturally */}
-      <div className="flex-1 overflow-auto px-3 pt-[46px] pb-3">
+      <div className="flex-1 overflow-auto pr-3 pt-[46px] pb-3" style={{ paddingLeft: "20px" }}>
 
         {/* Favorites */}
         {showFavorites && (
