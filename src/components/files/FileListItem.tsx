@@ -139,7 +139,7 @@ export function FileListItem({
                 <span
                   className={clsx(
                     "truncate",
-                    selected ? "text-text font-semibold" : entry.is_dir ? "text-text font-medium" : "text-text"
+                    selected ? "text-text font-semibold" : entry.is_dir ? "text-text-secondary font-medium" : "text-text-secondary"
                   )}
                 >
                   {entry.name}

@@ -21,21 +21,17 @@ export function ColumnView() {
 
   const [columns, setColumns] = useState<Column[]>([]);
   const parentRef = useRef<HTMLDivElement>(null);
-  const [visibleCount, setVisibleCount] = useState(3);
 
   useEffect(() => {
     loadColumn(currentPath, 0);
   }, [currentPath, showHiddenFiles]);
 
+  // Auto-scroll to rightmost column when new columns appear
   useEffect(() => {
-    if (!parentRef.current) return;
-    const observer = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width || 600;
-      setVisibleCount(Math.max(1, Math.floor(width / 220)));
-    });
-    observer.observe(parentRef.current);
-    return () => observer.disconnect();
-  }, []);
+    if (parentRef.current) {
+      parentRef.current.scrollLeft = parentRef.current.scrollWidth;
+    }
+  }, [columns.length]);
 
   const loadColumn = async (path: string, columnIndex: number) => {
     try {
@@ -86,16 +82,12 @@ export function ColumnView() {
     }
   };
 
-  // Show only the last N columns that fit
-  const startIdx = Math.max(0, columns.length - visibleCount);
-  const visible = columns.slice(startIdx);
-
   return (
-    <div ref={parentRef} className="h-full flex overflow-hidden file-list-font">
-      {visible.map((col, i) => (
+    <div ref={parentRef} className="h-full overflow-x-auto overflow-y-hidden flex file-list-font">
+      {columns.map((col, i) => (
         <div
           key={col.path}
-          className="flex-1 min-w-0 border-r border-border overflow-y-auto"
+          className="w-[220px] shrink-0 border-r border-border overflow-y-auto"
         >
           {col.entries.map((entry, entryIdx) => (
             <div
@@ -106,7 +98,7 @@ export function ColumnView() {
                   ? "bg-accent/12 text-text"
                   : "text-text-secondary hover:bg-bg-hover"
               )}
-              onClick={() => handleSelect(startIdx + i, entryIdx, entry)}
+              onClick={() => handleSelect(i, entryIdx, entry)}
               onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
             >
               <FileIcon fileType={entry.file_type as FileType} size={13} />
