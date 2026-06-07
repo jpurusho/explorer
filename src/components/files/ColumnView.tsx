@@ -13,8 +13,6 @@ interface Column {
   selectedIndex: number | null;
 }
 
-const COL_WIDTH = 220;
-
 export function ColumnView() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
@@ -22,17 +20,22 @@ export function ColumnView() {
   const setSelectedPath = useFileListStore((s) => s.setSelectedPath);
 
   const [columns, setColumns] = useState<Column[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
+  const [visibleCount, setVisibleCount] = useState(3);
 
   useEffect(() => {
     loadColumn(currentPath, 0);
   }, [currentPath, showHiddenFiles]);
 
   useEffect(() => {
-    if (containerRef.current) {
-      containerRef.current.scrollLeft = containerRef.current.scrollWidth;
-    }
-  }, [columns.length]);
+    if (!parentRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width || 600;
+      setVisibleCount(Math.max(1, Math.floor(width / 220)));
+    });
+    observer.observe(parentRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   const loadColumn = async (path: string, columnIndex: number) => {
     try {
@@ -43,7 +46,6 @@ export function ColumnView() {
         if (!a.is_dir && b.is_dir) return 1;
         return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
       });
-
       setColumns((prev) => {
         const newCols = prev.slice(0, columnIndex);
         newCols.push({ path, entries: sorted, selectedIndex: null });
@@ -84,34 +86,16 @@ export function ColumnView() {
     }
   };
 
-  const handleDoubleClick = (entry: FileEntry) => {
-    if (entry.is_dir) {
-      navigateTo(entry.path);
-    }
-  };
+  // Show only the last N columns that fit
+  const startIdx = Math.max(0, columns.length - visibleCount);
+  const visible = columns.slice(startIdx);
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full overflow-x-auto file-list-font"
-      style={{ position: "relative" }}
-    >
-      {/* Spacer to create horizontal scroll width */}
-      <div style={{ width: columns.length * COL_WIDTH, height: "1px" }} />
-
-      {/* Each column is absolutely positioned, full height, scrolls independently */}
-      {columns.map((col, colIdx) => (
+    <div ref={parentRef} className="h-full flex overflow-hidden file-list-font">
+      {visible.map((col, i) => (
         <div
           key={col.path}
-          style={{
-            position: "absolute",
-            top: 0,
-            bottom: 0,
-            left: colIdx * COL_WIDTH,
-            width: COL_WIDTH,
-            overflowY: "auto",
-            borderRight: "1px solid var(--explorer-border)",
-          }}
+          className="flex-1 min-w-0 border-r border-border overflow-y-auto"
         >
           {col.entries.map((entry, entryIdx) => (
             <div
@@ -122,8 +106,8 @@ export function ColumnView() {
                   ? "bg-accent/12 text-text"
                   : "text-text-secondary hover:bg-bg-hover"
               )}
-              onClick={() => handleSelect(colIdx, entryIdx, entry)}
-              onDoubleClick={() => handleDoubleClick(entry)}
+              onClick={() => handleSelect(startIdx + i, entryIdx, entry)}
+              onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
             >
               <FileIcon fileType={entry.file_type as FileType} size={13} />
               <span className="flex-1 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{entry.name}</span>
