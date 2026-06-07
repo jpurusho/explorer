@@ -89,12 +89,12 @@ export function ColumnView() {
   };
 
   return (
-    <div ref={containerRef} className="h-full flex overflow-x-auto overflow-y-hidden file-list-font" style={{ minHeight: 0 }}>
+    <div ref={containerRef} className="h-full flex overflow-x-auto file-list-font">
       {columns.map((col, colIdx) => (
         <div
           key={col.path}
-          className="shrink-0 border-r border-border overflow-y-auto self-stretch"
-          style={{ width: "220px" }}
+          className="shrink-0 border-r border-border overflow-y-auto"
+          style={{ width: "220px", height: "100%" }}
         >
           {col.entries.map((entry, entryIdx) => (
             <div
