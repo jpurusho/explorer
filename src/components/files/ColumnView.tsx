@@ -89,34 +89,36 @@ export function ColumnView() {
   };
 
   return (
-    <div ref={containerRef} className="h-full flex overflow-x-auto file-list-font">
-      {columns.map((col, colIdx) => (
-        <div
-          key={col.path}
-          className="shrink-0 border-r border-border overflow-y-auto"
-          style={{ width: "220px", height: "100%" }}
-        >
-          {col.entries.map((entry, entryIdx) => (
-            <div
-              key={entry.path}
-              className={clsx(
-                "flex items-center gap-1.5 px-2.5 py-[3px] cursor-default",
-                col.selectedIndex === entryIdx
-                  ? "bg-accent/12 text-text"
-                  : "text-text-secondary hover:bg-bg-hover"
-              )}
-              onClick={() => handleSelect(colIdx, entryIdx, entry)}
-              onDoubleClick={() => handleDoubleClick(entry)}
-            >
-              <FileIcon fileType={entry.file_type as FileType} size={13} />
-              <span className="flex-1 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{entry.name}</span>
-              {entry.is_dir && (
-                <ChevronRight size={10} className="text-text-muted/60 shrink-0" />
-              )}
-            </div>
-          ))}
-        </div>
-      ))}
+    <div className="h-full relative file-list-font">
+      <div ref={containerRef} className="absolute inset-0 flex overflow-x-auto">
+        {columns.map((col, colIdx) => (
+          <div
+            key={col.path}
+            className="shrink-0 border-r border-border overflow-y-auto"
+            style={{ width: "220px", height: "100%" }}
+          >
+            {col.entries.map((entry, entryIdx) => (
+              <div
+                key={entry.path}
+                className={clsx(
+                  "flex items-center gap-1.5 px-2.5 py-[3px] cursor-default",
+                  col.selectedIndex === entryIdx
+                    ? "bg-accent/12 text-text"
+                    : "text-text-secondary hover:bg-bg-hover"
+                )}
+                onClick={() => handleSelect(colIdx, entryIdx, entry)}
+                onDoubleClick={() => handleDoubleClick(entry)}
+              >
+                <FileIcon fileType={entry.file_type as FileType} size={13} />
+                <span className="flex-1 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{entry.name}</span>
+                {entry.is_dir && (
+                  <ChevronRight size={10} className="text-text-muted/60 shrink-0" />
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
