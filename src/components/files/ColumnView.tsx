@@ -13,6 +13,8 @@ interface Column {
   selectedIndex: number | null;
 }
 
+const COL_WIDTH = 220;
+
 export function ColumnView() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
@@ -88,39 +90,50 @@ export function ColumnView() {
     }
   };
 
-  const totalWidth = columns.length * 220;
-
   return (
-    <div ref={containerRef} className="h-full overflow-x-auto file-list-font">
-      <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns.length}, 220px)`, height: "100%", width: `${totalWidth}px` }}>
-        {columns.map((col, colIdx) => (
-          <div
-            key={col.path}
-            className="border-r border-border overflow-y-auto"
-            style={{ height: "100%" }}
-          >
-            {col.entries.map((entry, entryIdx) => (
-              <div
-                key={entry.path}
-                className={clsx(
-                  "flex items-center gap-1.5 px-2.5 py-[3px] cursor-default",
-                  col.selectedIndex === entryIdx
-                    ? "bg-accent/12 text-text"
-                    : "text-text-secondary hover:bg-bg-hover"
-                )}
-                onClick={() => handleSelect(colIdx, entryIdx, entry)}
-                onDoubleClick={() => handleDoubleClick(entry)}
-              >
-                <FileIcon fileType={entry.file_type as FileType} size={13} />
-                <span className="flex-1 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{entry.name}</span>
-                {entry.is_dir && (
-                  <ChevronRight size={10} className="text-text-muted/60 shrink-0" />
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
+    <div
+      ref={containerRef}
+      className="h-full overflow-x-auto file-list-font"
+      style={{ position: "relative" }}
+    >
+      {/* Spacer to create horizontal scroll width */}
+      <div style={{ width: columns.length * COL_WIDTH, height: "1px" }} />
+
+      {/* Each column is absolutely positioned, full height, scrolls independently */}
+      {columns.map((col, colIdx) => (
+        <div
+          key={col.path}
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: colIdx * COL_WIDTH,
+            width: COL_WIDTH,
+            overflowY: "auto",
+            borderRight: "1px solid var(--explorer-border)",
+          }}
+        >
+          {col.entries.map((entry, entryIdx) => (
+            <div
+              key={entry.path}
+              className={clsx(
+                "flex items-center gap-1.5 px-2.5 py-[3px] cursor-default",
+                col.selectedIndex === entryIdx
+                  ? "bg-accent/12 text-text"
+                  : "text-text-secondary hover:bg-bg-hover"
+              )}
+              onClick={() => handleSelect(colIdx, entryIdx, entry)}
+              onDoubleClick={() => handleDoubleClick(entry)}
+            >
+              <FileIcon fileType={entry.file_type as FileType} size={13} />
+              <span className="flex-1 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{entry.name}</span>
+              {entry.is_dir && (
+                <ChevronRight size={10} className="text-text-muted/60 shrink-0" />
+              )}
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
