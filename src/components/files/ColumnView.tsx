@@ -93,7 +93,7 @@ export function ColumnView() {
               onDoubleClick={() => handleDoubleClick(entry)}
             >
               <FileIcon fileType={entry.file_type as FileType} size={13} />
-              <span className="flex-1 truncate text-[var(--font-sm)]">{entry.name}</span>
+              <span className="flex-1 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>{entry.name}</span>
               {entry.is_dir && (
                 <ChevronRight size={10} className="text-text-muted/60 shrink-0" />
               )}
