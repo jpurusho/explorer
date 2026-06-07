@@ -143,8 +143,8 @@ function TreeItem({
           isActive
             ? "bg-accent/12 text-accent"
             : isParentOfCurrent
-            ? "text-text"
-            : "text-text hover:bg-bg-hover",
+            ? "text-text-secondary"
+            : "text-text-secondary hover:bg-bg-hover",
           dragOver && "ring-1 ring-accent/50 bg-accent/8"
         )}
         style={{ paddingRight: "6px" }}
@@ -193,7 +193,7 @@ function TreeItem({
           strokeWidth={1.75}
         />
         <span
-          className={clsx("leading-tight truncate", isActive ? "font-semibold" : "text-text")}
+          className={clsx("leading-tight truncate", isActive ? "font-semibold text-text" : "text-text-secondary")}
           style={{ fontSize: "var(--font-sidebar-item)" }}
         >
           {entry.name}
@@ -847,7 +847,7 @@ export function Sidebar() {
                       "transition-colors duration-75",
                       isActive
                         ? "bg-accent/12 text-accent font-medium"
-                        : "text-text hover:bg-bg-hover"
+                        : "text-text-secondary hover:bg-bg-hover"
                     )}
                   >
                     <Icon size={15} strokeWidth={1.75} />
