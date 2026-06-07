@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ImagePreview } from "./ImagePreview";
 import { VideoPreview } from "./VideoPreview";
 import { AudioPreview } from "./AudioPreview";
+import { PdfPreview } from "./PdfPreview";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { JsonPreview } from "./JsonPreview";
 import { YamlPreview } from "./YamlPreview";
@@ -54,6 +55,10 @@ export function DetachedPreview() {
 
     if (fileType === "audio") {
       return <AudioPreview path={filePath} name={fileName} />;
+    }
+
+    if (fileType === "document" && fileName.toLowerCase().endsWith(".pdf")) {
+      return <PdfPreview path={filePath} />;
     }
 
     if (loading) {

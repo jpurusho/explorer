@@ -27,9 +27,9 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 gap-6 pr-2">
+    <div className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 gap-4">
       <span className="text-[var(--font-md)] text-text-secondary shrink-0">{label}</span>
-      <div className="flex items-center justify-end min-w-0 shrink-0">
+      <div className="flex items-center justify-end min-w-0">
         {children}
       </div>
     </div>
@@ -112,9 +112,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const setSortBy = useFileListStore((s) => s.setSortBy);
 
   return (
-    <div className="h-full bg-bg flex flex-col overflow-hidden">
+    <div className="h-full bg-bg flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between py-3.5 border-b border-border shrink-0 bg-bg-secondary" style={{ padding: "14px var(--panel-px)" }}>
+      <div className="flex items-center justify-between py-3.5 border-b border-border shrink-0 bg-bg-secondary" style={{ padding: "14px 20px" }}>
         <h2 className="text-[var(--font-lg)] font-semibold text-text">Settings</h2>
         <button
           onClick={onClose}
@@ -125,7 +125,8 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto py-6" style={{ padding: "24px var(--panel-px)" }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+        <div style={{ padding: "24px 20px" }}>
         <SettingsSection title="Color Theme">
           <p className="text-[var(--font-sm)] text-text-muted mb-3">Controls the overall color scheme of the application.</p>
           <div className="grid grid-cols-3 gap-2">
@@ -325,6 +326,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <IndexStatsPanel />
         </SettingsSection>
       </div>
+      </div>
     </div>
   );
 }
@@ -431,7 +433,7 @@ function IndexPathsEditor() {
           </div>
         ))}
       </div>
-      <div className="flex gap-1.5">
+      <div className="flex gap-2">
         <input
           value={newPath}
           onChange={(e) => setNewPath(e.target.value)}
@@ -441,7 +443,7 @@ function IndexPathsEditor() {
         />
         <button
           onClick={addPath}
-          className="px-2 py-1 rounded text-[var(--font-sm)] font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors"
+          className="px-3 py-1 rounded text-[var(--font-sm)] font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors shrink-0"
         >
           Add
         </button>
