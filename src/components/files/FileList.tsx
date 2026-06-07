@@ -82,10 +82,19 @@ export function FileList() {
   const lastClickRef = useRef<{ index: number; time: number }>({ index: -1, time: 0 });
 
   const handleClick = useCallback((index: number, e: React.MouseEvent) => {
+    // Multi-select takes priority
+    if (e.metaKey) {
+      toggleIndex(index);
+      return;
+    }
+    if (e.shiftKey) {
+      selectRange(index);
+      return;
+    }
+
     const now = Date.now();
     const last = lastClickRef.current;
 
-    // Detect double-click manually (works with virtualized lists)
     if (last.index === index && now - last.time < 400) {
       lastClickRef.current = { index: -1, time: 0 };
       const entry = entries[index];
@@ -97,13 +106,7 @@ export function FileList() {
       lastClickRef.current = { index, time: now };
     }
 
-    if (e.metaKey) {
-      toggleIndex(index);
-    } else if (e.shiftKey) {
-      selectRange(index);
-    } else {
-      selectIndex(index);
-    }
+    selectIndex(index);
   }, [entries, navigateTo, toggleIndex, selectRange, selectIndex]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileEntry, index: number) => {
