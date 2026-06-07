@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { clsx } from "clsx";
 import { ChevronRight } from "lucide-react";
@@ -32,7 +32,7 @@ export function ColumnView() {
     }
   }, [columns.length]);
 
-  const loadColumn = useCallback(async (path: string, columnIndex: number) => {
+  const loadColumn = async (path: string, columnIndex: number) => {
     try {
       const entries = await invoke<FileEntry[]>("list_directory", { path });
       const filtered = showHiddenFiles ? entries : entries.filter((e) => !e.is_hidden);
@@ -50,9 +50,9 @@ export function ColumnView() {
     } catch {
       setColumns((prev) => prev.slice(0, columnIndex));
     }
-  }, [showHiddenFiles]);
+  };
 
-  const handleSelect = useCallback((columnIndex: number, entryIndex: number, entry: FileEntry) => {
+  const handleSelect = (columnIndex: number, entryIndex: number, entry: FileEntry) => {
     setColumns((prev) => {
       const updated = prev.slice(0, columnIndex + 1);
       updated[columnIndex] = { ...updated[columnIndex], selectedIndex: entryIndex };
@@ -64,16 +64,16 @@ export function ColumnView() {
     } else {
       setSelectedPath(entry.path);
     }
-  }, [loadColumn, setSelectedPath]);
+  };
 
-  const handleDoubleClick = useCallback((entry: FileEntry) => {
+  const handleDoubleClick = (entry: FileEntry) => {
     if (entry.is_dir) {
       navigateTo(entry.path);
     }
-  }, [navigateTo]);
+  };
 
   return (
-    <div ref={containerRef} className="h-full flex overflow-x-auto file-list-font" style={{ minHeight: 0 }}>
+    <div ref={containerRef} className="h-full flex overflow-x-auto overflow-y-hidden file-list-font" style={{ minHeight: 0 }}>
       {columns.map((col, colIdx) => (
         <div
           key={col.path}
