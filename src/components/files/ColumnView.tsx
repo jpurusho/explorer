@@ -88,13 +88,16 @@ export function ColumnView() {
     }
   };
 
+  const totalWidth = columns.length * 220;
+
   return (
     <div ref={containerRef} className="h-full overflow-x-auto file-list-font">
-      <div className="flex h-full">
+      <div style={{ display: "grid", gridTemplateColumns: `repeat(${columns.length}, 220px)`, height: "100%", width: `${totalWidth}px` }}>
         {columns.map((col, colIdx) => (
           <div
             key={col.path}
-            className="w-[220px] shrink-0 border-r border-border overflow-y-auto"
+            className="border-r border-border overflow-y-auto"
+            style={{ height: "100%" }}
           >
             {col.entries.map((entry, entryIdx) => (
               <div
