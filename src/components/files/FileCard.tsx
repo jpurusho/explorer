@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { FileIcon } from "./FileIcon";
 import { Folder, Play, ExternalLink } from "lucide-react";
 import { detachPreview } from "../../lib/detachPreview";
+import { formatSize, formatDuration } from "../../lib/formatters";
 import type { FileEntry, FileType, FileContent } from "../../types";
 
 interface FileCardProps {
@@ -14,22 +15,6 @@ interface FileCardProps {
   onContextMenu: (e: React.MouseEvent) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
-}
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return "—";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = Math.floor(seconds % 60);
-  if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function ImageThumbnail({ path }: { path: string }) {

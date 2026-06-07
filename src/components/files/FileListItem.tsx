@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { clsx } from "clsx";
-import { format } from "date-fns";
 import { FileIcon } from "./FileIcon";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useTagStore } from "../../stores/tagStore";
+import { formatSize, formatDate } from "../../lib/formatters";
 import type { FileEntry, FileType } from "../../types";
 import type { ColumnConfig } from "../../stores/fileListStore";
 
@@ -20,23 +20,6 @@ interface FileListItemProps {
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onFileDrop?: (paths: string[]) => void;
-}
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return "—";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
-}
-
-function formatDate(isoString: string): string {
-  if (!isoString) return "—";
-  try {
-    return format(new Date(isoString), "MMM d, HH:mm");
-  } catch {
-    return "—";
-  }
 }
 
 function getTypeLabel(entry: FileEntry): string {

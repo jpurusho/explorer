@@ -32,7 +32,6 @@ interface SectionState {
   toggleHidden: (id: number) => Promise<void>;
   reorderSections: (dirPath: string, ids: number[]) => Promise<void>;
   getSectionForPath: (path: string) => Section | null;
-  getUnsortedPaths: (allPaths: string[]) => string[];
 }
 
 export const useSectionStore = create<SectionState>((set, get) => ({
@@ -108,15 +107,5 @@ export const useSectionStore = create<SectionState>((set, get) => ({
 
   getSectionForPath: (path) => {
     return get().sections.find((s) => s.files.some((f) => f.file_path === path)) || null;
-  },
-
-  getUnsortedPaths: (allPaths) => {
-    const assigned = new Set<string>();
-    for (const section of get().sections) {
-      for (const f of section.files) {
-        assigned.add(f.file_path);
-      }
-    }
-    return allPaths.filter((p) => !assigned.has(p));
   },
 }));

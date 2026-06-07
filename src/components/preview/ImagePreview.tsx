@@ -1,24 +1,11 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Camera, Aperture, Clock, Sun } from "lucide-react";
+import type { ExifData } from "../../types";
 
 interface ImagePreviewProps {
   path: string;
   name: string;
-}
-
-interface ExifData {
-  camera_make: string | null;
-  camera_model: string | null;
-  lens_model: string | null;
-  focal_length: string | null;
-  aperture: string | null;
-  shutter_speed: string | null;
-  iso: string | null;
-  date_taken: string | null;
-  width: number | null;
-  height: number | null;
-  orientation: number | null;
 }
 
 export function ImagePreview({ path, name }: ImagePreviewProps) {

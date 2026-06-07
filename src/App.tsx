@@ -52,7 +52,6 @@ function MainApp() {
         }).catch(() => {});
       } catch (err) {
         logger.error(`Init failed: ${err}`);
-        console.error("Init failed:", err);
         if (!cancelled) setReady(true);
       }
     }

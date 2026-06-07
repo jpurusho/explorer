@@ -34,8 +34,8 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
       setModified(false);
       setSavedMessage(true);
       setTimeout(() => setSavedMessage(false), 2000);
-    } catch (err) {
-      console.error("Save failed:", err);
+    } catch {
+      // Save failed — user sees "Modified" badge persist
     }
   }, [path]);
 

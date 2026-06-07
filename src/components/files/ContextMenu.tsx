@@ -19,6 +19,7 @@ import { detachPreview } from "../../lib/detachPreview";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useTagStore } from "../../stores/tagStore";
 import { useSectionStore } from "../../stores/sectionStore";
+import { useClipboardStore } from "../../stores/clipboardStore";
 import type { FileEntry, FileType } from "../../types";
 
 interface ContextMenuProps {
@@ -97,8 +98,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
     try {
       await invoke("trash_items", { paths });
       refreshDirectory?.();
-    } catch (err) {
-      console.error("Trash failed:", err);
+    } catch {
+      // Trash operation failed
     }
     onClose();
   };
@@ -169,11 +170,13 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   });
 
   // File operations
+  const clipboard = useClipboardStore.getState();
+
   items.push({
     label: "Copy Files",
     icon: <Copy size={13} />,
     action: () => {
-      (window as any).__explorerClipboard = { paths: entries.map((e) => e.path), op: "copy" };
+      useClipboardStore.getState().setPaths(entries.map((e) => e.path), "copy");
       onClose();
     },
   });
@@ -182,23 +185,23 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
     label: "Cut Files",
     icon: <Scissors size={13} />,
     action: () => {
-      (window as any).__explorerClipboard = { paths: entries.map((e) => e.path), op: "cut" };
+      useClipboardStore.getState().setPaths(entries.map((e) => e.path), "cut");
       onClose();
     },
   });
 
-  if ((window as any).__explorerClipboard?.paths?.length > 0) {
+  if (clipboard.paths.length > 0) {
     items.push({
       label: "Paste",
       icon: <ClipboardPaste size={13} />,
       action: async () => {
-        const cb = (window as any).__explorerClipboard;
+        const { paths, operation } = useClipboardStore.getState();
         const dest = currentPath;
-        if (cb.op === "copy") {
-          await invoke("copy_items", { paths: cb.paths, destination: dest });
+        if (operation === "copy") {
+          await invoke("copy_items", { paths, destination: dest });
         } else {
-          await invoke("move_items", { paths: cb.paths, destination: dest });
-          (window as any).__explorerClipboard = null;
+          await invoke("move_items", { paths, destination: dest });
+          useClipboardStore.getState().clear();
         }
         refreshDirectory?.();
         onClose();

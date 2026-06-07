@@ -20,11 +20,9 @@ export async function openNewWindow(startPath?: string) {
       center: true,
     });
 
-    webview.once("tauri://error", (e) => {
-      console.error(`Failed to create window "${label}":`, e);
-    });
-  } catch (err) {
-    console.error("Error creating new window:", err);
+    webview.once("tauri://error", () => {});
+  } catch {
+    // Window creation failed
   }
 }
 
@@ -55,14 +53,8 @@ export async function detachPreview(filePath: string, fileName: string, fileType
       center: true,
     });
 
-    webview.once("tauri://created", () => {
-      console.log(`Preview window "${label}" created`);
-    });
-
-    webview.once("tauri://error", (e) => {
-      console.error(`Failed to create preview window "${label}":`, e);
-    });
-  } catch (err) {
-    console.error("Error creating WebviewWindow:", err);
+    webview.once("tauri://error", () => {});
+  } catch {
+    // Preview window creation failed
   }
 }

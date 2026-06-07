@@ -1,8 +1,15 @@
 use rusqlite::{Connection, params};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH, Instant};
+
+fn lock_conn(mutex: &Mutex<Connection>) -> MutexGuard<'_, Connection> {
+    mutex.lock().unwrap_or_else(|poisoned| {
+        eprintln!("[indexer] mutex was poisoned, recovering");
+        poisoned.into_inner()
+    })
+}
 
 const EXCLUDED_DIRS: &[&str] = &[
     ".git", "node_modules", "target", ".Trash", ".cache",
@@ -58,7 +65,7 @@ impl IndexDb {
     }
 
     pub fn needs_rebuild(&self) -> bool {
-        let conn = self.conn.lock().unwrap();
+        let conn = lock_conn(&self.conn);
         conn.query_row(
             "SELECT value FROM index_settings WHERE key='needs_rebuild'",
             [], |row| row.get::<_, String>(0)
@@ -66,7 +73,7 @@ impl IndexDb {
     }
 
     pub fn save_shutdown_time(&self) {
-        let conn = self.conn.lock().unwrap();
+        let conn = lock_conn(&self.conn);
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
         conn.execute(
             "INSERT OR REPLACE INTO index_settings (key, value) VALUES ('last_shutdown', ?1)",
@@ -75,7 +82,7 @@ impl IndexDb {
     }
 
     pub fn get_last_shutdown(&self) -> Option<i64> {
-        let conn = self.conn.lock().unwrap();
+        let conn = lock_conn(&self.conn);
         conn.query_row(
             "SELECT value FROM index_settings WHERE key = 'last_shutdown'",
             [],
@@ -100,13 +107,13 @@ impl IndexDb {
 
         // 1. Remove stale entries (files that no longer exist) — sample-based for speed
         {
-            let conn = self.conn.lock().unwrap();
-            let mut stmt = conn.prepare("SELECT path FROM files ORDER BY RANDOM() LIMIT 5000").unwrap();
-            let paths: Vec<String> = stmt.query_map([], |row| row.get(0))
-                .unwrap()
-                .filter_map(|r| r.ok())
-                .collect();
-            drop(stmt);
+            let conn = lock_conn(&self.conn);
+            let paths: Vec<String> = conn.prepare("SELECT path FROM files ORDER BY RANDOM() LIMIT 5000")
+                .and_then(|mut stmt| {
+                    let rows = stmt.query_map([], |row| row.get(0))?;
+                    Ok(rows.filter_map(|r| r.ok()).collect())
+                })
+                .unwrap_or_default();
 
             let mut to_delete = Vec::new();
             for path in &paths {
@@ -160,7 +167,7 @@ impl IndexDb {
             }
 
             {
-                let conn = self.conn.lock().unwrap();
+                let conn = lock_conn(&self.conn);
                 conn.execute("BEGIN", []).ok();
 
                 if path.is_dir() {
@@ -203,7 +210,7 @@ impl IndexDb {
         use strsim::levenshtein;
         use std::collections::HashMap;
 
-        let conn = self.read_conn.lock().unwrap();
+        let conn = lock_conn(&self.read_conn);
         let q = query.trim().to_lowercase();
 
         // --- Layer 1: FTS5 prefix search ---
@@ -313,7 +320,7 @@ impl IndexDb {
             }
 
             {
-                let conn = self.conn.lock().unwrap();
+                let conn = lock_conn(&self.conn);
                 conn.execute("BEGIN", []).ok();
 
                 index_single_file(&conn, &path);
@@ -349,23 +356,21 @@ impl IndexDb {
         self.indexing.store(false, std::sync::atomic::Ordering::Relaxed);
     }
 
-    #[allow(dead_code)]
     pub fn upsert_path(&self, path: &Path) {
-        let conn = self.conn.lock().unwrap();
+        let conn = lock_conn(&self.conn);
         index_single_file(&conn, path);
         let name = path.file_name().unwrap_or_default().to_string_lossy().to_string();
         index_trigrams(&conn, &path.to_string_lossy(), &name);
     }
 
-    #[allow(dead_code)]
     pub fn remove_path(&self, path: &Path) {
-        let conn = self.conn.lock().unwrap();
+        let conn = lock_conn(&self.conn);
         conn.execute("DELETE FROM files WHERE path = ?1", params![path.to_string_lossy().as_ref()])
             .ok();
     }
 
     pub fn get_stats(&self) -> (u64, u64) {
-        let conn = self.read_conn.lock().unwrap();
+        let conn = lock_conn(&self.read_conn);
         let file_count: u64 = conn
             .query_row("SELECT COUNT(*) FROM files WHERE is_dir = 0", [], |row| row.get(0))
             .unwrap_or(0);
@@ -376,7 +381,7 @@ impl IndexDb {
     }
 
     pub fn get_detailed_stats(&self) -> IndexStats {
-        let conn = self.read_conn.lock().unwrap();
+        let conn = lock_conn(&self.read_conn);
         let file_count: u64 = conn.query_row("SELECT COUNT(*) FROM files WHERE is_dir = 0", [], |row| row.get(0)).unwrap_or(0);
         let dir_count: u64 = conn.query_row("SELECT COUNT(*) FROM files WHERE is_dir = 1", [], |row| row.get(0)).unwrap_or(0);
         let trigram_count: u64 = conn.query_row("SELECT COUNT(*) FROM trigrams", [], |row| row.get(0)).unwrap_or(0);
@@ -388,7 +393,7 @@ impl IndexDb {
     pub fn rebuild_trigrams(&self) {
         self.indexing.store(true, std::sync::atomic::Ordering::Relaxed);
         let start = Instant::now();
-        let conn = self.conn.lock().unwrap();
+        let conn = lock_conn(&self.conn);
 
         // Drop and recreate for speed (much faster than DELETE on large tables)
         conn.execute("DROP TABLE IF EXISTS trigrams", []).ok();
@@ -401,11 +406,14 @@ impl IndexDb {
             CREATE INDEX IF NOT EXISTS idx_trigram ON trigrams(trigram);
         ").ok();
 
-        let mut stmt = conn.prepare("SELECT path, name FROM files").unwrap();
-        let rows: Vec<(String, String)> = stmt.query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        }).unwrap().filter_map(|r| r.ok()).collect();
-        drop(stmt);
+        let rows: Vec<(String, String)> = conn.prepare("SELECT path, name FROM files")
+            .and_then(|mut stmt| {
+                let mapped = stmt.query_map([], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })?;
+                Ok(mapped.filter_map(|r| r.ok()).collect())
+            })
+            .unwrap_or_default();
 
         let mut count = 0;
         conn.execute("BEGIN", []).ok();
@@ -433,7 +441,7 @@ impl IndexDb {
 
     pub fn clear_and_reindex_paths(&self, roots: &[String]) {
         {
-            let conn = self.conn.lock().unwrap();
+            let conn = lock_conn(&self.conn);
             conn.execute("DROP TABLE IF EXISTS trigrams", []).ok();
             conn.execute("DROP TABLE IF EXISTS files_fts", []).ok();
             conn.execute("DROP TABLE IF EXISTS files", []).ok();
@@ -485,87 +493,16 @@ impl IndexDb {
             self.index_directory(Path::new(root));
         }
         {
-            let conn = self.conn.lock().unwrap();
+            let conn = lock_conn(&self.conn);
             conn.execute("INSERT INTO files_fts(files_fts) VALUES('rebuild')", []).ok();
         }
         self.rebuild_trigrams();
         {
-            let conn = self.conn.lock().unwrap();
+            let conn = lock_conn(&self.conn);
             conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;").ok();
         }
     }
 
-    #[allow(dead_code)]
-    pub fn clear_and_reindex(&self, root: &Path) {
-        {
-            let conn = self.conn.lock().unwrap();
-            conn.execute("DROP TABLE IF EXISTS trigrams", []).ok();
-            conn.execute("DROP TABLE IF EXISTS files_fts", []).ok();
-            conn.execute("DROP TABLE IF EXISTS files", []).ok();
-            conn.execute("DROP TRIGGER IF EXISTS files_ai", []).ok();
-            conn.execute("DROP TRIGGER IF EXISTS files_ad", []).ok();
-            conn.execute("DROP TRIGGER IF EXISTS files_au", []).ok();
-
-            conn.execute_batch("
-                CREATE TABLE IF NOT EXISTS files (
-                    path         TEXT PRIMARY KEY,
-                    name         TEXT NOT NULL,
-                    extension    TEXT,
-                    size_bytes   INTEGER NOT NULL DEFAULT 0,
-                    modified_at  INTEGER NOT NULL DEFAULT 0,
-                    is_dir       INTEGER NOT NULL DEFAULT 0,
-                    indexed_at   INTEGER NOT NULL DEFAULT 0
-                );
-
-                CREATE VIRTUAL TABLE IF NOT EXISTS files_fts USING fts5(
-                    name, path, extension,
-                    content='files',
-                    content_rowid='rowid'
-                );
-
-                CREATE TABLE IF NOT EXISTS trigrams (
-                    trigram TEXT NOT NULL,
-                    path    TEXT NOT NULL REFERENCES files(path) ON DELETE CASCADE,
-                    PRIMARY KEY (trigram, path)
-                );
-                CREATE INDEX IF NOT EXISTS idx_trigram ON trigrams(trigram);
-                CREATE INDEX IF NOT EXISTS idx_ext ON files(extension);
-                CREATE INDEX IF NOT EXISTS idx_modified ON files(modified_at);
-
-                CREATE TRIGGER IF NOT EXISTS files_ai AFTER INSERT ON files BEGIN
-                    INSERT INTO files_fts(rowid, name, path, extension)
-                    VALUES (new.rowid, new.name, new.path, new.extension);
-                END;
-                CREATE TRIGGER IF NOT EXISTS files_ad AFTER DELETE ON files BEGIN
-                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
-                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
-                END;
-                CREATE TRIGGER IF NOT EXISTS files_au AFTER UPDATE ON files BEGIN
-                    INSERT INTO files_fts(files_fts, rowid, name, path, extension)
-                    VALUES ('delete', old.rowid, old.name, old.path, old.extension);
-                    INSERT INTO files_fts(rowid, name, path, extension)
-                    VALUES (new.rowid, new.name, new.path, new.extension);
-                END;
-            ").ok();
-
-            conn.execute("INSERT OR REPLACE INTO index_settings (key, value) VALUES ('schema_version', '2')", []).ok();
-            conn.execute("DELETE FROM index_settings WHERE key='needs_rebuild'", []).ok();
-        }
-        // Phase 1: Index all files (fast — no trigrams)
-        self.index_directory(root);
-        // Phase 2: Rebuild FTS5 content sync
-        {
-            let conn = self.conn.lock().unwrap();
-            conn.execute("INSERT INTO files_fts(files_fts) VALUES('rebuild')", []).ok();
-        }
-        // Phase 3: Build trigrams in bulk (deferred)
-        self.rebuild_trigrams();
-        // Phase 4: Compact database
-        {
-            let conn = self.conn.lock().unwrap();
-            conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE); VACUUM;").ok();
-        }
-    }
 }
 
 #[derive(Debug, Clone, serde::Serialize)]

@@ -113,22 +113,29 @@ pub fn run() {
 
 fn handle_media_request(request: &http::Request<Vec<u8>>) -> http::Response<Vec<u8>> {
     let uri = request.uri().path();
-    // URI path is /<encoded_path>
-    let path_str = &uri[1..]; // skip leading /
+    let path_str = match uri.strip_prefix('/') {
+        Some(s) => s,
+        None => return http::Response::builder().status(400).body(b"Invalid path".to_vec()).unwrap_or_default(),
+    };
     let decoded = urlencoding::decode(path_str).unwrap_or_default();
     let file_path = PathBuf::from(decoded.as_ref());
 
     if !file_path.exists() {
-        return http::Response::builder()
-            .status(404)
-            .body(b"File not found".to_vec())
-            .unwrap();
+        return http::Response::builder().status(404).body(b"File not found".to_vec()).unwrap_or_default();
     }
 
     let mime = mime_from_path(&file_path);
     let file_size = std::fs::metadata(&file_path).map(|m| m.len()).unwrap_or(0);
 
-    // Check for Range header (needed for video seeking)
+    if file_size == 0 {
+        return http::Response::builder()
+            .status(200)
+            .header("content-type", &mime)
+            .header("content-length", "0")
+            .body(vec![])
+            .unwrap_or_default();
+    }
+
     let range_header = request.headers()
         .get("range")
         .and_then(|v| v.to_str().ok())
@@ -140,18 +147,18 @@ fn handle_media_request(request: &http::Request<Vec<u8>>) -> http::Response<Vec<
         let start: u64 = parts.first().and_then(|s| s.parse().ok()).unwrap_or(0);
         let end: u64 = parts.get(1)
             .and_then(|s| if s.is_empty() { None } else { s.parse().ok() })
-            .unwrap_or_else(|| (start + 1024 * 1024).min(file_size - 1)); // 1MB chunks
+            .unwrap_or_else(|| (start + 1024 * 1024).min(file_size.saturating_sub(1)));
 
-        let end = end.min(file_size - 1);
+        let end = end.min(file_size.saturating_sub(1));
         let length = end - start + 1;
 
         let mut file = match std::fs::File::open(&file_path) {
             Ok(f) => f,
-            Err(_) => return http::Response::builder().status(500).body(vec![]).unwrap(),
+            Err(_) => return http::Response::builder().status(500).body(vec![]).unwrap_or_default(),
         };
 
         if file.seek(SeekFrom::Start(start)).is_err() {
-            return http::Response::builder().status(500).body(vec![]).unwrap();
+            return http::Response::builder().status(500).body(vec![]).unwrap_or_default();
         }
 
         let mut buf = vec![0u8; length as usize];
@@ -165,9 +172,8 @@ fn handle_media_request(request: &http::Request<Vec<u8>>) -> http::Response<Vec<
             .header("content-range", format!("bytes {}-{}/{}", start, start + bytes_read as u64 - 1, file_size))
             .header("accept-ranges", "bytes")
             .body(buf)
-            .unwrap()
+            .unwrap_or_default()
     } else {
-        // For small files, read entirely; for large ones, still support range on subsequent requests
         let data = std::fs::read(&file_path).unwrap_or_default();
 
         http::Response::builder()
@@ -176,7 +182,7 @@ fn handle_media_request(request: &http::Request<Vec<u8>>) -> http::Response<Vec<
             .header("content-length", data.len().to_string())
             .header("accept-ranges", "bytes")
             .body(data)
-            .unwrap()
+            .unwrap_or_default()
     }
 }
 

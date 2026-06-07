@@ -15,15 +15,8 @@ import { clsx } from "clsx";
 import { format } from "date-fns";
 import { detachPreview } from "../../lib/detachPreview";
 import { fetchFileContent, prefetchFileContent } from "../../lib/previewCache";
+import { formatSize } from "../../lib/formatters";
 import type { FileContent, FileEntry, FileType } from "../../types";
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
-}
 
 const editableTypes: FileType[] = ["text", "code", "markdown", "json", "yaml", "unknown"];
 const renderableTypes: FileType[] = ["markdown", "json", "yaml"];
@@ -83,15 +76,13 @@ export function PreviewPanel() {
   }, [selectedPath]);
 
   const handleLinkNavigate = useCallback(async (targetPath: string) => {
-    console.log("[PreviewNav] Navigating to:", targetPath);
     try {
       const result = await fetchFileContent(targetPath);
-      console.log("[PreviewNav] Loaded content, length:", result.content.length);
       usePreviewNavStore.getState().pushPath(targetPath);
       setNavContent(result.content);
       setNavPath(targetPath);
-    } catch (err) {
-      console.warn("[PreviewNav] Failed to load:", targetPath, err);
+    } catch {
+      // Link target not loadable — ignore
     }
   }, []);
 

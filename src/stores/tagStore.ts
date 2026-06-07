@@ -22,7 +22,6 @@ interface TagState {
   loadTagsForFiles: (paths: string[]) => Promise<void>;
   setTagFilter: (tagId: number | null) => void;
   getTagsForPath: (path: string) => Tag[];
-  getFilteredPaths: () => Promise<Set<string> | null>;
 }
 
 export const useTagStore = create<TagState>((set, get) => ({
@@ -87,12 +86,5 @@ export const useTagStore = create<TagState>((set, get) => ({
 
   getTagsForPath: (path) => {
     return get().fileTagMap.get(path) || [];
-  },
-
-  getFilteredPaths: async () => {
-    const { activeTagFilter } = get();
-    if (activeTagFilter === null) return null;
-    const paths = await invoke<string[]>("get_files_by_tag", { tagId: activeTagFilter });
-    return new Set(paths);
   },
 }));

@@ -4,6 +4,7 @@ import { Search, Folder, File, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useFileListStore } from "../../stores/fileListStore";
+import { formatSize } from "../../lib/formatters";
 
 interface FileResult {
   path: string;
@@ -16,14 +17,6 @@ interface FileResult {
 interface GlobalSearchProps {
   visible: boolean;
   onClose: () => void;
-}
-
-function formatSize(bytes: number): string {
-  if (bytes === 0) return "";
-  const units = ["B", "KB", "MB", "GB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
 function getParentPath(path: string): string {
