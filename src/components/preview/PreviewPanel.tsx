@@ -56,12 +56,20 @@ export function PreviewPanel() {
   // When selectedPath doesn't match a visibleEntries item (e.g. column view),
   // fetch metadata directly
   useEffect(() => {
-    if (listEntry || !selectedPath) {
+    if (listEntry) {
+      setResolvedEntry(null);
+      return;
+    }
+    if (!selectedPath) {
       setResolvedEntry(null);
       return;
     }
     invoke<FileEntry[]>("get_file_entries", { paths: [selectedPath] })
-      .then((entries) => { if (entries[0]) setResolvedEntry(entries[0]); })
+      .then((result) => {
+        if (result && result.length > 0) {
+          setResolvedEntry(result[0]);
+        }
+      })
       .catch(() => setResolvedEntry(null));
   }, [selectedPath, listEntry]);
 

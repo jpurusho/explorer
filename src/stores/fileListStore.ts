@@ -178,7 +178,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   setSelectedPath: (path) => {
-    set({ selectedPath: path });
+    set({ selectedPath: path, selectedIndex: -1, selectedIndices: new Set() });
   },
 
   toggleHiddenFiles: () => {
