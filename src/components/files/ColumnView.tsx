@@ -17,8 +17,7 @@ export function ColumnView() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
   const showHiddenFiles = useFileListStore((s) => s.showHiddenFiles);
-  const selectIndex = useFileListStore((s) => s.selectIndex);
-  const visibleEntries = useFileListStore((s) => s.visibleEntries);
+  const setSelectedPath = useFileListStore((s) => s.setSelectedPath);
 
   const [columns, setColumns] = useState<Column[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -63,11 +62,9 @@ export function ColumnView() {
     if (entry.is_dir) {
       loadColumn(entry.path, columnIndex + 1);
     } else {
-      // Select the file in the main file list for preview
-      const mainIdx = visibleEntries.findIndex((e) => e.path === entry.path);
-      if (mainIdx >= 0) selectIndex(mainIdx);
+      setSelectedPath(entry.path);
     }
-  }, [loadColumn, visibleEntries, selectIndex]);
+  }, [loadColumn, setSelectedPath]);
 
   const handleDoubleClick = useCallback((entry: FileEntry) => {
     if (entry.is_dir) {
@@ -87,7 +84,7 @@ export function ColumnView() {
             <div
               key={entry.path}
               className={clsx(
-                "flex items-center gap-1.5 px-2 py-[4px] cursor-default transition-colors duration-75",
+                "flex items-center gap-1.5 px-2.5 py-[3px] cursor-default",
                 col.selectedIndex === entryIdx
                   ? "bg-accent/12 text-text"
                   : "text-text-secondary hover:bg-bg-hover"
@@ -95,10 +92,10 @@ export function ColumnView() {
               onClick={() => handleSelect(colIdx, entryIdx, entry)}
               onDoubleClick={() => handleDoubleClick(entry)}
             >
-              <FileIcon fileType={entry.file_type as FileType} size={14} />
+              <FileIcon fileType={entry.file_type as FileType} size={13} />
               <span className="flex-1 truncate text-[var(--font-sm)]">{entry.name}</span>
               {entry.is_dir && (
-                <ChevronRight size={11} className="text-text-muted shrink-0" />
+                <ChevronRight size={10} className="text-text-muted/60 shrink-0" />
               )}
             </div>
           ))}

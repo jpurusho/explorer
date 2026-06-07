@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { usePreviewNavStore } from "../../stores/previewNavStore";
 import { ImagePreview } from "./ImagePreview";
@@ -14,7 +15,7 @@ import { clsx } from "clsx";
 import { format } from "date-fns";
 import { detachPreview } from "../../lib/detachPreview";
 import { fetchFileContent, prefetchFileContent } from "../../lib/previewCache";
-import type { FileContent, FileType } from "../../types";
+import type { FileContent, FileEntry, FileType } from "../../types";
 
 function formatSize(bytes: number): string {
   if (bytes === 0) return "0 B";
@@ -46,9 +47,23 @@ export function PreviewPanel() {
   const requestIdRef = useRef(0);
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const entry = visibleEntries[selectedIndex];
+  const [resolvedEntry, setResolvedEntry] = useState<FileEntry | null>(null);
+  const listEntry = visibleEntries[selectedIndex];
+  const entry = listEntry || resolvedEntry;
   const fileType = entry?.file_type as FileType | undefined;
   const hasRenderedView = fileType ? renderableTypes.includes(fileType) : false;
+
+  // When selectedPath doesn't match a visibleEntries item (e.g. column view),
+  // fetch metadata directly
+  useEffect(() => {
+    if (listEntry || !selectedPath) {
+      setResolvedEntry(null);
+      return;
+    }
+    invoke<FileEntry[]>("get_file_entries", { paths: [selectedPath] })
+      .then((entries) => { if (entries[0]) setResolvedEntry(entries[0]); })
+      .catch(() => setResolvedEntry(null));
+  }, [selectedPath, listEntry]);
 
   // Reset preview nav when a different file is selected from the file list
   useEffect(() => {
