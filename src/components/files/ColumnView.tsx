@@ -53,15 +53,31 @@ export function ColumnView() {
   };
 
   const handleSelect = (columnIndex: number, entryIndex: number, entry: FileEntry) => {
-    setColumns((prev) => {
-      const updated = prev.slice(0, columnIndex + 1);
-      updated[columnIndex] = { ...updated[columnIndex], selectedIndex: entryIndex };
-      return updated;
-    });
-
     if (entry.is_dir) {
-      loadColumn(entry.path, columnIndex + 1);
+      setColumns((prev) => {
+        const updated = prev.slice(0, columnIndex + 1);
+        updated[columnIndex] = { ...updated[columnIndex], selectedIndex: entryIndex };
+        return updated;
+      });
+      invoke<FileEntry[]>("list_directory", { path: entry.path }).then((entries) => {
+        const filtered = showHiddenFiles ? entries : entries.filter((e) => !e.is_hidden);
+        const sorted = filtered.sort((a, b) => {
+          if (a.is_dir && !b.is_dir) return -1;
+          if (!a.is_dir && b.is_dir) return 1;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+        });
+        setColumns((prev) => {
+          const newCols = prev.slice(0, columnIndex + 1);
+          newCols.push({ path: entry.path, entries: sorted, selectedIndex: null });
+          return newCols;
+        });
+      }).catch(() => {});
     } else {
+      setColumns((prev) => {
+        const updated = prev.slice(0, columnIndex + 1);
+        updated[columnIndex] = { ...updated[columnIndex], selectedIndex: entryIndex };
+        return updated;
+      });
       setSelectedPath(entry.path);
     }
   };
