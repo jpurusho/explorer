@@ -89,13 +89,12 @@ export function ColumnView() {
   };
 
   return (
-    <div className="h-full relative file-list-font">
-      <div ref={containerRef} className="absolute inset-0 flex overflow-x-auto">
+    <div ref={containerRef} className="h-full overflow-x-auto file-list-font">
+      <div className="flex h-full">
         {columns.map((col, colIdx) => (
           <div
             key={col.path}
-            className="shrink-0 border-r border-border overflow-y-auto"
-            style={{ width: "220px", height: "100%" }}
+            className="w-[220px] shrink-0 border-r border-border overflow-y-auto"
           >
             {col.entries.map((entry, entryIdx) => (
               <div
