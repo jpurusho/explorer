@@ -59,17 +59,26 @@ export function DiffView({ onClose }: DiffViewProps) {
     }
   }, []);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!leftPath || !rightPath) return;
     let cancelled = false;
+    setError(null);
 
     Promise.all([
       invoke<{ content: string }>("read_file_content", { path: leftPath }),
       invoke<{ content: string }>("read_file_content", { path: rightPath }),
     ]).then(([left, right]) => {
       if (cancelled) return;
-      setDiffLines(computeDiffLines(left.content, right.content));
-    }).catch(() => {});
+      try {
+        setDiffLines(computeDiffLines(left.content, right.content));
+      } catch (e) {
+        setError(`Diff failed: ${e}`);
+      }
+    }).catch((e) => {
+      if (!cancelled) setError(`Failed to read files: ${e}`);
+    });
 
     return () => { cancelled = true; };
   }, [leftPath, rightPath]);
