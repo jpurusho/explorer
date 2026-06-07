@@ -74,22 +74,31 @@ export function DiffView({ onClose }: DiffViewProps) {
     return () => { cancelled = true; };
   }, [leftPath, rightPath]);
 
-  const handleDropLeft = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
+  const [dragOverLeft, setDragOverLeft] = useState(false);
+  const [dragOverRight, setDragOverRight] = useState(false);
+
+  const extractPath = (e: React.DragEvent): string | null => {
     const data = e.dataTransfer.getData("application/x-explorer-files");
     if (data) {
       const paths = JSON.parse(data) as string[];
-      if (paths[0]) setLeftPath(paths[0]);
+      return paths[0] || null;
     }
+    const text = e.dataTransfer.getData("text/plain");
+    return text && text.startsWith("/") ? text : null;
+  };
+
+  const handleDropLeft = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverLeft(false);
+    const path = extractPath(e);
+    if (path) setLeftPath(path);
   }, []);
 
   const handleDropRight = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    const data = e.dataTransfer.getData("application/x-explorer-files");
-    if (data) {
-      const paths = JSON.parse(data) as string[];
-      if (paths[0]) setRightPath(paths[0]);
-    }
+    setDragOverRight(false);
+    const path = extractPath(e);
+    if (path) setRightPath(path);
   }, []);
 
   const stats = diffLines.reduce((acc, line) => {
@@ -117,21 +126,31 @@ export function DiffView({ onClose }: DiffViewProps) {
         </button>
       </div>
 
-      {/* File labels */}
+      {/* File labels — drop zones */}
       <div className="flex border-b border-border shrink-0">
         <div
-          className="flex-1 px-3 py-1.5 text-[var(--font-xs)] text-text-muted truncate border-r border-border bg-bg-tertiary"
-          onDragOver={(e) => e.preventDefault()}
+          className={clsx(
+            "flex-1 px-3 py-3 text-[var(--font-sm)] truncate border-r border-border text-center cursor-default transition-colors",
+            dragOverLeft ? "bg-accent/10 text-accent border-accent/30" : "bg-bg-tertiary text-text-muted hover:bg-bg-hover"
+          )}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+          onDragEnter={(e) => { e.preventDefault(); setDragOverLeft(true); }}
+          onDragLeave={() => setDragOverLeft(false)}
           onDrop={handleDropLeft}
         >
-          {leftPath ? leftPath.split("/").pop() : "Drop or select left file"}
+          {leftPath ? leftPath.split("/").pop() : "← Drop left file here"}
         </div>
         <div
-          className="flex-1 px-3 py-1.5 text-[var(--font-xs)] text-text-muted truncate bg-bg-tertiary"
-          onDragOver={(e) => e.preventDefault()}
+          className={clsx(
+            "flex-1 px-3 py-3 text-[var(--font-sm)] truncate text-center cursor-default transition-colors",
+            dragOverRight ? "bg-accent/10 text-accent border-accent/30" : "bg-bg-tertiary text-text-muted hover:bg-bg-hover"
+          )}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
+          onDragEnter={(e) => { e.preventDefault(); setDragOverRight(true); }}
+          onDragLeave={() => setDragOverRight(false)}
           onDrop={handleDropRight}
         >
-          {rightPath ? rightPath.split("/").pop() : "Drop or select right file"}
+          {rightPath ? rightPath.split("/").pop() : "Drop right file here →"}
         </div>
       </div>
 
