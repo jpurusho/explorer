@@ -48,11 +48,10 @@ export function DiffView({ onClose }: DiffViewProps) {
   const [diffLines, setDiffLines] = useState<DiffLine[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const selectedEntries = useFileListStore((s) => s.getSelectedEntries());
-
   useEffect(() => {
-    if (selectedEntries.length >= 2) {
-      const [first, second] = selectedEntries;
+    const entries = useFileListStore.getState().getSelectedEntries();
+    if (entries.length >= 2) {
+      const [first, second] = entries;
       if (!first.is_dir && !second.is_dir) {
         setLeftPath(first.path);
         setRightPath(second.path);
