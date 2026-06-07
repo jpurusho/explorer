@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { diffLines } from "diff";
+import { diffLines as computeDiff } from "diff";
 import { clsx } from "clsx";
 import { X, FileText } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
@@ -17,7 +17,7 @@ interface DiffLine {
 }
 
 function computeDiffLines(left: string, right: string): DiffLine[] {
-  const changes = diffLines(left, right);
+  const changes = computeDiff(left, right);
   const lines: DiffLine[] = [];
   let leftLine = 1;
   let rightLine = 1;
@@ -45,7 +45,7 @@ function computeDiffLines(left: string, right: string): DiffLine[] {
 export function DiffView({ onClose }: DiffViewProps) {
   const [leftPath, setLeftPath] = useState<string | null>(null);
   const [rightPath, setRightPath] = useState<string | null>(null);
-  const [diffLines, setDiffLines] = useState<DiffLine[]>([]);
+  const [lines, setDiffLines] = useState<DiffLine[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -101,7 +101,7 @@ export function DiffView({ onClose }: DiffViewProps) {
     if (path) setRightPath(path);
   }, []);
 
-  const stats = diffLines.reduce((acc, line) => {
+  const stats = lines.reduce((acc, line) => {
     if (line.type === "added") acc.added++;
     if (line.type === "removed") acc.removed++;
     return acc;
@@ -113,7 +113,7 @@ export function DiffView({ onClose }: DiffViewProps) {
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-border bg-bg-secondary shrink-0">
         <div className="flex items-center gap-3">
           <span className="text-[var(--font-sm)] font-medium text-text">Diff View</span>
-          {diffLines.length > 0 && (
+          {lines.length > 0 && (
             <span className="text-[var(--font-xs)] text-text-muted">
               <span className="text-green-400">+{stats.added}</span>
               {" / "}
@@ -165,7 +165,7 @@ export function DiffView({ onClose }: DiffViewProps) {
         </div>
       ) : (
         <div ref={scrollRef} className="flex-1 overflow-auto font-mono text-[var(--font-sm)]">
-          {diffLines.map((line, i) => (
+          {lines.map((line, i) => (
             <div
               key={i}
               className={clsx(
