@@ -7,6 +7,7 @@ import {
   Settings,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useFileListStore } from "../../stores/fileListStore";
 
@@ -26,9 +27,16 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
 
   const pathParts = currentPath.split("/").filter(Boolean);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest("button")) return;
+    e.preventDefault();
+    getCurrentWebviewWindow().startDragging().catch(() => {});
+  };
+
   return (
     <div
       data-tauri-drag-region
+      onMouseDown={handleMouseDown}
       className="h-[var(--toolbar-height)] bg-bg-secondary/80 backdrop-blur-xl border-b border-border flex items-center gap-2"
       style={{ fontSize: "var(--font-toolbar-breadcrumb)", paddingLeft: "78px", paddingRight: "var(--panel-px)" }}
     >
