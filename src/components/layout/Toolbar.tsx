@@ -45,6 +45,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
         <button
           onClick={goBack}
           disabled={!canGoBack}
+          title="Back (⌘[)"
           className={clsx(
             "p-1.5 rounded-[5px] transition-colors",
             canGoBack
@@ -57,6 +58,7 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
         <button
           onClick={goForward}
           disabled={!canGoForward}
+          title="Forward (⌘])"
           className={clsx(
             "p-1.5 rounded-[5px] transition-colors",
             canGoForward
