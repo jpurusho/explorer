@@ -82,12 +82,31 @@ function isFrameBlack(ctx: CanvasRenderingContext2D, width: number, height: numb
   return samples > 0 && (totalBrightness / samples) < 15;
 }
 
+const videoThumbnailCache = new Map<string, { poster: string; duration: number }>();
+const VIDEO_CACHE_MAX = 200;
+
+function evictOldestFromCache() {
+  if (videoThumbnailCache.size > VIDEO_CACHE_MAX) {
+    const firstKey = videoThumbnailCache.keys().next().value;
+    if (firstKey) videoThumbnailCache.delete(firstKey);
+  }
+}
+
 function VideoThumbnail({ path, onDuration }: { path: string; onDuration: (d: number) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [posterSrc, setPosterSrc] = useState<string | null>(null);
+  const [posterSrc, setPosterSrc] = useState<string | null>(() => {
+    const cached = videoThumbnailCache.get(path);
+    if (cached) {
+      onDuration(cached.duration);
+      return cached.poster;
+    }
+    return null;
+  });
 
   useEffect(() => {
+    if (videoThumbnailCache.has(path)) return;
+
     const video = videoRef.current;
     if (!video) return;
     let done = false;
@@ -103,7 +122,6 @@ function VideoThumbnail({ path, onDuration }: { path: string; onDuration: (d: nu
 
     const seekToNext = () => {
       if (done || seekAttempt >= seekPositions.length) {
-        // Use whatever we have if all attempts were black
         if (!done) captureFrame(true);
         return;
       }
@@ -127,7 +145,10 @@ function VideoThumbnail({ path, onDuration }: { path: string; onDuration: (d: nu
       }
 
       done = true;
-      setPosterSrc(canvas.toDataURL("image/jpeg", 0.75));
+      const dataUrl = canvas.toDataURL("image/jpeg", 0.75);
+      setPosterSrc(dataUrl);
+      evictOldestFromCache();
+      videoThumbnailCache.set(path, { poster: dataUrl, duration: video.duration });
     };
 
     const handleSeeked = () => {
@@ -158,14 +179,18 @@ function VideoThumbnail({ path, onDuration }: { path: string; onDuration: (d: nu
           <Play size={14} className="text-white ml-0.5" fill="white" />
         </div>
       </div>
-      <video
-        ref={videoRef}
-        src={mediaUrl}
-        preload="metadata"
-        muted
-        className="hidden"
-      />
-      <canvas ref={canvasRef} className="hidden" />
+      {!videoThumbnailCache.has(path) && (
+        <>
+          <video
+            ref={videoRef}
+            src={mediaUrl}
+            preload="metadata"
+            muted
+            className="hidden"
+          />
+          <canvas ref={canvasRef} className="hidden" />
+        </>
+      )}
     </div>
   );
 }
