@@ -107,7 +107,7 @@ export function DetachedPreview() {
 
   return (
     <div className="h-screen w-screen bg-bg flex flex-col overflow-hidden">
-      <div className="h-8 bg-bg-secondary border-b border-border flex items-center px-4 shrink-0" data-tauri-drag-region>
+      <div className="h-9 bg-bg-secondary border-b border-border flex items-center shrink-0" style={{ paddingLeft: "78px", paddingRight: "16px" }} data-tauri-drag-region>
         <span className="text-[var(--font-sm)] text-text-secondary font-medium truncate">
           {fileName}
         </span>

@@ -62,14 +62,27 @@ export function VideoPreview({ path, name }: VideoPreviewProps) {
     }
   }, []);
 
-  const handleProgressClick = useCallback((e: React.MouseEvent) => {
+  const seekToPosition = useCallback((clientX: number) => {
     const bar = progressRef.current;
     const v = videoRef.current;
     if (!bar || !v || !duration) return;
     const rect = bar.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+    const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
     v.currentTime = pct * duration;
   }, [duration]);
+
+  const handleProgressMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    seekToPosition(e.clientX);
+
+    const onMove = (ev: MouseEvent) => seekToPosition(ev.clientX);
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }, [seekToPosition]);
 
   const scheduleHide = useCallback(() => {
     if (hideTimer.current) clearTimeout(hideTimer.current);
@@ -100,12 +113,12 @@ export function VideoPreview({ path, name }: VideoPreviewProps) {
 
   return (
     <div
-      className="h-full flex flex-col overflow-hidden bg-black/40"
+      className="h-full flex flex-col bg-black/40"
       onMouseMove={scheduleHide}
       onMouseLeave={() => { if (playing) setShowControls(false); }}
     >
       {/* Video area */}
-      <div className="flex-1 flex items-center justify-center relative min-h-0 cursor-pointer" onClick={togglePlay}>
+      <div className="flex-1 flex items-center justify-center relative min-h-0 overflow-hidden cursor-pointer" onClick={togglePlay}>
         <video
           ref={videoRef}
           key={path}
@@ -153,17 +166,21 @@ export function VideoPreview({ path, name }: VideoPreviewProps) {
         {/* Progress bar */}
         <div
           ref={progressRef}
-          className="h-1 bg-white/20 cursor-pointer group hover:h-1.5 transition-all"
-          onClick={handleProgressClick}
+          className="relative h-2 bg-white/20 cursor-pointer group hover:h-2.5 transition-all"
+          onMouseDown={handleProgressMouseDown}
         >
           <div
-            className="h-full bg-accent transition-[width] duration-100"
+            className="h-full bg-accent"
             style={{ width: `${progress}%` }}
+          />
+          <div
+            className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-white shadow-md border-2 border-accent"
+            style={{ left: `calc(${progress}% - 7px)` }}
           />
         </div>
 
         {/* Control buttons */}
-        <div className="flex items-center gap-3 px-4 py-2 bg-black/60 backdrop-blur-sm">
+        <div className="flex items-center gap-3 px-5 py-2.5 bg-black/60 backdrop-blur-sm">
           <button onClick={togglePlay} className="text-white hover:text-accent transition-colors">
             {playing ? <Pause size={16} /> : <Play size={16} />}
           </button>
@@ -197,7 +214,7 @@ export function VideoPreview({ path, name }: VideoPreviewProps) {
       </div>
 
       {/* File name */}
-      <div className="shrink-0 px-4 py-1.5 bg-bg-secondary border-t border-border">
+      <div className="shrink-0 px-5 pt-2 pb-4 bg-bg-secondary border-t border-border">
         <p className="text-[var(--font-sm)] text-text-muted truncate">{name}</p>
       </div>
     </div>
