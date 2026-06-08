@@ -4,6 +4,7 @@ import { Search, Folder, File, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useFileListStore } from "../../stores/fileListStore";
+import { useTagStore } from "../../stores/tagStore";
 import { formatSize } from "../../lib/formatters";
 
 interface FileResult {
@@ -44,6 +45,8 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
     }
   }, [visible]);
 
+  const allTags = useTagStore((s) => s.tags);
+
   useEffect(() => {
     if (!query.trim()) {
       setResults([]);
@@ -54,8 +57,37 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
     setLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await invoke<FileResult[]>("search_files", { query: query.trim(), limit: 50 });
-        setResults(res);
+        const trimmed = query.trim();
+
+        // Parse tag: or # prefix
+        const tagMatch = trimmed.match(/^(?:tag:|#)(\S+)\s*(.*)/i);
+
+        if (tagMatch) {
+          const tagName = tagMatch[1].toLowerCase();
+          const fileQuery = tagMatch[2]?.trim() || "";
+          const tag = allTags.find((t) => t.name.toLowerCase() === tagName || t.name.toLowerCase().startsWith(tagName));
+
+          if (tag) {
+            const paths = await invoke<string[]>("get_files_by_tag", { tagId: tag.id });
+            let tagResults: FileResult[] = paths.map((p) => {
+              const name = p.split("/").pop() || p;
+              return { path: p, name, size_bytes: 0, modified_at: 0, is_dir: false };
+            });
+
+            // Filter by additional query if provided
+            if (fileQuery) {
+              const lower = fileQuery.toLowerCase();
+              tagResults = tagResults.filter((r) => r.name.toLowerCase().includes(lower));
+            }
+
+            setResults(tagResults.slice(0, 50));
+          } else {
+            setResults([]);
+          }
+        } else {
+          const res = await invoke<FileResult[]>("search_files", { query: trimmed, limit: 50 });
+          setResults(res);
+        }
         setSelectedIdx(0);
       } catch {
         setResults([]);
@@ -63,7 +95,7 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
         setLoading(false);
       }
     }, 200);
-  }, [query]);
+  }, [query, allTags]);
 
   const handleSelect = (result: FileResult) => {
     if (result.is_dir) {
@@ -115,7 +147,7 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Search files and folders..."
+            placeholder="Search files... (try tag:name or #name)"
             className="flex-1 bg-transparent outline-none text-text text-[16px] placeholder:text-text-muted/50"
           />
           {query && (
@@ -136,8 +168,22 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
           )}
 
           {!query && (
-            <div className="px-5 py-8 text-center text-text-muted text-[13px]">
-              Type to search across all indexed files
+            <div className="px-5 py-8 text-center text-text-muted text-[13px] space-y-2">
+              <p>Type to search across all indexed files</p>
+              {allTags.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-1.5 pt-2">
+                  {allTags.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setQuery(`tag:${t.name} `)}
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-bg-tertiary border border-border/40 hover:border-accent/50 transition-colors"
+                    >
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: t.color }} />
+                      <span className="text-[11px] text-text-secondary">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

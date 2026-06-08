@@ -6,13 +6,12 @@ import {
   FolderPlus,
   Trash2,
   Pencil,
-  Info,
-  FileText,
   Eye,
   Clipboard,
   ClipboardPaste,
   Scissors,
   Tag,
+  ChevronRight,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { detachPreview } from "../../lib/detachPreview";
@@ -31,13 +30,47 @@ interface ContextMenuProps {
   onRename?: () => void;
 }
 
-interface MenuItem {
-  label: string;
+function MenuItem({ icon, label, onClick, destructive, disabled }: {
   icon: React.ReactNode;
-  action: () => void;
-  separator?: boolean;
-  disabled?: boolean;
+  label: string;
+  onClick: () => void;
   destructive?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="w-full flex items-center gap-2.5 px-3 py-[6px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed group outline-none focus:bg-bg-hover"
+    >
+      <span className={destructive ? "text-red-400 shrink-0" : "text-text-muted shrink-0 group-hover:text-text-secondary"}>{icon}</span>
+      <span className={destructive ? "text-red-400" : "text-text-secondary group-hover:text-text"}>{label}</span>
+    </button>
+  );
+}
+
+function MenuSeparator() {
+  return <div className="h-[1px] bg-border/50 my-1 mx-2" />;
+}
+
+function SubMenu({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  return (
+    <div ref={ref} className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button className="w-full flex items-center gap-2.5 px-3 py-[6px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors group outline-none focus:bg-bg-hover">
+        <span className="text-text-muted shrink-0 group-hover:text-text-secondary">{icon}</span>
+        <span className="text-text-secondary group-hover:text-text flex-1">{label}</span>
+        <ChevronRight size={11} className="text-text-muted" />
+      </button>
+      {open && (
+        <div className="absolute left-full top-0 ml-1 min-w-[160px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl z-50">
+          {children}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: ContextMenuProps) {
@@ -55,258 +88,162 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   const assignFiles = useSectionStore((s) => s.assignFiles);
   const removeFiles = useSectionStore((s) => s.removeFiles);
   const currentPath = useNavigationStore((s) => s.currentPath);
-  const createSection = useSectionStore((s) => s.createSection);
-  const [showTagSubmenu, setShowTagSubmenu] = useState(false);
-  const [showSectionSubmenu, setShowSectionSubmenu] = useState(false);
-  const [creatingSection, setCreatingSection] = useState(false);
-  const [newSectionName, setNewSectionName] = useState("");
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
     };
-    const handleEsc = (e: KeyboardEvent) => {
+    const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleEsc);
+    document.addEventListener("keydown", handleKey);
     return () => {
       document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleEsc);
+      document.removeEventListener("keydown", handleKey);
     };
   }, [onClose]);
 
+  // Position adjustment to keep menu in viewport
   useEffect(() => {
     if (!menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    if (rect.right > vw) {
-      menuRef.current.style.left = `${x - rect.width}px`;
-    }
-    if (rect.bottom > vh) {
-      menuRef.current.style.top = `${y - rect.height}px`;
-    }
+    if (rect.right > vw - 8) menuRef.current.style.left = `${Math.max(8, x - rect.width)}px`;
+    if (rect.bottom > vh - 8) menuRef.current.style.top = `${Math.max(8, y - rect.height)}px`;
   }, [x, y]);
 
   const previewableTypes: FileType[] = ["image", "video", "audio", "markdown", "json", "yaml", "text", "code", "unknown"];
 
   const handleTrash = async () => {
     const paths = entries.map((e) => e.path);
-    try {
-      await invoke("trash_items", { paths });
-      refreshDirectory?.();
-    } catch {
-      // Trash operation failed
-    }
+    await invoke("trash_items", { paths }).catch(() => {});
+    refreshDirectory?.();
     onClose();
   };
 
   const handleCopyPaths = () => {
-    const paths = entries.map((e) => e.path).join("\n");
-    navigator.clipboard.writeText(paths);
+    navigator.clipboard.writeText(entries.map((e) => e.path).join("\n"));
     onClose();
   };
 
   const handleCopyNames = () => {
-    const names = entries.map((e) => e.name).join("\n");
-    navigator.clipboard.writeText(names);
+    navigator.clipboard.writeText(entries.map((e) => e.name).join("\n"));
     onClose();
   };
 
-  const items: MenuItem[] = [];
-
-  // Remove from active tag (when in tag filter view)
-  if (activeTagFilter !== null) {
-    const activeTag = allTags.find((t) => t.id === activeTagFilter);
-    if (activeTag) {
-      items.push({
-        label: `Remove "${activeTag.name}" tag`,
-        icon: <Tag size={13} />,
-        action: () => {
-          const paths = entries.map((e) => e.path);
-          untagFiles(paths, activeTagFilter).then(() => refreshDirectory?.());
-          onClose();
-        },
-        destructive: true,
-      });
-      items.push({ label: "", icon: null, action: () => {}, separator: true });
-    }
-  }
-
-  // Open
-  if (single) {
-    items.push({
-      label: single.is_dir ? "Open" : "Preview",
-      icon: single.is_dir ? <FolderOpen size={13} /> : <Eye size={13} />,
-      action: () => { onOpen?.(); onClose(); },
-    });
-  }
-
-  // Detach preview
-  if (single && !single.is_dir && previewableTypes.includes(fileType!)) {
-    items.push({
-      label: "Open in New Window",
-      icon: <ExternalLink size={13} />,
-      action: () => { detachPreview(single.path, single.name, single.file_type); onClose(); },
-    });
-  }
-
-  items.push({ label: "", icon: null, action: () => {}, separator: true });
-
-  // Copy path/name
-  items.push({
-    label: count > 1 ? `Copy ${count} Paths` : "Copy Path",
-    icon: <Clipboard size={13} />,
-    action: handleCopyPaths,
-  });
-
-  items.push({
-    label: count > 1 ? `Copy ${count} Names` : "Copy Name",
-    icon: <Copy size={13} />,
-    action: handleCopyNames,
-  });
-
-  // File operations
   const clipboard = useClipboardStore.getState();
-
-  items.push({
-    label: "Copy Files",
-    icon: <Copy size={13} />,
-    action: () => {
-      useClipboardStore.getState().setPaths(entries.map((e) => e.path), "copy");
-      onClose();
-    },
-  });
-
-  items.push({
-    label: "Cut Files",
-    icon: <Scissors size={13} />,
-    action: () => {
-      useClipboardStore.getState().setPaths(entries.map((e) => e.path), "cut");
-      onClose();
-    },
-  });
-
-  if (clipboard.paths.length > 0) {
-    items.push({
-      label: "Paste",
-      icon: <ClipboardPaste size={13} />,
-      action: async () => {
-        const { paths, operation } = useClipboardStore.getState();
-        const dest = currentPath;
-        if (operation === "copy") {
-          await invoke("copy_items", { paths, destination: dest });
-        } else {
-          await invoke("move_items", { paths, destination: dest });
-          useClipboardStore.getState().clear();
-        }
-        refreshDirectory?.();
-        onClose();
-      },
-    });
-  }
-
-  items.push({
-    label: "New Folder",
-    icon: <FolderPlus size={13} />,
-    action: async () => {
-      const dest = currentPath;
-      try {
-        await invoke("create_folder", { path: `${dest}/untitled folder` });
-      } catch {
-        for (let i = 2; i < 100; i++) {
-          try {
-            await invoke("create_folder", { path: `${dest}/untitled folder ${i}` });
-            break;
-          } catch { continue; }
-        }
-      }
-      refreshDirectory?.();
-      onClose();
-    },
-  });
-
-  items.push({ label: "", icon: null, action: () => {}, separator: true });
-
-  // Tags submenu trigger
-  items.push({
-    label: "Tags",
-    icon: <Tag size={13} />,
-    action: () => { setShowTagSubmenu(!showTagSubmenu); setShowSectionSubmenu(false); },
-  });
-
-  // Sections submenu trigger
-  items.push({
-    label: "Move to Section",
-    icon: <FolderOpen size={13} />,
-    action: () => { setShowSectionSubmenu(!showSectionSubmenu); setShowTagSubmenu(false); },
-  });
-
-  items.push({ label: "", icon: null, action: () => {}, separator: true });
-
-  // Rename (single only)
-  if (single) {
-    items.push({
-      label: "Rename",
-      icon: <Pencil size={13} />,
-      action: () => { onRename?.(); onClose(); },
-    });
-  }
-
-  // Trash
-  items.push({
-    label: count > 1 ? `Move ${count} Items to Trash` : "Move to Trash",
-    icon: <Trash2 size={13} />,
-    action: handleTrash,
-    destructive: true,
-  });
-
-  items.push({ label: "", icon: null, action: () => {}, separator: true });
-
-  // Info
-  items.push({
-    label: "Get Info",
-    icon: <Info size={13} />,
-    action: () => { onClose(); },
-    disabled: true,
-  });
-
-  if (single && !single.is_dir) {
-    items.push({
-      label: "Open in Editor",
-      icon: <FileText size={13} />,
-      action: () => { onOpen?.(); onClose(); },
-    });
-  }
 
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[200px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl backdrop-blur-sm"
+      className="fixed z-50 min-w-[200px] max-w-[280px] py-1.5 px-1 bg-bg-secondary/95 backdrop-blur-md border border-border rounded-xl shadow-2xl"
       style={{ left: x, top: y }}
     >
-      {items.map((item, idx) => {
-        if (item.separator) {
-          return <div key={idx} className="h-[1px] bg-border my-1.5 mx-2" />;
-        }
+      {/* Remove tag (when in tag filter) */}
+      {activeTagFilter !== null && (() => {
+        const activeTag = allTags.find((t) => t.id === activeTagFilter);
+        if (!activeTag) return null;
         return (
-          <button
-            key={idx}
-            onClick={item.action}
-            disabled={item.disabled}
-            className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            <span className={item.destructive ? "text-red-400 shrink-0" : "text-text-muted shrink-0"}>{item.icon}</span>
-            <span className={item.destructive ? "text-red-400" : "text-text-secondary"}>{item.label}</span>
-          </button>
+          <>
+            <MenuItem
+              icon={<Tag size={13} />}
+              label={`Remove "${activeTag.name}" tag`}
+              destructive
+              onClick={() => {
+                untagFiles(entries.map((e) => e.path), activeTagFilter).then(() => refreshDirectory?.());
+                onClose();
+              }}
+            />
+            <MenuSeparator />
+          </>
         );
-      })}
+      })()}
 
-      {showTagSubmenu && allTags.length > 0 && (
-        <div className="border-t border-border mt-1 pt-1">
+      {/* Open / Preview */}
+      {single && (
+        <MenuItem
+          icon={single.is_dir ? <FolderOpen size={13} /> : <Eye size={13} />}
+          label={single.is_dir ? "Open" : "Preview"}
+          onClick={() => { onOpen?.(); onClose(); }}
+        />
+      )}
+
+      {/* Open in new window */}
+      {single && !single.is_dir && previewableTypes.includes(fileType!) && (
+        <MenuItem
+          icon={<ExternalLink size={13} />}
+          label="Open in New Window"
+          onClick={() => { detachPreview(single.path, single.name, single.file_type); onClose(); }}
+        />
+      )}
+
+      <MenuSeparator />
+
+      {/* Copy operations */}
+      <MenuItem
+        icon={<Clipboard size={13} />}
+        label={count > 1 ? `Copy ${count} Paths` : "Copy Path"}
+        onClick={handleCopyPaths}
+      />
+      <MenuItem
+        icon={<Copy size={13} />}
+        label={count > 1 ? `Copy ${count} Names` : "Copy Name"}
+        onClick={handleCopyNames}
+      />
+
+      <MenuSeparator />
+
+      {/* File operations */}
+      <MenuItem
+        icon={<Copy size={13} />}
+        label="Copy Files"
+        onClick={() => {
+          useClipboardStore.getState().setPaths(entries.map((e) => e.path), "copy");
+          onClose();
+        }}
+      />
+      <MenuItem
+        icon={<Scissors size={13} />}
+        label="Cut Files"
+        onClick={() => {
+          useClipboardStore.getState().setPaths(entries.map((e) => e.path), "cut");
+          onClose();
+        }}
+      />
+      {clipboard.paths.length > 0 && (
+        <MenuItem
+          icon={<ClipboardPaste size={13} />}
+          label="Paste"
+          onClick={async () => {
+            const { paths, operation } = useClipboardStore.getState();
+            const dest = currentPath;
+            if (operation === "copy") await invoke("copy_items", { paths, destination: dest });
+            else { await invoke("move_items", { paths, destination: dest }); useClipboardStore.getState().clear(); }
+            refreshDirectory?.();
+            onClose();
+          }}
+        />
+      )}
+
+      <MenuItem
+        icon={<FolderPlus size={13} />}
+        label="New Folder"
+        onClick={async () => {
+          const dest = currentPath;
+          try { await invoke("create_folder", { path: `${dest}/untitled folder` }); }
+          catch { for (let i = 2; i < 100; i++) { try { await invoke("create_folder", { path: `${dest}/untitled folder ${i}` }); break; } catch { continue; } } }
+          refreshDirectory?.();
+          onClose();
+        }}
+      />
+
+      <MenuSeparator />
+
+      {/* Tags submenu */}
+      {allTags.length > 0 && (
+        <SubMenu icon={<Tag size={13} />} label="Tags">
           {allTags.map((tag) => {
             const paths = entries.map((e) => e.path);
             const hasTag = paths.some((p) => fileTagMap.get(p)?.some((t) => t.id === tag.id));
@@ -314,96 +251,63 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
               <button
                 key={tag.id}
                 onClick={() => {
-                  const paths = entries.map((e) => e.path);
-                  if (hasTag) {
-                    untagFiles(paths, tag.id);
-                  } else {
-                    tagFiles(paths, tag.id);
-                  }
+                  if (hasTag) untagFiles(paths, tag.id);
+                  else tagFiles(paths, tag.id);
+                  onClose();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors"
               >
-                <div
-                  className="w-[8px] h-[8px] rounded-full shrink-0"
-                  style={{ backgroundColor: tag.color }}
-                />
+                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
                 <span className="text-text-secondary flex-1">{tag.name}</span>
                 {hasTag && <span className="text-accent text-[var(--font-xs)]">✓</span>}
               </button>
             );
           })}
-        </div>
+        </SubMenu>
       )}
 
-      {showSectionSubmenu && (
-        <div className="border-t border-border mt-1 pt-1">
+      {/* Sections submenu */}
+      {sections.length > 0 && (
+        <SubMenu icon={<FolderOpen size={13} />} label="Move to Section">
           {sections.map((section) => (
             <button
               key={section.id}
-              onClick={() => {
-                const paths = entries.map((e) => e.path);
-                assignFiles(section.id, paths);
-                onClose();
-              }}
-              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors"
+              onClick={() => { assignFiles(section.id, entries.map((e) => e.path)); onClose(); }}
+              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors"
             >
-              <div
-                className="w-[8px] h-[8px] rounded shrink-0"
-                style={{ backgroundColor: section.color }}
-              />
+              <div className="w-2 h-2 rounded shrink-0" style={{ backgroundColor: section.color }} />
               <span className="text-text-secondary flex-1">{section.name}</span>
             </button>
           ))}
-
           <button
             onClick={() => {
               const paths = entries.map((e) => e.path);
-              const sectionForFile = useSectionStore.getState().getSectionForPath(paths[0]);
-              if (sectionForFile) {
-                removeFiles(sectionForFile.id, paths);
-              }
+              const s = useSectionStore.getState().getSectionForPath(paths[0]);
+              if (s) removeFiles(s.id, paths);
               onClose();
             }}
-            className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors text-text-muted"
+            className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors text-text-muted"
           >
-            <span className="w-[8px] shrink-0">—</span>
+            <span className="w-2 shrink-0">—</span>
             <span className="flex-1">Unsorted</span>
           </button>
-
-          <div className="h-[1px] bg-border my-1 mx-2" />
-
-          {!creatingSection ? (
-            <button
-              onClick={() => setCreatingSection(true)}
-              className="w-full flex items-center gap-2.5 px-3 py-[4px] text-left text-[var(--font-sm)] hover:bg-bg-hover transition-colors text-accent"
-            >
-              <span className="text-[var(--font-md)]">+</span>
-              <span>New Section</span>
-            </button>
-          ) : (
-            <div className="px-3 py-1">
-              <input
-                autoFocus
-                value={newSectionName}
-                onChange={(e) => setNewSectionName(e.target.value)}
-                onKeyDown={async (e) => {
-                  if (e.key === "Enter" && newSectionName.trim()) {
-                    const colors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"];
-                    const color = colors[sections.length % colors.length];
-                    const section = await createSection(currentPath, newSectionName.trim(), color);
-                    const paths = entries.map((en) => en.path);
-                    await assignFiles(section.id, paths);
-                    onClose();
-                  }
-                  if (e.key === "Escape") setCreatingSection(false);
-                }}
-                placeholder="Section name..."
-                className="w-full bg-bg border border-border rounded px-2 py-1 text-[var(--font-sm)] text-text outline-none focus:border-accent"
-              />
-            </div>
-          )}
-        </div>
+        </SubMenu>
       )}
+
+      <MenuSeparator />
+
+      {/* Rename */}
+      {single && (
+        <MenuItem icon={<Pencil size={13} />} label="Rename" onClick={() => { onRename?.(); onClose(); }} />
+      )}
+
+      {/* Trash */}
+      <MenuItem
+        icon={<Trash2 size={13} />}
+        label={count > 1 ? `Move ${count} Items to Trash` : "Move to Trash"}
+        destructive
+        onClick={handleTrash}
+      />
     </div>
   );
 }

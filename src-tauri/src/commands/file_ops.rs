@@ -1,5 +1,6 @@
 use crate::indexer::IndexDb;
 use crate::utils::errors::AppError;
+use crate::log_info;
 use serde::Serialize;
 use std::path::Path;
 use tauri::State;
@@ -18,6 +19,7 @@ pub struct FileOpError {
 
 #[tauri::command]
 pub async fn trash_items(paths: Vec<String>, index: State<'_, IndexDb>) -> Result<FileOpResult, AppError> {
+    log_info!("trash_items: {} items", paths.len());
     let mut succeeded = 0u32;
     let mut failed = Vec::new();
 
@@ -47,6 +49,7 @@ pub async fn trash_items(paths: Vec<String>, index: State<'_, IndexDb>) -> Resul
 
 #[tauri::command]
 pub async fn move_items(paths: Vec<String>, destination: String, index: State<'_, IndexDb>) -> Result<FileOpResult, AppError> {
+    log_info!("move_items: {} items -> {}", paths.len(), destination);
     let dest = Path::new(&destination);
     if !dest.is_dir() {
         return Err(AppError::Other(format!("Destination is not a directory: {}", destination)));
@@ -116,6 +119,7 @@ pub async fn move_items(paths: Vec<String>, destination: String, index: State<'_
 
 #[tauri::command]
 pub async fn copy_items(paths: Vec<String>, destination: String, index: State<'_, IndexDb>) -> Result<FileOpResult, AppError> {
+    log_info!("copy_items: {} items -> {}", paths.len(), destination);
     let dest = Path::new(&destination);
     if !dest.is_dir() {
         return Err(AppError::Other(format!("Destination is not a directory: {}", destination)));

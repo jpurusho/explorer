@@ -3,8 +3,8 @@ import {
   ChevronRight,
   List,
   LayoutGrid,
-  Columns,
   Settings,
+  Search,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -13,9 +13,10 @@ import { useFileListStore } from "../../stores/fileListStore";
 
 interface ToolbarProps {
   onOpenSettings: () => void;
+  onOpenSearch?: () => void;
 }
 
-export function Toolbar({ onOpenSettings }: ToolbarProps) {
+export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const canGoBack = useNavigationStore((s) => s.canGoBack);
   const canGoForward = useNavigationStore((s) => s.canGoForward);
@@ -98,6 +99,16 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
         })}
       </div>
 
+      {/* Search trigger */}
+      <button
+        onClick={onOpenSearch}
+        className="flex items-center gap-2 px-3 py-1 rounded-lg bg-bg-tertiary/60 border border-border/40 hover:border-border hover:bg-bg-tertiary transition-colors mr-2"
+      >
+        <Search size={12} className="text-text-muted" />
+        <span className="text-[var(--font-xs)] text-text-muted/60">Search files...</span>
+        <kbd className="text-[10px] text-text-muted/40 font-mono ml-2">⌘P</kbd>
+      </button>
+
       {/* View mode + settings */}
       <div className="flex items-center gap-0.5">
         <button
@@ -124,19 +135,6 @@ export function Toolbar({ onOpenSettings }: ToolbarProps) {
         >
           <LayoutGrid size={14} strokeWidth={1.75} />
         </button>
-        <button
-          onClick={() => setViewMode("columns")}
-          className={clsx(
-            "p-1 rounded-[3px]",
-            viewMode === "columns"
-              ? "bg-bg-tertiary text-text"
-              : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
-          )}
-          title="Column view (⌘3)"
-        >
-          <Columns size={14} strokeWidth={1.75} />
-        </button>
-
         <div className="w-px h-3.5 bg-border/50 mx-1.5" />
 
         <button

@@ -1,7 +1,6 @@
 import { useFileListStore } from "../../stores/fileListStore";
 import { FileList } from "../files/FileList";
 import { FileGrid } from "../files/FileGrid";
-import { ColumnView } from "../files/ColumnView";
 import { Loader2, AlertCircle } from "lucide-react";
 
 export function ContentPanel() {
@@ -39,7 +38,7 @@ export function ContentPanel() {
 
   return (
     <div className="flex-1 overflow-hidden min-h-0">
-      {viewMode === "columns" ? <ColumnView /> : viewMode === "grid" ? <FileGrid /> : <FileList />}
+      {viewMode === "grid" ? <FileGrid /> : <FileList />}
     </div>
   );
 }

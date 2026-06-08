@@ -70,12 +70,12 @@ export function FileListItem({
         "border-collapse cursor-default",
         "transition-colors duration-75",
         selected
-          ? "bg-accent/10 text-text"
+          ? "bg-accent/15 text-text ring-1 ring-inset ring-accent/30"
           : "hover:bg-bg-hover text-text-secondary",
         isDragTarget && "ring-1 ring-accent/50 bg-accent/8",
         showRowLines && "border-b border-border/30"
       )}
-      style={{ tableLayout: "fixed", width: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
+      style={{ tableLayout: "fixed", width: "100%", minWidth: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}

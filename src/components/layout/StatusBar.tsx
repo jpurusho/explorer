@@ -1,8 +1,10 @@
 import { useMemo, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getVersion } from "@tauri-apps/api/app";
+import { check, type Update, type DownloadEvent } from "@tauri-apps/plugin-updater";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
-import { Folder, File, Eye, GitBranch } from "lucide-react";
+import { Folder, File, Eye, GitBranch, Download } from "lucide-react";
 
 interface GitStatus {
   is_repo: boolean;
@@ -25,11 +27,25 @@ function formatTotalSize(bytes: number): string {
 export function StatusBar() {
   const visibleEntries = useFileListStore((s) => s.visibleEntries);
   const selectedIndex = useFileListStore((s) => s.selectedIndex);
+  const selectedIndices = useFileListStore((s) => s.selectedIndices);
   const currentPath = useNavigationStore((s) => s.currentPath);
   const showHiddenFiles = useFileListStore((s) => s.showHiddenFiles);
   const [gitStatus, setGitStatus] = useState<GitStatus | null>(null);
   const [indexing, setIndexing] = useState(false);
   const [indexedCount, setIndexedCount] = useState(0);
+  const [appVersion, setAppVersion] = useState("");
+  const [updateAvailable, setUpdateAvailable] = useState<Update | null>(null);
+  const [updateProgress, setUpdateProgress] = useState<number | null>(null);
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(() => setAppVersion("0.0.0"));
+    const timer = setTimeout(() => {
+      check().then((update) => {
+        if (update) setUpdateAvailable(update);
+      }).catch(() => {});
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (!currentPath) return;
@@ -133,7 +149,16 @@ export function StatusBar() {
       <div className="flex-1" />
 
       {/* Selected file info */}
-      {selectedEntry && (
+      {selectedIndices.size > 1 ? (
+        <div className="flex items-center gap-2 text-accent min-w-0">
+          <span className="tabular-nums font-medium">{selectedIndices.size} items selected</span>
+          <span className="text-text-muted/60 shrink-0 tabular-nums whitespace-nowrap">
+            {formatTotalSize(
+              [...selectedIndices].reduce((sum, i) => sum + (visibleEntries[i]?.is_dir ? 0 : visibleEntries[i]?.size ?? 0), 0)
+            )}
+          </span>
+        </div>
+      ) : selectedEntry ? (
         <div className="flex items-center gap-2 text-text-muted min-w-0 overflow-hidden">
           <span className="truncate">{selectedEntry.name}</span>
           {!selectedEntry.is_dir && (
@@ -142,6 +167,43 @@ export function StatusBar() {
             </span>
           )}
         </div>
+      ) : null}
+
+      {/* Version badge */}
+      {appVersion && (
+        <>
+          <div className="w-[1px] h-3.5 bg-border shrink-0" />
+          {updateAvailable ? (
+            <button
+              onClick={async () => {
+                if (updateProgress !== null) return;
+                setUpdateProgress(0);
+                let total = 0, downloaded = 0;
+                await updateAvailable.downloadAndInstall((event: DownloadEvent) => {
+                  if (event.event === "Started") total = event.data.contentLength ?? 0;
+                  else if (event.event === "Progress") {
+                    downloaded += event.data.chunkLength;
+                    if (total > 0) setUpdateProgress(Math.round((downloaded / total) * 100));
+                  }
+                });
+                import("@tauri-apps/plugin-process").then(({ relaunch }) => relaunch()).catch(() => {});
+              }}
+              className="flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-md text-amber-400 animate-pulse hover:bg-amber-400/10 transition-colors"
+              title={`Update to v${updateAvailable.version}`}
+            >
+              {updateProgress !== null ? (
+                <span className="tabular-nums">{updateProgress}%</span>
+              ) : (
+                <>
+                  <Download size={10} />
+                  <span className="font-medium">v{appVersion}</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <span className="text-text-muted/60 shrink-0 tabular-nums">v{appVersion}</span>
+          )}
+        </>
       )}
     </div>
   );

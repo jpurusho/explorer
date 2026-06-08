@@ -5,51 +5,58 @@ on:
     tags:
       - "v*"
 
-permissions:
-  contents: write
-
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
-  release:
-    name: Release macOS (${{ matrix.target }})
+  build:
     runs-on: macos-latest
-    strategy:
-      matrix:
-        target: [aarch64-apple-darwin]
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
-      - name: Install Rust stable
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
 
       - name: Rust cache
-        uses: Swatinem/rust-cache@v2
+        uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
 
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and release
+      - name: Build Tauri app (Apple Silicon)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: "Explorer ${{ github.ref_name }}"
-          releaseBody: "See the assets below to download the app."
+          tagName: v__VERSION__
+          releaseName: "Explorer v__VERSION__"
+          releaseBody: "See the assets for the latest build."
           releaseDraft: false
           prerelease: false
-          args: --target ${{ matrix.target }}
+          args: --target aarch64-apple-darwin
+
+      - name: Build Tauri app (Intel)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD || '' }}
+        with:
+          tagName: v__VERSION__
+          releaseName: "Explorer v__VERSION__"
+          releaseBody: "See the assets for the latest build."
+          releaseDraft: false
+          prerelease: false
+          args: --target x86_64-apple-darwin

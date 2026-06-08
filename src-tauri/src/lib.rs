@@ -41,12 +41,15 @@ pub fn run() {
     let shutdown_read = index_db.read_conn.clone();
     let shutdown_flag = index_db.indexing.clone();
 
+    log_info!("Explorer app starting");
+
     tauri::Builder::default()
         .manage(index_db)
         .manage(db::DbState::new())
         .manage(WatcherState::new())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())

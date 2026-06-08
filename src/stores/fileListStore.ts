@@ -230,7 +230,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
     set({
       nameWidth: settings.column_name_width || 300,
       showRowLines: settings.show_row_lines ?? false,
-      viewMode: (settings.default_view as ViewMode) || "list",
+      viewMode: settings.default_view === "grid" ? "grid" : "list",
       showHiddenFiles: settings.show_hidden_files,
       sortBy: (settings.sort_by as SortField) || "name",
       sortDirection: (settings.sort_direction as SortDirection) || "asc",

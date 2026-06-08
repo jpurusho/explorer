@@ -1,9 +1,7 @@
 use crate::models::settings::{config_file_path, config_dir, themes_dir, AppSettings};
 use crate::utils::errors::AppError;
-use chrono::Local;
 use serde_json::Value;
 use std::fs;
-use std::io::Write;
 
 #[tauri::command]
 pub async fn load_settings() -> Result<AppSettings, AppError> {
@@ -74,24 +72,6 @@ pub async fn load_font_theme(name: String) -> Result<Value, AppError> {
 
 #[tauri::command]
 pub async fn write_log(level: String, message: String) -> Result<(), AppError> {
-    let dir = config_dir();
-    let log_path = dir.join("explorer.log");
-
-    // Rotate if > 500MB
-    if let Ok(meta) = fs::metadata(&log_path) {
-        if meta.len() > 500 * 1024 * 1024 {
-            let rotated = dir.join("explorer.log.1");
-            fs::rename(&log_path, &rotated).ok();
-        }
-    }
-
-    let timestamp = Local::now().format("%Y-%m-%d %H:%M:%S%.3f");
-    let line = format!("[{}] [{}] {}\n", timestamp, level.to_uppercase(), message);
-
-    let mut file = fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&log_path)?;
-    file.write_all(line.as_bytes())?;
+    crate::utils::log::app_log(&level.to_uppercase(), &message);
     Ok(())
 }

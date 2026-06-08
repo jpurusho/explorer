@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import {
-  Search, FolderOpen, Settings, Eye, EyeOff, Grid, List, Columns,
+  Search, FolderOpen, Settings, Eye, EyeOff, Grid, List,
   RotateCcw, FolderPlus, ArrowUp, Plus
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -51,7 +51,6 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
       { id: "go-up", label: "Go to Parent", description: "Navigate up one level", icon: <ArrowUp size={14} />, action: goUp, category: "navigation" },
       { id: "view-list", label: "Switch to List View", icon: <List size={14} />, action: () => setViewMode("list"), category: "settings" },
       { id: "view-grid", label: "Switch to Grid View", icon: <Grid size={14} />, action: () => setViewMode("grid"), category: "settings" },
-      { id: "view-columns", label: "Switch to Column View", icon: <Columns size={14} />, action: () => setViewMode("columns"), category: "settings" },
       { id: "toggle-hidden", label: showHiddenFiles ? "Hide Hidden Files" : "Show Hidden Files", icon: showHiddenFiles ? <EyeOff size={14} /> : <Eye size={14} />, action: toggleHiddenFiles, category: "settings" },
       { id: "open-settings", label: "Open Settings", icon: <Settings size={14} />, action: onOpenSettings, category: "settings" },
       { id: "refresh", label: "Refresh Directory", description: "Reload current folder", icon: <RotateCcw size={14} />, action: refreshCurrent, category: "action" },

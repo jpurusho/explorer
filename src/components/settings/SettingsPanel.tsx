@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { X } from "lucide-react";
+import { X, Palette, Type, Layout, Keyboard, Search } from "lucide-react";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useFileListStore } from "../../stores/fileListStore";
@@ -12,23 +12,52 @@ interface SettingsPanelProps {
   onClose: () => void;
 }
 
-function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
+type SettingsTab = "appearance" | "font" | "files" | "shortcuts" | "search";
+
+const tabs: { id: SettingsTab; label: string; icon: typeof Palette }[] = [
+  { id: "appearance", label: "Appearance", icon: Palette },
+  { id: "font", label: "Font Size", icon: Type },
+  { id: "files", label: "File Display", icon: Layout },
+  { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
+  { id: "search", label: "Search Index", icon: Search },
+];
+
+function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <div className="mb-6">
-      <h3 className="text-[var(--font-xs)] font-semibold text-accent/70 uppercase tracking-widest mb-3">
-        {title}
-      </h3>
-      <div className="bg-bg-secondary rounded-lg border border-border/50 p-4 flex flex-col gap-0">
+    <div className="mb-5">
+      <h3 className="text-[var(--font-sm)] font-semibold text-text mb-0.5">{title}</h3>
+      {description && <p className="text-[var(--font-xs)] text-text-muted mb-3">{description}</p>}
+      {!description && <div className="mb-3" />}
+      <div className="bg-bg-secondary/60 rounded-lg border border-border/40 p-3">
         {children}
       </div>
     </div>
   );
 }
 
+function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button
+      onClick={onChange}
+      className={clsx(
+        "w-9 h-5 rounded-full transition-colors relative shrink-0",
+        checked ? "bg-accent" : "bg-bg-tertiary border border-border"
+      )}
+    >
+      <div
+        className={clsx(
+          "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-transform",
+          checked ? "translate-x-[18px]" : "translate-x-[3px]"
+        )}
+      />
+    </button>
+  );
+}
+
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-border/30 last:border-b-0 gap-4">
-      <span className="text-[var(--font-md)] text-text-secondary shrink-0">{label}</span>
+    <div className="flex items-center justify-between py-2 border-b border-border/20 last:border-b-0 gap-3">
+      <span className="text-[var(--font-xs)] text-text-secondary shrink-0">{label}</span>
       <div className="flex items-center justify-end min-w-0">
         {children}
       </div>
@@ -36,7 +65,63 @@ function SettingRow({ label, children }: { label: string; children: React.ReactN
   );
 }
 
-function FontSizeSlider() {
+function AppearanceTab() {
+  const settings = useSettingsStore((s) => s.settings);
+  const setTheme = useSettingsStore((s) => s.setTheme);
+
+  return (
+    <Section title="Color Theme" description="Controls the overall color scheme.">
+      <div className="grid grid-cols-3 gap-2">
+        <button
+          onClick={() => setTheme("system")}
+          className={clsx(
+            "flex flex-col items-center gap-2 p-3 rounded-lg border transition-all",
+            settings.theme === "system"
+              ? "border-accent bg-accent/8"
+              : "border-border hover:border-text-muted"
+          )}
+        >
+          <div className="w-full h-8 rounded flex overflow-hidden border border-border/50">
+            <div className="flex-1 bg-[#1c1c1e]" /><div className="flex-1 bg-[#ffffff]" />
+          </div>
+          <span className="text-[var(--font-xs)] text-text-secondary">System</span>
+        </button>
+        {themes.map((t) => {
+          const swatches: Record<string, string[]> = {
+            light: ["#ffffff", "#f8f8fa", "#0066ff"],
+            dark: ["#1c1c1e", "#232326", "#4da8ff"],
+            material: ["#212121", "#2c2c2c", "#82b1ff"],
+            github: ["#0d1117", "#161b22", "#58a6ff"],
+            monokai: ["#272822", "#3e3d32", "#a6e22e"],
+            atom: ["#282c34", "#2c313a", "#61afef"],
+          };
+          const colors = swatches[t.id] || ["#333", "#444", "#66f"];
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTheme(t.id)}
+              className={clsx(
+                "flex flex-col items-center gap-2 p-3 rounded-lg border transition-all",
+                settings.theme === t.id
+                  ? "border-accent bg-accent/8"
+                  : "border-border hover:border-text-muted"
+              )}
+            >
+              <div className="w-full h-8 rounded flex overflow-hidden border border-border/50">
+                <div className="flex-1" style={{ backgroundColor: colors[0] }} />
+                <div className="flex-1" style={{ backgroundColor: colors[1] }} />
+                <div className="w-3" style={{ backgroundColor: colors[2] }} />
+              </div>
+              <span className="text-[var(--font-xs)] text-text-secondary">{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+function FontTab() {
   const currentTheme = useFontThemeStore((s) => s.currentTheme);
   const applyTheme = useFontThemeStore((s) => s.applyTheme);
   const updateSettings = useSettingsStore((s) => s.updateSettings);
@@ -68,40 +153,36 @@ function FontSizeSlider() {
   };
 
   const handleMouseUp = () => {
-    // Persist when user releases the slider
     updateSettings({ font_theme: `scale:${sliderValue}` } as any);
   };
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <p className="text-text text-center leading-relaxed" style={{ fontSize: `${sliderValue}px` }}>
+    <Section title="Font Size" description="Drag to adjust all font sizes proportionally.">
+      <p className="text-text text-center leading-relaxed mb-4" style={{ fontSize: `${sliderValue}px` }}>
         The quick brown fox jumps over the lazy dog
       </p>
-      <span className="text-[var(--font-sm)] text-accent font-medium tabular-nums">{sliderValue}px</span>
-      <input
-        type="range"
-        min="10"
-        max="30"
-        step="0.5"
-        value={sliderValue}
-        onChange={handleChange}
-        onMouseUp={handleMouseUp}
-        onTouchEnd={handleMouseUp}
-        className="w-full h-2 bg-bg-tertiary rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:cursor-pointer"
-      />
-      <div className="flex justify-between w-full text-[var(--font-xs)] text-text-muted">
-        <span>Small</span>
-        <span>Medium</span>
-        <span>Large</span>
+      <div className="flex items-center gap-3">
+        <span className="text-[var(--font-xs)] text-text-muted">A</span>
+        <input
+          type="range"
+          min="10"
+          max="30"
+          step="0.5"
+          value={sliderValue}
+          onChange={handleChange}
+          onMouseUp={handleMouseUp}
+          onTouchEnd={handleMouseUp}
+          className="flex-1 h-1.5 bg-bg-tertiary rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent [&::-webkit-slider-thumb]:cursor-pointer"
+        />
+        <span className="text-[var(--font-md)] text-text-muted">A</span>
+        <span className="text-[var(--font-xs)] text-accent font-medium tabular-nums">{sliderValue}px</span>
       </div>
-    </div>
+    </Section>
   );
 }
 
-export function SettingsPanel({ onClose }: SettingsPanelProps) {
-  const settings = useSettingsStore((s) => s.settings);
+function FilesTab() {
   const updateSettings = useSettingsStore((s) => s.updateSettings);
-  const setTheme = useSettingsStore((s) => s.setTheme);
   const viewMode = useFileListStore((s) => s.viewMode);
   const showHiddenFiles = useFileListStore((s) => s.showHiddenFiles);
   const showRowLines = useFileListStore((s) => s.showRowLines);
@@ -112,226 +193,109 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const setSortBy = useFileListStore((s) => s.setSortBy);
 
   return (
-    <div className="h-full bg-bg flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between py-3.5 border-b border-border shrink-0 bg-bg-secondary" style={{ padding: "14px 20px" }}>
-        <h2 className="text-[var(--font-lg)] font-semibold text-text">Settings</h2>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-[5px] hover:bg-bg-hover text-text-muted hover:text-text transition-colors"
+    <Section title="File Display" description="Configure how files are shown and sorted.">
+      <SettingRow label="Default view">
+        <div className="flex gap-1.5">
+          {(["list", "grid"] as const).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => { setViewMode(mode); updateSettings({ default_view: mode }); }}
+              className={clsx(
+                "px-2.5 py-1 rounded-md text-[var(--font-xs)] font-medium transition-colors capitalize",
+                viewMode === mode
+                  ? "bg-accent/15 text-accent"
+                  : "bg-bg-tertiary text-text-muted hover:text-text-secondary"
+              )}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      </SettingRow>
+
+      <SettingRow label="Show hidden files">
+        <Toggle checked={showHiddenFiles} onChange={toggleHiddenFiles} />
+      </SettingRow>
+
+      <SettingRow label="Row lines">
+        <Toggle checked={showRowLines} onChange={() => setShowRowLines(!showRowLines)} />
+      </SettingRow>
+
+      <SettingRow label="Sort by">
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as AppSettings["sort_by"])}
+          className="bg-bg-tertiary border border-border rounded-md px-2 py-1 text-[var(--font-xs)] text-text-secondary outline-none"
         >
-          <X size={15} />
-        </button>
-      </div>
+          <option value="name">Name</option>
+          <option value="size">Size</option>
+          <option value="modified">Modified</option>
+          <option value="type">Type</option>
+        </select>
+      </SettingRow>
+    </Section>
+  );
+}
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
-        <div style={{ padding: "24px 20px" }}>
-        <SettingsSection title="Color Theme">
-          <p className="text-[var(--font-sm)] text-text-muted mb-3">Controls the overall color scheme of the application.</p>
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => setTheme("system")}
-              className={clsx(
-                "flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all",
-                settings.theme === "system"
-                  ? "border-accent bg-accent/8"
-                  : "border-border hover:border-text-muted"
-              )}
-            >
-              <div className="w-full h-6 rounded flex overflow-hidden border border-border/50">
-                <div className="flex-1 bg-[#1c1c1e]" /><div className="flex-1 bg-[#ffffff]" />
-              </div>
-              <span className="text-[var(--font-xs)] text-text-secondary">System</span>
-            </button>
-            {themes.map((t) => {
-              const swatches: Record<string, string[]> = {
-                light: ["#ffffff", "#f8f8fa", "#0066ff"],
-                dark: ["#1c1c1e", "#232326", "#4da8ff"],
-                material: ["#212121", "#2c2c2c", "#82b1ff"],
-                github: ["#0d1117", "#161b22", "#58a6ff"],
-                monokai: ["#272822", "#3e3d32", "#a6e22e"],
-                atom: ["#282c34", "#2c313a", "#61afef"],
-              };
-              const colors = swatches[t.id] || ["#333", "#444", "#66f"];
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setTheme(t.id)}
-                  className={clsx(
-                    "flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all",
-                    settings.theme === t.id
-                      ? "border-accent bg-accent/8"
-                      : "border-border hover:border-text-muted"
-                  )}
-                >
-                  <div className="w-full h-6 rounded flex overflow-hidden border border-border/50">
-                    <div className="flex-1" style={{ backgroundColor: colors[0] }} />
-                    <div className="flex-1" style={{ backgroundColor: colors[1] }} />
-                    <div className="w-2" style={{ backgroundColor: colors[2] }} />
-                  </div>
-                  <span className="text-[var(--font-xs)] text-text-secondary">{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </SettingsSection>
+function ShortcutsTab() {
+  const sections = [
+    {
+      title: "Navigation",
+      shortcuts: [
+        ["↑ / ↓", "Navigate files"],
+        ["Enter", "Open folder"],
+        ["⌘ ⌫", "Go up"],
+        ["⌘ [", "Back"],
+        ["⌘ ]", "Forward"],
+        ["⌘ 1", "List view"],
+        ["⌘ 2", "Grid view"],
+        ["⌘ ⇧ .", "Toggle hidden files"],
+        ["⌘ ,", "Settings"],
+        ["⌘ K", "Command palette"],
+        ["⌘ F", "Find"],
+      ],
+    },
+    {
+      title: "Editor (Vim)",
+      shortcuts: [
+        ["i", "Enter insert mode"],
+        ["Esc", "Normal mode"],
+        [":w", "Save file"],
+        ["⌘ S", "Save file"],
+        ["⌘ F", "Find in file"],
+        ["/pattern", "Vim search"],
+        ["dd", "Delete line"],
+        ["u", "Undo"],
+        ["Ctrl+r", "Redo"],
+      ],
+    },
+  ];
 
-        <SettingsSection title="Font Size">
-          <p className="text-[var(--font-sm)] text-text-muted mb-4">
-            Drag to adjust all font sizes proportionally.
-          </p>
-          <FontSizeSlider />
-        </SettingsSection>
-
-        <SettingsSection title="File Display">
-          <SettingRow label="Default view">
-            <div className="flex gap-1.5">
-              <button
-                onClick={() => { setViewMode("list"); updateSettings({ default_view: "list" }); }}
-                className={clsx(
-                  "px-3 py-1 rounded-[5px] text-[var(--font-sm)] font-medium transition-colors",
-                  viewMode === "list"
-                    ? "bg-accent/15 text-accent"
-                    : "bg-bg-tertiary text-text-muted hover:text-text-secondary"
-                )}
-              >
-                List
-              </button>
-              <button
-                onClick={() => { setViewMode("grid"); updateSettings({ default_view: "grid" }); }}
-                className={clsx(
-                  "px-3 py-1 rounded-[5px] text-[var(--font-sm)] font-medium transition-colors",
-                  viewMode === "grid"
-                    ? "bg-accent/15 text-accent"
-                    : "bg-bg-tertiary text-text-muted hover:text-text-secondary"
-                )}
-              >
-                Grid
-              </button>
-              <button
-                onClick={() => { setViewMode("columns"); updateSettings({ default_view: "columns" }); }}
-                className={clsx(
-                  "px-3 py-1 rounded-[5px] text-[var(--font-sm)] font-medium transition-colors",
-                  viewMode === "columns"
-                    ? "bg-accent/15 text-accent"
-                    : "bg-bg-tertiary text-text-muted hover:text-text-secondary"
-                )}
-              >
-                Columns
-              </button>
-            </div>
-          </SettingRow>
-
-          <SettingRow label="Show hidden files">
-            <button
-              onClick={() => { toggleHiddenFiles(); }}
-              className={clsx(
-                "w-9 h-5 rounded-full transition-colors relative shrink-0",
-                showHiddenFiles ? "bg-accent" : "bg-bg-tertiary border border-border"
-              )}
-            >
-              <div
-                className={clsx(
-                  "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-transform",
-                  showHiddenFiles ? "translate-x-[18px]" : "translate-x-[3px]"
-                )}
-              />
-            </button>
-          </SettingRow>
-
-          <SettingRow label="Row lines">
-            <button
-              onClick={() => setShowRowLines(!showRowLines)}
-              className={clsx(
-                "w-9 h-5 rounded-full transition-colors relative shrink-0",
-                showRowLines ? "bg-accent" : "bg-bg-tertiary border border-border"
-              )}
-            >
-              <div
-                className={clsx(
-                  "w-3.5 h-3.5 rounded-full bg-white shadow-sm absolute top-[3px] transition-transform",
-                  showRowLines ? "translate-x-[18px]" : "translate-x-[3px]"
-                )}
-              />
-            </button>
-          </SettingRow>
-
-          <SettingRow label="Sort by">
-            <select
-              value={sortBy}
-              onChange={(e) => { setSortBy(e.target.value as AppSettings["sort_by"]); }}
-              className="bg-bg-tertiary border border-border rounded-[5px] px-2.5 py-1 text-[var(--font-sm)] text-text-secondary outline-none"
-            >
-              <option value="name">Name</option>
-              <option value="size">Size</option>
-              <option value="modified">Modified</option>
-              <option value="type">Type</option>
-            </select>
-          </SettingRow>
-        </SettingsSection>
-
-        <SettingsSection title="Editor">
-          <div className="text-[var(--font-sm)] text-text-muted leading-relaxed">
-            <p className="mb-3 text-text-secondary">Vim keybindings:</p>
-            <div className="grid grid-cols-[80px_1fr] gap-y-2">
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">i</span>
-              <span>Enter insert mode</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">Esc</span>
-              <span>Return to normal mode</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">:w</span>
-              <span>Save file</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘S</span>
-              <span>Save file</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘F</span>
-              <span>Find in file</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">/pattern</span>
-              <span>Vim search</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">dd</span>
-              <span>Delete line</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">u</span>
-              <span>Undo</span>
-              <span className="text-text-secondary font-mono text-[var(--font-sm)]">Ctrl+r</span>
-              <span>Redo</span>
-            </div>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection title="Navigation">
-          <div className="grid grid-cols-[80px_1fr] gap-y-2 text-[var(--font-sm)]">
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">↑/↓</span>
-            <span className="text-text-muted">Navigate files</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">Enter</span>
-            <span className="text-text-muted">Open folder</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘⌫</span>
-            <span className="text-text-muted">Go up</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘[</span>
-            <span className="text-text-muted">Back</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘]</span>
-            <span className="text-text-muted">Forward</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘1</span>
-            <span className="text-text-muted">List view</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘2</span>
-            <span className="text-text-muted">Grid view</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘⇧.</span>
-            <span className="text-text-muted">Toggle hidden files</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘,</span>
-            <span className="text-text-muted">Settings</span>
-            <span className="text-text-secondary font-mono text-[var(--font-sm)]">⌘F</span>
-            <span className="text-text-muted">Find</span>
-          </div>
-        </SettingsSection>
-
-        <SettingsSection title="Search Index">
-          <IndexStatsPanel />
-        </SettingsSection>
-      </div>
-      </div>
+  return (
+    <div className="space-y-4">
+      {sections.map((section) => (
+        <Section key={section.title} title={section.title}>
+          <table className="w-full">
+            <tbody>
+              {section.shortcuts.map(([key, desc], i) => (
+                <tr key={i} className="border-b border-border/15 last:border-b-0">
+                  <td className="py-1.5 text-[var(--font-xs)] text-text-muted pr-4">{desc}</td>
+                  <td className="py-1.5 text-right">
+                    <kbd className="text-[10px] font-mono bg-bg-tertiary border border-border/50 rounded px-1.5 py-0.5 text-text-secondary whitespace-nowrap">
+                      {key}
+                    </kbd>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+      ))}
     </div>
   );
 }
 
-function IndexStatsPanel() {
+function SearchTab() {
   const [stats, setStats] = useState<{ file_count: number; dir_count: number; trigram_count: number; db_size_bytes: number } | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
 
@@ -351,47 +315,55 @@ function IndexStatsPanel() {
   };
 
   return (
-    <div className="space-y-3">
+    <div>
       {stats && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
-            <div className="text-[var(--font-lg)] text-text font-bold">{stats.file_count.toLocaleString()}</div>
-            <div className="text-[var(--font-xs)] text-text-muted">Files</div>
+        <Section title="Index Stats" description="Current search index state.">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="text-center py-2">
+              <div className="text-[var(--font-md)] text-text font-bold">{stats.file_count.toLocaleString()}</div>
+              <div className="text-[10px] text-text-muted">Files</div>
+            </div>
+            <div className="text-center py-2">
+              <div className="text-[var(--font-md)] text-text font-bold">{stats.dir_count.toLocaleString()}</div>
+              <div className="text-[10px] text-text-muted">Folders</div>
+            </div>
+            <div className="text-center py-2">
+              <div className="text-[var(--font-md)] text-text font-bold">{stats.trigram_count.toLocaleString()}</div>
+              <div className="text-[10px] text-text-muted">Trigrams</div>
+            </div>
+            <div className="text-center py-2">
+              <div className="text-[var(--font-md)] text-text font-bold">{formatBytes(stats.db_size_bytes)}</div>
+              <div className="text-[10px] text-text-muted">Size</div>
+            </div>
           </div>
-          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
-            <div className="text-[var(--font-lg)] text-text font-bold">{stats.dir_count.toLocaleString()}</div>
-            <div className="text-[var(--font-xs)] text-text-muted">Folders</div>
-          </div>
-          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
-            <div className="text-[var(--font-lg)] text-text font-bold">{stats.trigram_count.toLocaleString()}</div>
-            <div className="text-[var(--font-xs)] text-text-muted">Trigrams</div>
-          </div>
-          <div className="bg-bg-tertiary rounded-lg p-3 text-center">
-            <div className="text-[var(--font-lg)] text-text font-bold">{formatBytes(stats.db_size_bytes)}</div>
-            <div className="text-[var(--font-xs)] text-text-muted">Index Size</div>
-          </div>
-        </div>
+        </Section>
       )}
-      <div className="flex gap-2">
-        <button
-          onClick={() => { invoke("rebuild_trigrams"); setRebuilding(true); setTimeout(() => setRebuilding(false), 5000); }}
-          disabled={rebuilding}
-          className="px-3 py-1.5 rounded-lg text-[var(--font-sm)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
-        >
-          {rebuilding ? "Rebuilding..." : "Rebuild Trigrams"}
-        </button>
-        <button
-          onClick={() => { invoke("reindex"); setRebuilding(true); setTimeout(() => setRebuilding(false), 10000); }}
-          disabled={rebuilding}
-          className="px-3 py-1.5 rounded-lg text-[var(--font-sm)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
-        >
-          {rebuilding ? "Reindexing..." : "Full Reindex"}
-        </button>
-      </div>
-      <p className="text-[var(--font-xs)] text-text-muted">
-        Index stored at ~/.config/explorer/index.db
-      </p>
-      <IndexPathsEditor />
+
+      <Section title="Actions">
+        <div className="flex gap-2">
+          <button
+            onClick={() => { invoke("rebuild_trigrams"); setRebuilding(true); setTimeout(() => setRebuilding(false), 5000); }}
+            disabled={rebuilding}
+            className="px-2.5 py-1.5 rounded-md text-[var(--font-xs)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
+          >
+            {rebuilding ? "Rebuilding..." : "Rebuild Trigrams"}
+          </button>
+          <button
+            onClick={() => { invoke("reindex"); setRebuilding(true); setTimeout(() => setRebuilding(false), 10000); }}
+            disabled={rebuilding}
+            className="px-2.5 py-1.5 rounded-md text-[var(--font-xs)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
+          >
+            {rebuilding ? "Reindexing..." : "Full Reindex"}
+          </button>
+        </div>
+      </Section>
+
+      <Section title="Indexed Paths" description="Directories included in the search index.">
+        <IndexPathsEditor />
+        <p className="text-[10px] text-text-muted mt-2">
+          Stored at ~/.config/explorer/index.db
+        </p>
+      </Section>
     </div>
   );
 }
@@ -421,14 +393,15 @@ function IndexPathsEditor() {
   };
 
   return (
-    <div className="mt-3 pt-3 border-t border-border/30">
-      <div className="text-[var(--font-xs)] text-text-muted uppercase tracking-wider mb-2 font-semibold">Indexed Paths</div>
+    <div>
       <div className="space-y-1 mb-2">
         {displayPaths.map((p, i) => (
-          <div key={i} className="flex items-center justify-between gap-2 text-[var(--font-sm)] text-text-secondary bg-bg-tertiary rounded px-2 py-1">
-            <span className="truncate">{p}</span>
+          <div key={i} className="flex items-center justify-between gap-2 bg-bg-tertiary/50 rounded-md px-2.5 py-1.5">
+            <span className="truncate font-mono text-[10px] text-text-secondary">{p}</span>
             {paths.length > 0 && (
-              <button onClick={() => removePath(i)} className="text-text-muted hover:text-red-400 shrink-0 text-[var(--font-xs)]">✕</button>
+              <button onClick={() => removePath(i)} className="text-text-muted hover:text-red-400 shrink-0">
+                <X size={10} />
+              </button>
             )}
           </div>
         ))}
@@ -439,18 +412,74 @@ function IndexPathsEditor() {
           onChange={(e) => setNewPath(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") addPath(); }}
           placeholder="/path/to/index"
-          className="flex-1 bg-bg-tertiary border border-border rounded px-2 py-1 text-[var(--font-sm)] text-text outline-none placeholder:text-text-muted/40"
+          className="flex-1 bg-bg-tertiary/50 border border-border/40 rounded-md px-2.5 py-1 text-[var(--font-xs)] text-text outline-none placeholder:text-text-muted/40 focus:border-accent/50"
         />
         <button
           onClick={addPath}
-          className="px-3 py-1 rounded text-[var(--font-sm)] font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors shrink-0"
+          className="px-3 py-1 rounded-md text-[var(--font-xs)] font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors shrink-0"
         >
           Add
         </button>
       </div>
-      <p className="text-[var(--font-xs)] text-text-muted mt-1.5">
+      <p className="text-[10px] text-text-muted mt-1.5">
         Empty = index all of $HOME. Reindex after changing paths.
       </p>
+    </div>
+  );
+}
+
+export function SettingsPanel({ onClose }: SettingsPanelProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div className="h-full flex flex-col bg-bg">
+      {/* Header with tab buttons */}
+      <div className="shrink-0 border-b border-border bg-bg-secondary/60 px-3 py-2 flex items-center gap-1 overflow-x-auto">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={clsx(
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--font-xs)] whitespace-nowrap transition-colors",
+                activeTab === tab.id
+                  ? "bg-accent/12 text-accent font-medium"
+                  : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+              )}
+            >
+              <Icon size={12} className="shrink-0" />
+              {tab.label}
+            </button>
+          );
+        })}
+        <div className="flex-1" />
+        <button
+          onClick={onClose}
+          className="p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-text transition-colors shrink-0"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="p-5 max-w-[360px]">
+          {activeTab === "appearance" && <AppearanceTab />}
+          {activeTab === "font" && <FontTab />}
+          {activeTab === "files" && <FilesTab />}
+          {activeTab === "shortcuts" && <ShortcutsTab />}
+          {activeTab === "search" && <SearchTab />}
+        </div>
+      </div>
     </div>
   );
 }

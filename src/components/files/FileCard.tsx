@@ -5,6 +5,7 @@ import { FileIcon } from "./FileIcon";
 import { Folder, Play, ExternalLink } from "lucide-react";
 import { detachPreview } from "../../lib/detachPreview";
 import { formatSize, formatDuration } from "../../lib/formatters";
+import { getThumbnail, setThumbnail } from "../../lib/thumbnailCache";
 import type { FileEntry, FileType, FileContent } from "../../types";
 
 interface FileCardProps {
@@ -18,12 +19,19 @@ interface FileCardProps {
 }
 
 function ImageThumbnail({ path }: { path: string }) {
-  const [src, setSrc] = useState<string | null>(null);
+  const [src, setSrc] = useState<string | null>(() => getThumbnail(path) ?? null);
 
   useEffect(() => {
+    if (getThumbnail(path)) {
+      setSrc(getThumbnail(path)!);
+      return;
+    }
     let cancelled = false;
     invoke<string>("generate_thumbnail", { path, size: 300 }).then((base64) => {
-      if (!cancelled) setSrc(`data:image/jpeg;base64,${base64}`);
+      if (cancelled) return;
+      const dataUrl = `data:image/jpeg;base64,${base64}`;
+      setThumbnail(path, dataUrl);
+      setSrc(dataUrl);
     }).catch(() => {
       invoke<string>("read_image_base64", { path }).then((base64) => {
         if (cancelled) return;
@@ -33,7 +41,9 @@ function ImageThumbnail({ path }: { path: string }) {
           : ext === "webp" ? "image/webp"
           : ext === "svg" ? "image/svg+xml"
           : "image/png";
-        setSrc(`data:${mime};base64,${base64}`);
+        const dataUrl = `data:${mime};base64,${base64}`;
+        setThumbnail(path, dataUrl);
+        setSrc(dataUrl);
       }).catch(() => {});
     });
     return () => { cancelled = true; };

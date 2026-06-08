@@ -178,12 +178,12 @@ export function FileList() {
   const tableWidth = 24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0);
 
   return (
-    <div ref={parentRef} className="h-full overflow-auto file-list-font">
+    <div ref={parentRef} className="h-full overflow-auto file-list-font" style={{ minWidth: 0 }}>
       {/* Sticky header table */}
       <div className="sticky top-0 z-10 bg-bg">
         <table
           className="border-collapse"
-          style={{ tableLayout: "fixed", width: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
+          style={{ tableLayout: "fixed", width: "100%", minWidth: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
           onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
         >
           <colgroup>
@@ -250,7 +250,7 @@ export function FileList() {
       </div>
 
       {/* Virtualized rows */}
-      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative", width: `${tableWidth}px` }}>
+      <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative", width: "100%", minWidth: `${tableWidth}px` }}>
         {virtualizer.getVirtualItems().map((virtualRow) => {
           const entry = entries[virtualRow.index];
           return (

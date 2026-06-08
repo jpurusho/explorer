@@ -48,6 +48,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   loadSettings: async () => {
     try {
       const settings = await invoke<AppSettings>("load_settings");
+      // Migrate removed "columns" view mode
+      if ((settings.default_view as string) === "columns") settings.default_view = "list";
       const resolved = resolveTheme(settings.theme);
       applyTheme(resolved);
       set({ settings, loaded: true, resolvedTheme: resolved });

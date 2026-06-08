@@ -1,5 +1,6 @@
 use crate::models::file_entry::{classify_file_type, ExifData, FileContent, FileEntry, FileMetadata};
 use crate::utils::errors::AppError;
+use crate::{log_info, log_error};
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::fs;
@@ -11,11 +12,15 @@ pub async fn list_directory(path: String) -> Result<Vec<FileEntry>, AppError> {
     let start = std::time::Instant::now();
     let dir_path = Path::new(&path);
 
+    log_info!("list_directory: {}", path);
+
     if !dir_path.exists() {
+        log_error!("list_directory: path does not exist: {}", path);
         return Err(AppError::NotFound(format!("Path does not exist: {}", path)));
     }
 
     if !dir_path.is_dir() {
+        log_error!("list_directory: not a directory: {}", path);
         return Err(AppError::Other(format!("Not a directory: {}", path)));
     }
 
@@ -71,10 +76,7 @@ pub async fn list_directory(path: String) -> Result<Vec<FileEntry>, AppError> {
     }
 
     let elapsed = start.elapsed();
-    if elapsed.as_millis() > 50 {
-        eprintln!("[perf] list_directory({}) took {}ms ({} entries)",
-            path, elapsed.as_millis(), entries.len());
-    }
+    log_info!("list_directory: {} -> {} entries ({}ms)", path, entries.len(), elapsed.as_millis());
 
     Ok(entries)
 }

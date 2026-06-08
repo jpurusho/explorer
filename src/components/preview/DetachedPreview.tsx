@@ -11,6 +11,7 @@ import { TextPreview } from "./TextPreview";
 import { Editor } from "../editor/Editor";
 import { useTheme } from "../../hooks/useTheme";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { useFontThemeStore } from "../../stores/fontThemeStore";
 import type { FileContent, FileType } from "../../types";
 
 const editableTypes: FileType[] = ["text", "code", "markdown", "json", "yaml", "unknown"];
@@ -27,7 +28,10 @@ export function DetachedPreview() {
   const fileType = (params.get("type") || "unknown") as FileType;
 
   useEffect(() => {
-    loadSettings();
+    loadSettings().then(() => {
+      const settings = useSettingsStore.getState().settings;
+      useFontThemeStore.getState().loadTheme(settings.font_theme || "default");
+    });
   }, []);
 
   useEffect(() => {

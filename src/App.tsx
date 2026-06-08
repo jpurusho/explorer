@@ -41,15 +41,6 @@ function MainApp() {
         // Ensure window has focus for drag region to work
         getCurrentWebviewWindow().setFocus().catch(() => {});
 
-        // Check for updates after startup (non-blocking, skipped if updater not configured)
-        import("@tauri-apps/plugin-updater").then(({ check }) => {
-          check().then(async (update) => {
-            if (update) {
-              logger.info(`Update available: ${update.version}`);
-              await update.downloadAndInstall();
-            }
-          }).catch(() => {});
-        }).catch(() => {});
       } catch (err) {
         logger.error(`Init failed: ${err}`);
         if (!cancelled) setReady(true);
