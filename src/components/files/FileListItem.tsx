@@ -72,7 +72,7 @@ export function FileListItem({
         selected
           ? "bg-accent/15 text-text ring-1 ring-inset ring-accent/30"
           : "hover:bg-bg-hover text-text-secondary",
-        isDragTarget && "ring-1 ring-accent/50 bg-accent/8",
+        isDragTarget && "ring-2 ring-accent bg-accent/15",
         showRowLines && "border-b border-border/30"
       )}
       style={{ tableLayout: "fixed", width: "100%", minWidth: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}

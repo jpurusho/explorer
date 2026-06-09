@@ -93,33 +93,68 @@ function TreeItem({
 
   const [dragOver, setDragOver] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
+  const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dragCountRef = useRef(0);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify([entry.path]));
     e.dataTransfer.effectAllowed = "copyMove";
-   
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCountRef.current++;
+    if (dragCountRef.current === 1) {
+      setDragOver(true);
+      expandTimerRef.current = setTimeout(async () => {
+        if (!expanded) {
+          try {
+            const entries = await invoke<FileEntry[]>("list_directory", { path: entry.path });
+            const dirs = entries
+              .filter((e) => e.is_dir && !e.is_hidden)
+              .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+            setChildren(dirs);
+            setExpanded(true);
+          } catch {
+            setChildren([]);
+          }
+        }
+      }, 1500);
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     e.dataTransfer.dropEffect = "move";
-    setDragOver(true);
   };
 
   const handleDragLeave = (e: React.DragEvent) => {
     e.stopPropagation();
-    setDragOver(false);
+    dragCountRef.current--;
+    if (dragCountRef.current <= 0) {
+      dragCountRef.current = 0;
+      setDragOver(false);
+      if (expandTimerRef.current) {
+        clearTimeout(expandTimerRef.current);
+        expandTimerRef.current = null;
+      }
+    }
   };
 
   const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    dragCountRef.current = 0;
     setDragOver(false);
+    if (expandTimerRef.current) {
+      clearTimeout(expandTimerRef.current);
+      expandTimerRef.current = null;
+    }
     const data = e.dataTransfer.getData("application/x-explorer-files");
     if (data) {
       const paths = JSON.parse(data) as string[];
-      // Don't drop on self
       if (paths.includes(entry.path)) return;
       await invoke("move_items", { paths, destination: entry.path });
       useNavigationStore.getState().refreshCurrent();
@@ -143,13 +178,14 @@ function TreeItem({
             : isParentOfCurrent
             ? "text-text-secondary"
             : "text-text-secondary hover:bg-bg-hover",
-          dragOver && "ring-1 ring-accent/50 bg-accent/8"
+          dragOver && "ring-2 ring-accent bg-accent/15"
         )}
         style={{ paddingRight: "6px" }}
         onClick={() => onNavigate(entry.path)}
         onContextMenu={handleContextMenu}
         draggable
         onDragStart={handleDragStart}
+        onDragEnter={handleDragEnter}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

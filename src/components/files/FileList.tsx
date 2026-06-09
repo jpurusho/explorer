@@ -122,7 +122,11 @@ export function FileList() {
       selectIndex(index);
     }
     const store = useFileListStore.getState();
-    const paths = store.getSelectedPaths();
+    // If item wasn't selected, getSelectedPaths might not include it yet
+    let paths = store.getSelectedPaths();
+    if (paths.length === 0 || !paths.includes(entry.path)) {
+      paths = [entry.path];
+    }
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify(paths));
     e.dataTransfer.effectAllowed = "copyMove";
 

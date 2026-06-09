@@ -264,7 +264,7 @@ export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMen
         selected
           ? "border-accent/50 bg-accent/8 shadow-sm"
           : "border-border bg-bg-secondary hover:border-border hover:bg-bg-hover",
-        isDragTarget && "ring-2 ring-accent/50 border-accent/40 scale-[1.02]"
+        isDragTarget && "ring-2 ring-accent border-accent bg-accent/10 scale-[1.03]"
       )}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
