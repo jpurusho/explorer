@@ -161,7 +161,18 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   setEntries: (entries) => {
     const { showHiddenFiles, sortBy, sortDirection, filterPattern } = get();
     const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, filterPattern);
-    set({ entries, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
+    // Auto-select first file for preview, or first item if no files
+    const firstFileIdx = visibleEntries.findIndex((e) => !e.is_dir);
+    const autoIdx = firstFileIdx >= 0 ? firstFileIdx : (visibleEntries.length > 0 ? 0 : -1);
+    const autoEntry = autoIdx >= 0 ? visibleEntries[autoIdx] : null;
+    set({
+      entries,
+      visibleEntries,
+      selectedIndices: autoIdx >= 0 ? new Set([autoIdx]) : new Set(),
+      anchorIndex: autoIdx,
+      selectedIndex: autoIdx,
+      selectedPath: autoEntry?.path ?? null,
+    });
   },
 
   setLoading: (loading) => set({ loading }),
