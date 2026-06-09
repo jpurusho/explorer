@@ -189,14 +189,14 @@ export function StatusBar() {
                 import("@tauri-apps/plugin-process").then(({ relaunch }) => relaunch()).catch(() => {});
               }}
               className="flex items-center gap-1.5 shrink-0 px-2 py-0.5 rounded-md text-amber-400 animate-pulse hover:bg-amber-400/10 transition-colors"
-              title={`Update to v${updateAvailable.version}`}
+              title={`Current: v${appVersion} — Click to update`}
             >
               {updateProgress !== null ? (
                 <span className="tabular-nums">{updateProgress}%</span>
               ) : (
                 <>
                   <Download size={10} />
-                  <span className="font-medium">v{appVersion}</span>
+                  <span className="font-medium">v{updateAvailable.version}</span>
                 </>
               )}
             </button>
