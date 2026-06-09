@@ -207,6 +207,16 @@ fn mime_from_path(path: &PathBuf) -> String {
         "webp" => "image/webp".to_string(),
         "heic" => "image/heic".to_string(),
         "pdf" => "application/pdf".to_string(),
+        "doc" => "application/msword".to_string(),
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document".to_string(),
+        "ppt" => "application/vnd.ms-powerpoint".to_string(),
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation".to_string(),
+        "xls" => "application/vnd.ms-excel".to_string(),
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet".to_string(),
+        "key" => "application/x-iwork-keynote-sffkey".to_string(),
+        "pages" => "application/x-iwork-pages-sffpages".to_string(),
+        "numbers" => "application/x-iwork-numbers-sffnumbers".to_string(),
+        "rtf" => "application/rtf".to_string(),
         _ => "application/octet-stream".to_string(),
     }
 }
