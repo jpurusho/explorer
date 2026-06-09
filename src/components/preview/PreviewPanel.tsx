@@ -9,6 +9,8 @@ import { MarkdownPreview } from "./MarkdownPreview";
 import { JsonPreview } from "./JsonPreview";
 import { YamlPreview } from "./YamlPreview";
 import { PdfPreview } from "./PdfPreview";
+import { ArchivePreview } from "./ArchivePreview";
+import { DocumentPreview } from "./DocumentPreview";
 import { Editor } from "../editor/Editor";
 import { FileText, Eye, Pencil, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
@@ -224,6 +226,14 @@ export function PreviewPanel() {
 
     if (fileType === "document" && entry.name.toLowerCase().endsWith(".pdf")) {
       return <PdfPreview path={entry.path} />;
+    }
+
+    if (fileType === "document") {
+      return <DocumentPreview path={entry.path} name={entry.name} />;
+    }
+
+    if (fileType === "archive") {
+      return <ArchivePreview path={entry.path} name={entry.name} />;
     }
 
     if (loading) {

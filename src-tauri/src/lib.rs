@@ -4,7 +4,9 @@ mod indexer;
 mod models;
 mod utils;
 
+use commands::archive::{list_archive_contents, extract_archive};
 use commands::file_ops::{copy_items, create_folder, move_items, rename_item, trash_items};
+use commands::preview::generate_document_preview;
 use commands::search::{search_files, get_index_stats, is_indexing, reindex, rebuild_trigrams};
 use commands::filesystem::{generate_thumbnail, get_file_entries, get_file_metadata, get_git_status, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
 use commands::settings::{load_settings, save_settings, list_font_themes, load_font_theme, write_log};
@@ -94,6 +96,9 @@ pub fn run() {
             write_log,
             watch_directory,
             unwatch_directory,
+            list_archive_contents,
+            extract_archive,
+            generate_document_preview,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

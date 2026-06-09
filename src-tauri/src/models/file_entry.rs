@@ -92,11 +92,12 @@ pub fn classify_file_type(name: &str) -> String {
         | "hpp" | "cs" | "rb" | "swift" | "kt" | "lua" | "sh" | "bash" | "zsh" | "fish"
         | "sql" | "html" | "css" | "scss" | "less" | "vue" | "svelte" | "php" | "toml"
         | "ini" | "cfg" | "conf" => "code".to_string(),
-        "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp" => {
+        "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp"
+        | "key" | "pages" | "numbers" => {
             "document".to_string()
         }
         "txt" | "log" | "csv" | "tsv" => "text".to_string(),
-        "zip" | "tar" | "gz" | "bz2" | "xz" | "7z" | "rar" | "dmg" => "archive".to_string(),
+        "zip" | "tar" | "gz" | "tgz" | "bz2" | "xz" | "7z" | "rar" | "dmg" => "archive".to_string(),
         _ => "unknown".to_string(),
     }
 }
