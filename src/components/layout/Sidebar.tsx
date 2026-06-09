@@ -548,14 +548,39 @@ export function Sidebar() {
     if (homeDir) loadRoot();
   }, [homeDir, refreshTrigger]);
 
+  const [favHeight, setFavHeight] = useState(140);
+  const [foldersHeight, setFoldersHeight] = useState(300);
+
+  const handleDividerDrag = (setter: React.Dispatch<React.SetStateAction<number>>, min: number) => {
+    return (e: React.MouseEvent) => {
+      e.preventDefault();
+      const startY = e.clientY;
+      const startHeight = setter === setFavHeight ? favHeight : foldersHeight;
+      document.body.style.cursor = "row-resize";
+      document.body.style.userSelect = "none";
+
+      const onMove = (ev: MouseEvent) => {
+        const delta = ev.clientY - startY;
+        setter(Math.max(min, startHeight + delta));
+      };
+      const onUp = () => {
+        document.body.style.cursor = "";
+        document.body.style.userSelect = "";
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      };
+      document.addEventListener("mousemove", onMove);
+      document.addEventListener("mouseup", onUp);
+    };
+  };
+
   return (
     <aside className="h-full bg-transparent flex flex-col overflow-hidden file-list-font" onContextMenu={(e) => e.preventDefault()}>
-      {/* Single scrollable area — all sections flow naturally */}
-      <div className="flex-1 overflow-auto pr-3 pt-[46px] pb-3" style={{ paddingLeft: "20px" }}>
+      <div className="flex-1 flex flex-col overflow-hidden pt-[46px]">
 
         {/* Favorites */}
         {showFavorites && (
-          <div className="mb-4">
+          <div className="shrink-0 overflow-auto pr-3 pb-1" style={{ paddingLeft: "20px", height: `${favHeight}px` }}>
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
                 Favorites
@@ -588,12 +613,19 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Divider */}
-        {showFavorites && showFolders && <div className="h-[1px] bg-border mb-4" />}
+        {/* Draggable divider between Favorites and Folders */}
+        {showFavorites && showFolders && (
+          <div
+            className="shrink-0 h-[7px] cursor-row-resize flex items-center justify-center group"
+            onMouseDown={handleDividerDrag(setFavHeight, 60)}
+          >
+            <div className="w-8 h-[3px] rounded-full bg-border group-hover:bg-accent/40 group-active:bg-accent transition-colors" />
+          </div>
+        )}
 
         {/* Folders */}
         {showFolders && (
-          <div className="mb-4">
+          <div className="overflow-auto pr-3 pb-1" style={{ paddingLeft: "20px", height: showTags ? `${foldersHeight}px` : undefined, flex: showTags ? "none" : "1" }}>
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
                 Folders
@@ -616,12 +648,19 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Divider */}
-        {showTags && <div className="h-[1px] bg-border mb-4" />}
+        {/* Draggable divider between Folders and Tags */}
+        {showFolders && showTags && (
+          <div
+            className="shrink-0 h-[7px] cursor-row-resize flex items-center justify-center group"
+            onMouseDown={handleDividerDrag(setFoldersHeight, 80)}
+          >
+            <div className="w-8 h-[3px] rounded-full bg-border group-hover:bg-accent/40 group-active:bg-accent transition-colors" />
+          </div>
+        )}
 
-        {/* Tags */}
+        {/* Tags — takes remaining space */}
         {showTags && (
-          <div className="mb-4">
+          <div className="flex-1 overflow-auto pr-3 pb-3 min-h-[60px]" style={{ paddingLeft: "20px" }}>
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
               <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
