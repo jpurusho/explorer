@@ -1,6 +1,6 @@
 [package]
 name = "explorer"
-version = "0.1.0"
+version = "1.4.1"
 description = "A native macOS filesystem explorer"
 authors = ["Jerome Purushotham"]
 edition = "2021"
