@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -5,16 +6,34 @@ import {
   LayoutGrid,
   Settings,
   Search,
+  Filter,
+  X,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useFileListStore } from "../../stores/fileListStore";
+import type { FileType } from "../../types";
 
 interface ToolbarProps {
   onOpenSettings: () => void;
   onOpenSearch?: () => void;
 }
+
+const TYPE_LABELS: Record<FileType, string> = {
+  directory: "Folders",
+  image: "Images",
+  video: "Videos",
+  audio: "Audio",
+  document: "Documents",
+  code: "Code",
+  markdown: "Markdown",
+  json: "JSON",
+  yaml: "YAML",
+  text: "Text",
+  archive: "Archives",
+  unknown: "Other",
+};
 
 export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
   const currentPath = useNavigationStore((s) => s.currentPath);
@@ -25,6 +44,22 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
   const navigateTo = useNavigationStore((s) => s.navigateTo);
   const viewMode = useFileListStore((s) => s.viewMode);
   const setViewMode = useFileListStore((s) => s.setViewMode);
+  const typeFilter = useFileListStore((s) => s.typeFilter);
+  const setTypeFilter = useFileListStore((s) => s.setTypeFilter);
+  const availableTypes = useFileListStore((s) => s.availableTypes);
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [filterOpen]);
 
   const pathParts = currentPath.split("/").filter(Boolean);
 
@@ -108,6 +143,49 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
         <span className="text-[var(--font-xs)] text-text-muted/60">Search files...</span>
         <kbd className="text-[10px] text-text-muted/40 font-mono ml-2">⌘P</kbd>
       </button>
+
+      {/* Type filter */}
+      <div ref={filterRef} className="relative">
+        {typeFilter ? (
+          <button
+            onClick={() => setTypeFilter(null)}
+            className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-accent/15 border border-accent/30 text-accent text-[var(--font-xs)] hover:bg-accent/25 transition-colors"
+          >
+            <Filter size={11} />
+            <span>{TYPE_LABELS[typeFilter]}</span>
+            <X size={10} className="opacity-60" />
+          </button>
+        ) : (
+          <button
+            onClick={() => setFilterOpen(!filterOpen)}
+            className={clsx(
+              "p-1.5 rounded-[5px] transition-colors",
+              filterOpen
+                ? "bg-bg-tertiary text-text"
+                : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+            )}
+            title="Filter by type"
+          >
+            <Filter size={14} strokeWidth={1.75} />
+          </button>
+        )}
+        {filterOpen && (
+          <div className="absolute top-full right-0 mt-1 py-1 min-w-[140px] bg-bg-secondary/95 backdrop-blur-md border border-border rounded-lg shadow-xl z-50">
+            {availableTypes().map((type) => (
+              <button
+                key={type}
+                onClick={() => { setTypeFilter(type); setFilterOpen(false); }}
+                className="w-full text-left px-3 py-1.5 text-[var(--font-xs)] text-text-secondary hover:bg-bg-hover hover:text-text transition-colors"
+              >
+                {TYPE_LABELS[type]}
+              </button>
+            ))}
+            {availableTypes().length === 0 && (
+              <span className="px-3 py-1.5 text-[var(--font-xs)] text-text-muted">No files</span>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* View mode + settings */}
       <div className="flex items-center gap-0.5">

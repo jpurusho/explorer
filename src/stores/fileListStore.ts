@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { FileEntry, ViewMode, SortField, SortDirection } from "../types";
+import type { FileEntry, FileType, ViewMode, SortField, SortDirection } from "../types";
 
 export type ColumnId = "type" | "size" | "modified";
 
@@ -23,6 +23,7 @@ interface FileListState {
   anchorIndex: number;
   showHiddenFiles: boolean;
   showRowLines: boolean;
+  typeFilter: FileType | null;
   nameWidth: number;
   columns: ColumnConfig[];
 
@@ -47,6 +48,10 @@ interface FileListState {
   toggleColumnVisibility: (id: ColumnId) => void;
   setShowRowLines: (show: boolean) => void;
   syncFromSettings: (settings: { show_row_lines: boolean; column_name_width: number; column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
+
+  // Filter actions
+  setTypeFilter: (type: FileType | null) => void;
+  availableTypes: () => FileType[];
 
   // Multi-select actions
   selectIndex: (index: number) => void;
@@ -90,11 +95,15 @@ function computeVisible(
   entries: FileEntry[],
   showHiddenFiles: boolean,
   sortBy: SortField,
-  sortDirection: SortDirection
+  sortDirection: SortDirection,
+  typeFilter: FileType | null = null
 ): FileEntry[] {
-  const filtered = showHiddenFiles
+  let filtered = showHiddenFiles
     ? entries
     : entries.filter((e) => !e.is_hidden);
+  if (typeFilter) {
+    filtered = filtered.filter((e) => e.is_dir || e.file_type === typeFilter);
+  }
   return sortEntries(filtered, sortBy, sortDirection);
 }
 
@@ -127,6 +136,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   anchorIndex: -1,
   showHiddenFiles: false,
   showRowLines: false,
+  typeFilter: null,
   nameWidth: 300,
   columns: [
     { id: "type", label: "Type", width: 50, minWidth: 40, visible: true },
@@ -138,8 +148,8 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   selectedPath: null,
 
   setEntries: (entries) => {
-    const { showHiddenFiles, sortBy, sortDirection } = get();
-    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection);
+    const { showHiddenFiles, sortBy, sortDirection, typeFilter } = get();
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, typeFilter);
     set({ entries, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
   },
 
@@ -153,8 +163,8 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   setSortBy: (sortBy) => {
-    const { entries, showHiddenFiles, sortDirection } = get();
-    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection);
+    const { entries, showHiddenFiles, sortDirection, typeFilter } = get();
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, typeFilter);
     set({ sortBy, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
     import("./settingsStore").then(({ useSettingsStore }) => {
       useSettingsStore.getState().updateSettings({ sort_by: sortBy });
@@ -162,9 +172,9 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   toggleSortDirection: () => {
-    const { entries, showHiddenFiles, sortBy, sortDirection } = get();
+    const { entries, showHiddenFiles, sortBy, sortDirection, typeFilter } = get();
     const newDir = sortDirection === "asc" ? "desc" : "asc";
-    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, newDir);
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, newDir, typeFilter);
     set({ sortDirection: newDir, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
     import("./settingsStore").then(({ useSettingsStore }) => {
       useSettingsStore.getState().updateSettings({ sort_direction: newDir });
@@ -182,9 +192,9 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   toggleHiddenFiles: () => {
-    const { entries, showHiddenFiles, sortBy, sortDirection } = get();
+    const { entries, showHiddenFiles, sortBy, sortDirection, typeFilter } = get();
     const newShow = !showHiddenFiles;
-    const visibleEntries = computeVisible(entries, newShow, sortBy, sortDirection);
+    const visibleEntries = computeVisible(entries, newShow, sortBy, sortDirection, typeFilter);
     set({ showHiddenFiles: newShow, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
     import("./settingsStore").then(({ useSettingsStore }) => {
       useSettingsStore.getState().updateSettings({ show_hidden_files: newShow });
@@ -240,6 +250,22 @@ export const useFileListStore = create<FileListState>((set, get) => ({
         { id: "modified", label: "Modified", width: settings.column_modified_width, minWidth: 70, visible: settings.column_modified_visible },
       ],
     });
+  },
+
+  setTypeFilter: (typeFilter) => {
+    const { entries, showHiddenFiles, sortBy, sortDirection } = get();
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, typeFilter);
+    set({ typeFilter, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
+  },
+
+  availableTypes: () => {
+    const { entries, showHiddenFiles } = get();
+    const filtered = showHiddenFiles ? entries : entries.filter((e) => !e.is_hidden);
+    const types = new Set<FileType>();
+    for (const e of filtered) {
+      if (!e.is_dir) types.add(e.file_type);
+    }
+    return [...types].sort();
   },
 
   selectIndex: (index) => {
