@@ -1,4 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 import { ContentPanel } from "./ContentPanel";
@@ -10,6 +12,7 @@ import { GlobalSearch } from "../search/GlobalSearch";
 import { CommandPalette } from "../CommandPalette";
 import { SettingsPanel } from "../settings/SettingsPanel";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { useNavigationStore } from "../../stores/navigationStore";
 import { openNewWindow } from "../../lib/detachPreview";
 
 export function AppShell() {
@@ -72,6 +75,23 @@ export function AppShell() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
+  }, []);
+
+  // External drag-drop from Finder/Desktop
+  useEffect(() => {
+    const webview = getCurrentWebviewWindow();
+    const unlisten = webview.onDragDropEvent((event) => {
+      if (event.payload.type === "drop") {
+        const paths = event.payload.paths;
+        if (paths.length > 0) {
+          const dest = useNavigationStore.getState().currentPath;
+          invoke("copy_items", { paths, destination: dest })
+            .then(() => useNavigationStore.getState().refreshCurrent())
+            .catch(() => {});
+        }
+      }
+    });
+    return () => { unlisten.then((fn) => fn()); };
   }, []);
 
   return (
