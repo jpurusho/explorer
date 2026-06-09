@@ -4,9 +4,7 @@ import { clsx } from "clsx";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useSettingsStore } from "../../stores/settingsStore";
-import { useFileListStore } from "../../stores/fileListStore";
 import { useTagStore } from "../../stores/tagStore";
-import { useSectionStore } from "../../stores/sectionStore";
 import type { FileEntry } from "../../types";
 
 function FoldIcon({ expanded }: { expanded: boolean }) {
@@ -231,8 +229,6 @@ function TreeItem({
 
 function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; entry: FileEntry; onClose: () => void }) {
   const menuRef = useRef<HTMLDivElement>(null);
-  const sections = useSectionStore((s) => s.sections);
-  const assignFiles = useSectionStore((s) => s.assignFiles);
   const tags = useTagStore((s) => s.tags);
   const tagFiles = useTagStore((s) => s.tagFiles);
   const untagFiles = useTagStore((s) => s.untagFiles);
@@ -295,22 +291,6 @@ function TreeItemContextMenu({ x, y, entry, onClose }: { x: number; y: number; e
         </>
       )}
 
-      {/* Workspaces */}
-      {sections.length > 0 && (
-        <>
-          <div className="h-[1px] bg-border my-1 mx-2" />
-          {sections.map((s) => (
-            <button
-              key={s.id}
-              onClick={() => { assignFiles(s.id, [entry.path]); onClose(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary"
-            >
-              <div className="w-[8px] h-[8px] rounded shrink-0" style={{ backgroundColor: s.color }} />
-              Add to {s.name}
-            </button>
-          ))}
-        </>
-      )}
     </div>
   );
 }
@@ -503,292 +483,6 @@ function TagsSection() {
   );
 }
 
-function SectionsPanel() {
-  const sections = useSectionStore((s) => s.sections);
-  const sectionsEnabled = useSectionStore((s) => s.sectionsEnabled);
-  const loadAllSections = useSectionStore((s) => s.loadAllSections);
-  const createSection = useSectionStore((s) => s.createSection);
-  const updateSection = useSectionStore((s) => s.updateSection);
-  const assignFiles = useSectionStore((s) => s.assignFiles);
-  const toggleHidden = useSectionStore((s) => s.toggleHidden);
-  const currentPath = useNavigationStore((s) => s.currentPath);
-  const navigateTo = useNavigationStore((s) => s.navigateTo);
-  const [creating, setCreating] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [renamingId, setRenamingId] = useState<number | null>(null);
-  const [renameValue, setRenameValue] = useState("");
-  const [expandedSections, setExpandedSections] = useState<Set<number>>(new Set());
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; id: number } | null>(null);
-  const [showHiddenSections, setShowHiddenSections] = useState(false);
-
-  useEffect(() => {
-    loadAllSections();
-  }, []);
-
-  const toggleExpanded = (id: number) => {
-    setExpandedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const handleCreate = async () => {
-    if (!newName.trim() || !currentPath) return;
-    const colors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899"];
-    const color = colors[sections.length % colors.length];
-    await createSection(currentPath, newName.trim(), color);
-    setNewName("");
-    setCreating(false);
-  };
-
-  const handleRename = async (id: number) => {
-    if (!renameValue.trim()) { setRenamingId(null); return; }
-    await updateSection(id, { name: renameValue.trim() });
-    setRenamingId(null);
-  };
-
-
-  if (!sectionsEnabled && !creating) {
-    return (
-      <div>
-        <button
-          onClick={() => setCreating(true)}
-          className="flex items-center gap-2 text-text-muted hover:text-text-secondary py-1 text-left w-full"
-          style={{ fontSize: "var(--font-sidebar-item)" }}
-        >
-          <Plus size={12} /> New workspace
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-
-      <nav className="flex flex-col">
-        {sections.filter((s) => !s.hidden).map((section, idx) => (
-          <div key={section.id}>
-            {/* Horizontal divider between sections */}
-            {idx > 0 && <div className="mx-1 my-1" style={{ height: "1px", backgroundColor: "var(--section-border)" }} />}
-
-            {/* Section header — drop target for folders */}
-            <div className="group/item cursor-default">
-              {renamingId === section.id ? (
-                <div className="px-1 py-1">
-                  <input
-                    autoFocus
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") handleRename(section.id);
-                      if (e.key === "Escape") setRenamingId(null);
-                    }}
-                    onBlur={() => handleRename(section.id)}
-                    style={{ fontSize: "var(--font-sidebar-section)" }}
-                    className="w-full bg-bg border border-border rounded px-2 py-0.5 text-text outline-none focus:border-accent"
-                  />
-                </div>
-              ) : (
-                <div
-                  className="flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] w-full transition-colors hover:bg-bg-hover group/ws"
-                  onContextMenu={(e) => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, id: section.id }); }}
-                >
-                  <div className="w-[10px] h-[10px] rounded-[3px] shrink-0" style={{ backgroundColor: section.color }} />
-                  <button
-                    onClick={() => toggleExpanded(section.id)}
-                    style={{ fontSize: "var(--font-sidebar-item)" }}
-                    className="flex-1 text-left text-text-secondary truncate"
-                  >
-                    {section.name}
-                  </button>
-                  <button
-                    onClick={() => {
-                      const paths = useFileListStore.getState().getSelectedPaths();
-                      if (paths.length > 0) {
-                        assignFiles(section.id, paths).then(() => loadAllSections());
-                      }
-                    }}
-                    className="p-0.5 rounded hover:bg-bg-tertiary text-text-muted hover:text-accent opacity-0 group-hover/ws:opacity-100 transition-opacity"
-                    title="Add selected files to this workspace"
-                  >
-                    <Plus size={11} />
-                  </button>
-                  <span style={{ fontSize: "var(--font-sidebar-badge)" }} className="text-text-muted tabular-nums">{section.files.length}</span>
-                  <FoldIcon expanded={expandedSections.has(section.id)} />
-                </div>
-              )}
-            </div>
-
-            {/* Folders under section */}
-            {expandedSections.has(section.id) && (
-              <div className="pl-3 mt-1">
-                {section.files.map((f) => {
-                  const name = f.file_path.split("/").pop() || f.file_path;
-                  return (
-                    <div
-                      key={f.file_path}
-                      className="flex items-center gap-2 w-full px-2 py-[4px] rounded-[4px] text-text hover:bg-bg-hover transition-colors group/wfile"
-                    >
-                      <button
-                        onClick={() => {
-                          // Navigate to the path — if it's a folder, show contents
-                          // If already at this path, force refresh
-                          const navStore = useNavigationStore.getState();
-                          if (navStore.currentPath === f.file_path) {
-                            navStore.refreshCurrent();
-                          } else {
-                            navigateTo(f.file_path);
-                          }
-                        }}
-                        className="flex items-center gap-2 flex-1 min-w-0 text-left"
-                        style={{ fontSize: "var(--font-sidebar-item)" }}
-                      >
-                        <Folder size={13} className="text-folder shrink-0" strokeWidth={1.75} />
-                        <span className="truncate">{name}</span>
-                      </button>
-                      <button
-                        onClick={() => {
-                          useSectionStore.getState().removeFiles(section.id, [f.file_path]);
-                        }}
-                        className="p-0.5 rounded hover:bg-bg-tertiary text-text-muted hover:text-red-400 opacity-0 group-hover/wfile:opacity-100 transition-opacity shrink-0"
-                        title="Remove from workspace"
-                      >
-                        <Trash2 size={10} />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-      </nav>
-
-      {creating && (
-        <div className="mt-1.5">
-          <input
-            autoFocus
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") handleCreate();
-              if (e.key === "Escape") { setCreating(false); setNewName(""); }
-            }}
-            onBlur={() => { if (!newName.trim()) setCreating(false); }}
-            placeholder="Section name..."
-            className="w-full bg-bg border border-border rounded px-2 py-1 text-[var(--font-sm)] text-text outline-none focus:border-accent"
-          />
-        </div>
-      )}
-
-      {/* Hidden sections — show/unhide */}
-      {sections.some((s) => s.hidden) && (
-        <div className="mt-2">
-          <button
-            onClick={() => setShowHiddenSections(!showHiddenSections)}
-            className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary px-2"
-          >
-            {showHiddenSections ? "Hide hidden sections" : `${sections.filter((s) => s.hidden).length} hidden section(s)`}
-          </button>
-          {showHiddenSections && (
-            <div className="mt-1 flex flex-col gap-[1px]">
-              {sections.filter((s) => s.hidden).map((section) => (
-                <div key={section.id} className="flex items-center gap-2 px-2 py-[3px] opacity-50">
-                  <div className="w-[8px] h-[8px] rounded-[3px] shrink-0" style={{ backgroundColor: section.color }} />
-                  <span style={{ fontSize: "var(--font-sidebar-item)" }} className="flex-1 text-text-muted truncate">{section.name}</span>
-                  <button
-                    onClick={() => toggleHidden(section.id)}
-                    className="text-[var(--font-xs)] text-accent hover:underline"
-                  >
-                    Show
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Context menu for sections */}
-      {ctxMenu && (
-        <SidebarContextMenu x={ctxMenu.x} y={ctxMenu.y} sectionId={ctxMenu.id} onClose={() => setCtxMenu(null)} />
-      )}
-    </div>
-  );
-}
-
-function SidebarContextMenu({ x, y, sectionId, onClose }: { x: number; y: number; sectionId: number; onClose: () => void }) {
-  const updateSection = useSectionStore((s) => s.updateSection);
-  const deleteSection = useSectionStore((s) => s.deleteSection);
-  const toggleHidden = useSectionStore((s) => s.toggleHidden);
-  const sections = useSectionStore((s) => s.sections);
-  const section = sections.find((s) => s.id === sectionId);
-  const [renaming, setRenaming] = useState(false);
-  const [name, setName] = useState(section?.name || "");
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
-    };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("mousedown", handler);
-    document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", esc); };
-  }, [onClose]);
-
-  if (!section) return null;
-
-  const colors = ["#ef4444", "#f59e0b", "#10b981", "#3b82f6", "#8b5cf6", "#ec4899", "#6366f1", "#14b8a6"];
-
-  if (renaming) {
-    return (
-      <div ref={menuRef} className="fixed z-50 min-w-[180px] p-2 bg-bg-secondary border border-border rounded-lg shadow-xl" style={{ left: x, top: y }}>
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && name.trim()) { updateSection(sectionId, { name: name.trim() }); onClose(); }
-            if (e.key === "Escape") onClose();
-          }}
-          className="w-full bg-bg border border-border rounded px-2 py-1 text-[var(--font-base)] text-text outline-none focus:border-accent"
-        />
-      </div>
-    );
-  }
-
-  return (
-    <div ref={menuRef} className="fixed z-50 min-w-[180px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl" style={{ left: x, top: y }}>
-      <button onClick={() => setRenaming(true)} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary">
-        <Pencil size={12} className="text-text-muted" /> Rename
-      </button>
-      <button onClick={() => { toggleHidden(sectionId); onClose(); }} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-text-secondary">
-        <Folder size={12} className="text-text-muted" /> {section.hidden ? "Show" : "Hide"}
-      </button>
-      <div className="h-[1px] bg-border my-1.5 mx-2" />
-      <div className="px-3 py-1">
-        <span className="text-[var(--font-xs)] text-text-muted uppercase tracking-wider">Color</span>
-        <div className="flex flex-wrap gap-1.5 mt-1.5">
-          {colors.map((c) => (
-            <button
-              key={c}
-              onClick={() => { updateSection(sectionId, { color: c }); onClose(); }}
-              className={clsx("w-[16px] h-[16px] rounded-full border-2 transition-transform hover:scale-110", section.color === c ? "border-white" : "border-transparent")}
-              style={{ backgroundColor: c }}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="h-[1px] bg-border my-1.5 mx-2" />
-      <button onClick={() => { deleteSection(sectionId); onClose(); }} className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-base)] hover:bg-bg-hover text-red-400">
-        <Trash2 size={12} /> Delete Section
-      </button>
-    </div>
-  );
-}
 
 export function Sidebar() {
   const currentPath = useNavigationStore((s) => s.currentPath);
@@ -799,7 +493,6 @@ export function Sidebar() {
   const [rootDirs, setRootDirs] = useState<FileEntry[]>([]);
   const [showFavorites, setShowFavorites] = useState(true);
   const [showFolders, setShowFolders] = useState(true);
-  const [showWorkspaces, setShowWorkspaces] = useState(true);
   const [showTags, setShowTags] = useState(true);
 
   const homeDir = settings.favorites[0] || "/Users";
@@ -888,20 +581,6 @@ export function Sidebar() {
         )}
 
         {/* Divider */}
-        {showWorkspaces && <div className="h-[1px] bg-border mb-4" />}
-
-        {/* Workspaces */}
-        {showWorkspaces && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Workspaces</h3>
-              <button onClick={() => setShowWorkspaces(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
-            </div>
-            <SectionsPanel />
-          </div>
-        )}
-
-        {/* Divider */}
         {showTags && <div className="h-[1px] bg-border mb-4" />}
 
         {/* Tags */}
@@ -918,16 +597,13 @@ export function Sidebar() {
       </div>
 
       {/* Show hidden panels */}
-      {(!showFavorites || !showFolders || !showWorkspaces || !showTags) && (
+      {(!showFavorites || !showFolders || !showTags) && (
         <div className="px-4 py-2 border-t border-border shrink-0">
           {!showFavorites && (
             <button onClick={() => setShowFavorites(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Favorites</button>
           )}
           {!showFolders && (
             <button onClick={() => setShowFolders(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Folders</button>
-          )}
-          {!showWorkspaces && (
-            <button onClick={() => setShowWorkspaces(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Workspaces</button>
           )}
           {!showTags && (
             <button onClick={() => setShowTags(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Tags</button>

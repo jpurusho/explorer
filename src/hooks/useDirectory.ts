@@ -4,7 +4,6 @@ import { listen } from "@tauri-apps/api/event";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
 import { useTagStore } from "../stores/tagStore";
-import { useSectionStore } from "../stores/sectionStore";
 import type { FileEntry } from "../types";
 
 export function useDirectory() {
@@ -17,7 +16,6 @@ export function useDirectory() {
 
     const fileStore = useFileListStore.getState();
     const tagStore = useTagStore.getState();
-    const sectionStore = useSectionStore.getState();
 
     fileStore.setLoading(true);
     fileStore.setError(null);
@@ -56,7 +54,6 @@ export function useDirectory() {
           fileStore.setEntries(entries);
           const paths = entries.map((e) => e.path);
           tagStore.loadTagsForFiles(paths).catch(() => {});
-          sectionStore.loadSections(targetPath).catch(() => {});
         })
         .catch((err) => {
           if (useNavigationStore.getState().currentPath !== targetPath) return;

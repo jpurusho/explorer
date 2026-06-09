@@ -17,7 +17,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { detachPreview } from "../../lib/detachPreview";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useTagStore } from "../../stores/tagStore";
-import { useSectionStore } from "../../stores/sectionStore";
 import { useClipboardStore } from "../../stores/clipboardStore";
 import type { FileEntry, FileType } from "../../types";
 
@@ -84,9 +83,6 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   const tagFiles = useTagStore((s) => s.tagFiles);
   const untagFiles = useTagStore((s) => s.untagFiles);
   const fileTagMap = useTagStore((s) => s.fileTagMap);
-  const sections = useSectionStore((s) => s.sections);
-  const assignFiles = useSectionStore((s) => s.assignFiles);
-  const removeFiles = useSectionStore((s) => s.removeFiles);
   const currentPath = useNavigationStore((s) => s.currentPath);
 
   useEffect(() => {
@@ -263,34 +259,6 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
               </button>
             );
           })}
-        </SubMenu>
-      )}
-
-      {/* Sections submenu */}
-      {sections.length > 0 && (
-        <SubMenu icon={<FolderOpen size={13} />} label="Move to Section">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              onClick={() => { assignFiles(section.id, entries.map((e) => e.path)); onClose(); }}
-              className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors"
-            >
-              <div className="w-2 h-2 rounded shrink-0" style={{ backgroundColor: section.color }} />
-              <span className="text-text-secondary flex-1">{section.name}</span>
-            </button>
-          ))}
-          <button
-            onClick={() => {
-              const paths = entries.map((e) => e.path);
-              const s = useSectionStore.getState().getSectionForPath(paths[0]);
-              if (s) removeFiles(s.id, paths);
-              onClose();
-            }}
-            className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors text-text-muted"
-          >
-            <span className="w-2 shrink-0">—</span>
-            <span className="flex-1">Unsorted</span>
-          </button>
         </SubMenu>
       )}
 
