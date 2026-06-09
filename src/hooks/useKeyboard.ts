@@ -28,6 +28,22 @@ export function useKeyboard() {
             e.preventDefault();
             navStore.goForward();
             return;
+          case "r":
+            if (!isEditing) {
+              e.preventDefault();
+              navStore.refreshCurrent();
+            }
+            return;
+          case "ArrowDown": {
+            e.preventDefault();
+            const entry = fileStore.visibleEntries[fileStore.selectedIndex];
+            if (entry?.is_dir) navStore.navigateTo(entry.path);
+            return;
+          }
+          case "ArrowUp":
+            e.preventDefault();
+            navStore.goUp();
+            return;
           case "1":
             if (!isEditing) {
               e.preventDefault();
@@ -155,6 +171,18 @@ export function useKeyboard() {
           }
           break;
 
+        case "ArrowRight": {
+          const entry = visibleEntries[selectedIndex];
+          if (entry?.is_dir) {
+            navStore.navigateTo(entry.path);
+          }
+          break;
+        }
+
+        case "ArrowLeft":
+          navStore.goUp();
+          break;
+
         case "Enter": {
           const entry = visibleEntries[selectedIndex];
           if (entry?.is_dir) {
@@ -162,6 +190,42 @@ export function useKeyboard() {
           }
           break;
         }
+
+        case " ":
+          e.preventDefault();
+          // Space selects without navigating (like Finder Quick Look trigger)
+          if (selectedIndex >= 0) {
+            const entry = visibleEntries[selectedIndex];
+            if (entry) fileStore.setSelectedPath(entry.path);
+          }
+          break;
+
+        case "Home":
+          e.preventDefault();
+          if (visibleEntries.length > 0) {
+            if (e.shiftKey) fileStore.selectRange(0);
+            else fileStore.selectIndex(0);
+          }
+          break;
+
+        case "End":
+          e.preventDefault();
+          if (visibleEntries.length > 0) {
+            const last = visibleEntries.length - 1;
+            if (e.shiftKey) fileStore.selectRange(last);
+            else fileStore.selectIndex(last);
+          }
+          break;
+
+        case "PageDown":
+          e.preventDefault();
+          fileStore.selectIndex(Math.min(selectedIndex + 20, visibleEntries.length - 1));
+          break;
+
+        case "PageUp":
+          e.preventDefault();
+          fileStore.selectIndex(Math.max(selectedIndex - 20, 0));
+          break;
 
         case "Escape":
           fileStore.clearSelection();

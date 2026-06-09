@@ -16,6 +16,7 @@ interface FileCardProps {
   onContextMenu: (e: React.MouseEvent) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
+  onFileDrop?: (paths: string[]) => void;
 }
 
 function ImageThumbnail({ path }: { path: string }) {
@@ -245,12 +246,13 @@ function TextSnippetPreview({ path }: { path: string }) {
   );
 }
 
-export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMenu, draggable, onDragStart }: FileCardProps) {
+export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMenu, draggable, onDragStart, onFileDrop }: FileCardProps) {
   const fileType = entry.file_type as FileType;
   const isImage = fileType === "image";
   const isVideo = fileType === "video";
   const isDir = entry.is_dir;
   const [duration, setDuration] = useState<number | null>(null);
+  const [isDragTarget, setIsDragTarget] = useState(false);
 
   const ext = entry.name.split(".").pop()?.toUpperCase() || "";
 
@@ -261,13 +263,17 @@ export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMen
         "transition-all duration-100",
         selected
           ? "border-accent/50 bg-accent/8 shadow-sm"
-          : "border-border bg-bg-secondary hover:border-border hover:bg-bg-hover"
+          : "border-border bg-bg-secondary hover:border-border hover:bg-bg-hover",
+        isDragTarget && "ring-2 ring-accent/50 border-accent/40 scale-[1.02]"
       )}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
       draggable={draggable}
       onDragStart={onDragStart}
+      onDragOver={isDir && onFileDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setIsDragTarget(true); } : undefined}
+      onDragLeave={isDir ? () => setIsDragTarget(false) : undefined}
+      onDrop={isDir && onFileDrop ? (e) => { e.preventDefault(); setIsDragTarget(false); const data = e.dataTransfer.getData("application/x-explorer-files"); if (data) onFileDrop(JSON.parse(data)); } : undefined}
     >
       <div className="relative group">
         {isImage ? (

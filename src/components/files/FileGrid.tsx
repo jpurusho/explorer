@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { FileCard } from "./FileCard";
@@ -79,6 +80,12 @@ export function FileGrid() {
             onContextMenu={(e) => handleContextMenu(e, entry, index)}
             draggable
             onDragStart={(e) => handleDragStart(e, entry, index)}
+            onFileDrop={(paths) => {
+              if (paths.includes(entry.path)) return;
+              invoke("move_items", { paths, destination: entry.path }).then(() => {
+                useNavigationStore.getState().refreshCurrent();
+              });
+            }}
           />
         ))}
       </div>
