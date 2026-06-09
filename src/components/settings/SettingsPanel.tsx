@@ -10,6 +10,7 @@ import type { AppSettings } from "../../types";
 
 interface SettingsPanelProps {
   onClose: () => void;
+  initialTab?: string;
 }
 
 type SettingsTab = "appearance" | "font" | "files" | "shortcuts" | "search";
@@ -243,16 +244,53 @@ function ShortcutsTab() {
       title: "Navigation",
       shortcuts: [
         ["↑ / ↓", "Navigate files"],
-        ["Enter", "Open folder"],
-        ["⌘ ⌫", "Go up"],
+        ["← / →", "Go up / Enter folder"],
+        ["Enter", "Open selected item"],
+        ["⌘ ↑", "Go to parent directory"],
+        ["⌘ ↓", "Open selected item"],
         ["⌘ [", "Back"],
         ["⌘ ]", "Forward"],
+        ["⌘ R", "Refresh directory"],
+        ["Home / End", "Jump to first / last"],
+        ["Page Up / Down", "Scroll by page"],
+      ],
+    },
+    {
+      title: "Selection",
+      shortcuts: [
+        ["⌘ A", "Select all"],
+        ["Shift + ↑ / ↓", "Extend selection"],
+        ["Shift + Home / End", "Extend to first / last"],
+        ["⌘ + Click", "Toggle item selection"],
+        ["Shift + Click", "Range select"],
+        ["Escape", "Clear selection"],
+        ["Space", "Select without navigating"],
+      ],
+    },
+    {
+      title: "File Operations",
+      shortcuts: [
+        ["⌘ C", "Copy files"],
+        ["⌘ X", "Cut files"],
+        ["⌘ V", "Paste files"],
+        ["⌘ D", "Duplicate files"],
+        ["⌘ ⇧ N", "New folder"],
+        ["⌘ ⇧ ⌫", "Move to Trash"],
+        ["Delete / ⌫", "Move to Trash"],
+      ],
+    },
+    {
+      title: "View & Panels",
+      shortcuts: [
         ["⌘ 1", "List view"],
         ["⌘ 2", "Grid view"],
         ["⌘ ⇧ .", "Toggle hidden files"],
         ["⌘ ,", "Settings"],
+        ["⌘ /", "Keyboard shortcuts"],
+        ["⌘ P", "Global search"],
         ["⌘ K", "Command palette"],
-        ["⌘ F", "Find"],
+        ["⌘ F", "Find in directory"],
+        ["⌘ N", "New window"],
       ],
     },
     {
@@ -428,8 +466,12 @@ function IndexPathsEditor() {
   );
 }
 
-export function SettingsPanel({ onClose }: SettingsPanelProps) {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("appearance");
+export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
+  const [activeTab, setActiveTab] = useState<SettingsTab>((initialTab as SettingsTab) || "appearance");
+
+  useEffect(() => {
+    if (initialTab) setActiveTab(initialTab as SettingsTab);
+  }, [initialTab]);
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {

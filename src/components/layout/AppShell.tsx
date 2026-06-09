@@ -24,6 +24,7 @@ export function AppShell() {
   const [globalSearchVisible, setGlobalSearchVisible] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<string | undefined>(undefined);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistWidths = useCallback((sw: number, pw: number) => {
@@ -70,7 +71,13 @@ export function AppShell() {
       }
       if (e.metaKey && e.key === ",") {
         e.preventDefault();
+        setSettingsTab(undefined);
         setSettingsOpen((s) => !s);
+      }
+      if (e.metaKey && e.key === "/") {
+        e.preventDefault();
+        setSettingsTab("shortcuts");
+        setSettingsOpen(true);
       }
     };
     window.addEventListener("keydown", handler);
@@ -116,7 +123,7 @@ export function AppShell() {
 
         <div style={{ width: previewWidth }} className="shrink-0 overflow-hidden border-l border-border">
           {settingsOpen ? (
-            <SettingsPanel onClose={() => setSettingsOpen(false)} />
+            <SettingsPanel onClose={() => setSettingsOpen(false)} initialTab={settingsTab} />
           ) : (
             <PreviewPanel />
           )}
