@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { FileEntry, FileType, ViewMode, SortField, SortDirection } from "../types";
+import type { FileEntry, ViewMode, SortField, SortDirection } from "../types";
 
 export type ColumnId = "type" | "size" | "modified";
 
@@ -23,7 +23,7 @@ interface FileListState {
   anchorIndex: number;
   showHiddenFiles: boolean;
   showRowLines: boolean;
-  typeFilter: FileType | null;
+  filterPattern: string | null;
   nameWidth: number;
   columns: ColumnConfig[];
 
@@ -50,8 +50,7 @@ interface FileListState {
   syncFromSettings: (settings: { show_row_lines: boolean; column_name_width: number; column_type_width: number; column_size_width: number; column_modified_width: number; column_type_visible: boolean; column_size_visible: boolean; column_modified_visible: boolean; default_view: string; show_hidden_files: boolean; sort_by: string; sort_direction: string }) => void;
 
   // Filter actions
-  setTypeFilter: (type: FileType | null) => void;
-  availableTypes: () => FileType[];
+  setFilterPattern: (pattern: string | null) => void;
 
   // Multi-select actions
   selectIndex: (index: number) => void;
@@ -91,18 +90,30 @@ function sortEntries(
   });
 }
 
+function matchesPattern(name: string, pattern: string): boolean {
+  const lower = name.toLowerCase();
+  const p = pattern.toLowerCase().trim();
+  if (p.startsWith("*.")) {
+    return lower.endsWith(p.slice(1));
+  }
+  if (p.startsWith(".")) {
+    return lower.endsWith(p);
+  }
+  return lower.includes(p);
+}
+
 function computeVisible(
   entries: FileEntry[],
   showHiddenFiles: boolean,
   sortBy: SortField,
   sortDirection: SortDirection,
-  typeFilter: FileType | null = null
+  filterPattern: string | null = null
 ): FileEntry[] {
   let filtered = showHiddenFiles
     ? entries
     : entries.filter((e) => !e.is_hidden);
-  if (typeFilter) {
-    filtered = filtered.filter((e) => e.is_dir || e.file_type === typeFilter);
+  if (filterPattern) {
+    filtered = filtered.filter((e) => e.is_dir || matchesPattern(e.name, filterPattern));
   }
   return sortEntries(filtered, sortBy, sortDirection);
 }
@@ -136,7 +147,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   anchorIndex: -1,
   showHiddenFiles: false,
   showRowLines: false,
-  typeFilter: null,
+  filterPattern: null,
   nameWidth: 300,
   columns: [
     { id: "type", label: "Type", width: 50, minWidth: 40, visible: true },
@@ -148,8 +159,8 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   selectedPath: null,
 
   setEntries: (entries) => {
-    const { showHiddenFiles, sortBy, sortDirection, typeFilter } = get();
-    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, typeFilter);
+    const { showHiddenFiles, sortBy, sortDirection, filterPattern } = get();
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, filterPattern);
     set({ entries, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
   },
 
@@ -163,8 +174,8 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   setSortBy: (sortBy) => {
-    const { entries, showHiddenFiles, sortDirection, typeFilter } = get();
-    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, typeFilter);
+    const { entries, showHiddenFiles, sortDirection, filterPattern } = get();
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, filterPattern);
     set({ sortBy, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
     import("./settingsStore").then(({ useSettingsStore }) => {
       useSettingsStore.getState().updateSettings({ sort_by: sortBy });
@@ -172,9 +183,9 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   toggleSortDirection: () => {
-    const { entries, showHiddenFiles, sortBy, sortDirection, typeFilter } = get();
+    const { entries, showHiddenFiles, sortBy, sortDirection, filterPattern } = get();
     const newDir = sortDirection === "asc" ? "desc" : "asc";
-    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, newDir, typeFilter);
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, newDir, filterPattern);
     set({ sortDirection: newDir, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
     import("./settingsStore").then(({ useSettingsStore }) => {
       useSettingsStore.getState().updateSettings({ sort_direction: newDir });
@@ -192,9 +203,9 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   },
 
   toggleHiddenFiles: () => {
-    const { entries, showHiddenFiles, sortBy, sortDirection, typeFilter } = get();
+    const { entries, showHiddenFiles, sortBy, sortDirection, filterPattern } = get();
     const newShow = !showHiddenFiles;
-    const visibleEntries = computeVisible(entries, newShow, sortBy, sortDirection, typeFilter);
+    const visibleEntries = computeVisible(entries, newShow, sortBy, sortDirection, filterPattern);
     set({ showHiddenFiles: newShow, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
     import("./settingsStore").then(({ useSettingsStore }) => {
       useSettingsStore.getState().updateSettings({ show_hidden_files: newShow });
@@ -252,20 +263,10 @@ export const useFileListStore = create<FileListState>((set, get) => ({
     });
   },
 
-  setTypeFilter: (typeFilter) => {
+  setFilterPattern: (filterPattern) => {
     const { entries, showHiddenFiles, sortBy, sortDirection } = get();
-    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, typeFilter);
-    set({ typeFilter, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
-  },
-
-  availableTypes: () => {
-    const { entries, showHiddenFiles } = get();
-    const filtered = showHiddenFiles ? entries : entries.filter((e) => !e.is_hidden);
-    const types = new Set<FileType>();
-    for (const e of filtered) {
-      if (!e.is_dir) types.add(e.file_type);
-    }
-    return [...types].sort();
+    const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, filterPattern);
+    set({ filterPattern, visibleEntries, selectedIndices: new Set(), anchorIndex: -1, selectedIndex: -1, selectedPath: null });
   },
 
   selectIndex: (index) => {
