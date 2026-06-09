@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import {
   ExternalLink,
   Copy,
@@ -14,6 +14,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
+import { clsx } from "clsx";
 import { detachPreview } from "../../lib/detachPreview";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useTagStore } from "../../stores/tagStore";
@@ -29,45 +30,101 @@ interface ContextMenuProps {
   onRename?: () => void;
 }
 
-function MenuItem({ icon, label, onClick, destructive, disabled }: {
+interface MenuItemProps {
   icon: React.ReactNode;
   label: string;
+  shortcut?: string;
   onClick: () => void;
   destructive?: boolean;
   disabled?: boolean;
-}) {
+}
+
+function MenuItem({ icon, label, shortcut, onClick, destructive, disabled }: MenuItemProps) {
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className="w-full flex items-center gap-2.5 px-3 py-[6px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed group outline-none focus:bg-bg-hover"
+      data-menu-item
+      className={clsx(
+        "w-full flex items-center gap-2.5 px-3 py-[6px] text-left rounded-md transition-colors outline-none",
+        "text-[var(--font-sm)]",
+        disabled && "opacity-40 cursor-not-allowed",
+        !disabled && "hover:bg-accent/10 focus:bg-accent/10",
+        destructive && !disabled && "hover:bg-red-500/10 focus:bg-red-500/10"
+      )}
     >
-      <span className={destructive ? "text-red-400 shrink-0" : "text-text-muted shrink-0 group-hover:text-text-secondary"}>{icon}</span>
-      <span className={destructive ? "text-red-400" : "text-text-secondary group-hover:text-text"}>{label}</span>
+      <span className={clsx("shrink-0", destructive ? "text-red-400" : "text-text-muted")}>{icon}</span>
+      <span className={clsx("flex-1", destructive ? "text-red-400" : "text-text-secondary")}>{label}</span>
+      {shortcut && (
+        <span className="text-[10px] text-text-muted/40 font-mono shrink-0">{shortcut}</span>
+      )}
     </button>
   );
 }
 
 function MenuSeparator() {
-  return <div className="h-[1px] bg-border/50 my-1 mx-2" />;
+  return <div className="h-[1px] bg-border/40 my-1 mx-3" />;
 }
 
 function SubMenu({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const subRef = useRef<HTMLDivElement>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const show = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (subRef.current) subRef.current.style.display = "block";
+  };
+
+  const hide = () => {
+    timerRef.current = setTimeout(() => {
+      if (subRef.current) subRef.current.style.display = "none";
+    }, 150);
+  };
+
+  useEffect(() => {
+    if (!subRef.current || !ref.current) return;
+    const parentRect = ref.current.getBoundingClientRect();
+    const sub = subRef.current;
+    sub.style.display = "none";
+
+    const reposition = () => {
+      if (sub.style.display === "none") return;
+      const rect = sub.getBoundingClientRect();
+      const vw = window.innerWidth;
+      if (parentRect.right + rect.width > vw - 8) {
+        sub.style.left = "auto";
+        sub.style.right = "100%";
+        sub.style.marginLeft = "0";
+        sub.style.marginRight = "4px";
+      }
+    };
+
+    const observer = new MutationObserver(reposition);
+    observer.observe(sub, { attributes: true, attributeFilter: ["style"] });
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <div ref={ref} className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
-      <button className="w-full flex items-center gap-2.5 px-3 py-[6px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors group outline-none focus:bg-bg-hover">
-        <span className="text-text-muted shrink-0 group-hover:text-text-secondary">{icon}</span>
-        <span className="text-text-secondary group-hover:text-text flex-1">{label}</span>
-        <ChevronRight size={11} className="text-text-muted" />
+    <div ref={ref} className="relative" onMouseEnter={show} onMouseLeave={hide}>
+      <button
+        data-menu-item
+        className="w-full flex items-center gap-2.5 px-3 py-[6px] text-left text-[var(--font-sm)] rounded-md hover:bg-accent/10 focus:bg-accent/10 transition-colors outline-none"
+        onFocus={show}
+        onBlur={hide}
+      >
+        <span className="text-text-muted shrink-0">{icon}</span>
+        <span className="text-text-secondary flex-1">{label}</span>
+        <ChevronRight size={11} className="text-text-muted/50" />
       </button>
-      {open && (
-        <div className="absolute left-full top-0 ml-1 min-w-[160px] py-1.5 bg-bg-secondary border border-border rounded-lg shadow-xl z-50">
-          {children}
-        </div>
-      )}
+      <div
+        ref={subRef}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        className="absolute left-full top-0 ml-1 min-w-[160px] py-1.5 px-1 bg-bg-secondary/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-2xl z-[60]"
+      >
+        {children}
+      </div>
     </div>
   );
 }
@@ -85,32 +142,62 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   const fileTagMap = useTagStore((s) => s.fileTagMap);
   const currentPath = useNavigationStore((s) => s.currentPath);
 
+  // Close on outside click
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) onClose();
     };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
     document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
+    return () => document.removeEventListener("mousedown", handleClick);
   }, [onClose]);
 
-  // Position adjustment to keep menu in viewport
+  // Keyboard navigation
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") { onClose(); return; }
+
+    const menu = menuRef.current;
+    if (!menu) return;
+    const items = Array.from(menu.querySelectorAll("[data-menu-item]:not(:disabled)")) as HTMLElement[];
+    const active = document.activeElement as HTMLElement;
+    const idx = items.indexOf(active);
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      const next = idx < items.length - 1 ? idx + 1 : 0;
+      items[next]?.focus();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      const prev = idx > 0 ? idx - 1 : items.length - 1;
+      items[prev]?.focus();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (active && items.includes(active)) active.click();
+    }
+  }, [onClose]);
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
+
+  // Position adjustment + focus first item
   useEffect(() => {
     if (!menuRef.current) return;
-    const rect = menuRef.current.getBoundingClientRect();
+    const menu = menuRef.current;
+    const rect = menu.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
-    if (rect.right > vw - 8) menuRef.current.style.left = `${Math.max(8, x - rect.width)}px`;
-    if (rect.bottom > vh - 8) menuRef.current.style.top = `${Math.max(8, y - rect.height)}px`;
+    if (rect.right > vw - 8) menu.style.left = `${Math.max(8, x - rect.width)}px`;
+    if (rect.bottom > vh - 8) menu.style.top = `${Math.max(8, y - rect.height)}px`;
+
+    // Focus first item after paint
+    requestAnimationFrame(() => {
+      const first = menu.querySelector("[data-menu-item]:not(:disabled)") as HTMLElement;
+      first?.focus();
+    });
   }, [x, y]);
 
-  const previewableTypes: FileType[] = ["image", "video", "audio", "markdown", "json", "yaml", "text", "code", "unknown"];
+  const previewableTypes: FileType[] = ["image", "video", "audio", "markdown", "json", "yaml", "text", "code", "document", "archive", "unknown"];
 
   const handleTrash = async () => {
     const paths = entries.map((e) => e.path);
@@ -134,8 +221,9 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[200px] max-w-[280px] py-1.5 px-1 bg-bg-secondary/95 backdrop-blur-md border border-border rounded-xl shadow-2xl"
+      className="fixed z-50 min-w-[220px] max-w-[300px] py-1.5 px-1 bg-bg-secondary/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-2xl"
       style={{ left: x, top: y }}
+      role="menu"
     >
       {/* Remove tag (when in tag filter) */}
       {activeTagFilter !== null && (() => {
@@ -162,6 +250,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         <MenuItem
           icon={single.is_dir ? <FolderOpen size={13} /> : <Eye size={13} />}
           label={single.is_dir ? "Open" : "Preview"}
+          shortcut="↵"
           onClick={() => { onOpen?.(); onClose(); }}
         />
       )}
@@ -181,6 +270,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
       <MenuItem
         icon={<Clipboard size={13} />}
         label={count > 1 ? `Copy ${count} Paths` : "Copy Path"}
+        shortcut="⌥⌘C"
         onClick={handleCopyPaths}
       />
       <MenuItem
@@ -194,7 +284,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
       {/* File operations */}
       <MenuItem
         icon={<Copy size={13} />}
-        label="Copy Files"
+        label="Copy"
+        shortcut="⌘C"
         onClick={() => {
           useClipboardStore.getState().setPaths(entries.map((e) => e.path), "copy");
           onClose();
@@ -202,7 +293,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
       />
       <MenuItem
         icon={<Scissors size={13} />}
-        label="Cut Files"
+        label="Cut"
+        shortcut="⌘X"
         onClick={() => {
           useClipboardStore.getState().setPaths(entries.map((e) => e.path), "cut");
           onClose();
@@ -212,6 +304,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         <MenuItem
           icon={<ClipboardPaste size={13} />}
           label="Paste"
+          shortcut="⌘V"
           onClick={async () => {
             const { paths, operation } = useClipboardStore.getState();
             const dest = currentPath;
@@ -226,6 +319,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
       <MenuItem
         icon={<FolderPlus size={13} />}
         label="New Folder"
+        shortcut="⇧⌘N"
         onClick={async () => {
           const dest = currentPath;
           try { await invoke("create_folder", { path: `${dest}/untitled folder` }); }
@@ -246,16 +340,17 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
             return (
               <button
                 key={tag.id}
+                data-menu-item
                 onClick={() => {
                   if (hasTag) untagFiles(paths, tag.id);
                   else tagFiles(paths, tag.id);
                   onClose();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-bg-hover transition-colors"
+                className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-accent/10 focus:bg-accent/10 transition-colors outline-none"
               >
-                <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                <div className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-inset ring-white/10" style={{ backgroundColor: tag.color }} />
                 <span className="text-text-secondary flex-1">{tag.name}</span>
-                {hasTag && <span className="text-accent text-[var(--font-xs)]">✓</span>}
+                {hasTag && <span className="text-accent font-medium">✓</span>}
               </button>
             );
           })}
@@ -266,13 +361,19 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
 
       {/* Rename */}
       {single && (
-        <MenuItem icon={<Pencil size={13} />} label="Rename" onClick={() => { onRename?.(); onClose(); }} />
+        <MenuItem
+          icon={<Pencil size={13} />}
+          label="Rename"
+          shortcut="↵"
+          onClick={() => { onRename?.(); onClose(); }}
+        />
       )}
 
       {/* Trash */}
       <MenuItem
         icon={<Trash2 size={13} />}
         label={count > 1 ? `Move ${count} Items to Trash` : "Move to Trash"}
+        shortcut="⌘⌫"
         destructive
         onClick={handleTrash}
       />
