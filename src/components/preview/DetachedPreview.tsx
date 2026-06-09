@@ -4,6 +4,8 @@ import { ImagePreview } from "./ImagePreview";
 import { VideoPreview } from "./VideoPreview";
 import { AudioPreview } from "./AudioPreview";
 import { PdfPreview } from "./PdfPreview";
+import { DocumentPreview } from "./DocumentPreview";
+import { ArchivePreview } from "./ArchivePreview";
 import { MarkdownPreview } from "./MarkdownPreview";
 import { JsonPreview } from "./JsonPreview";
 import { YamlPreview } from "./YamlPreview";
@@ -63,6 +65,14 @@ export function DetachedPreview() {
 
     if (fileType === "document" && fileName.toLowerCase().endsWith(".pdf")) {
       return <PdfPreview path={filePath} />;
+    }
+
+    if (fileType === "document") {
+      return <DocumentPreview path={filePath} name={fileName} />;
+    }
+
+    if (fileType === "archive") {
+      return <ArchivePreview path={filePath} name={fileName} />;
     }
 
     if (loading) {
