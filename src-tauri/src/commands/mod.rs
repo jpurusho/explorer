@@ -1,6 +1,8 @@
 pub mod archive;
 pub mod file_ops;
 pub mod filesystem;
+#[cfg(target_os = "macos")]
+pub mod native_preview;
 pub mod preview;
 pub mod search;
 pub mod settings;

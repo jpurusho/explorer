@@ -7,6 +7,8 @@ mod utils;
 use commands::archive::{list_archive_contents, extract_archive};
 use commands::file_ops::{copy_items, create_folder, duplicate_items, move_items, rename_item, trash_items};
 use commands::preview::{convert_document_to_pdf, generate_document_preview, get_document_page_count};
+#[cfg(target_os = "macos")]
+use commands::native_preview::{close_native_preview, show_native_preview, NativePreviewState};
 use commands::search::{search_files, get_index_stats, is_indexing, reindex, rebuild_trigrams};
 use commands::filesystem::{generate_thumbnail, get_file_entries, get_file_metadata, get_git_status, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
 use commands::settings::{load_settings, save_settings, list_font_themes, load_font_theme, write_log};
@@ -44,10 +46,15 @@ pub fn run() {
 
     log_info!("Explorer app starting");
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .manage(index_db)
         .manage(db::DbState::new())
-        .manage(WatcherState::new())
+        .manage(WatcherState::new());
+
+    #[cfg(target_os = "macos")]
+    let builder = builder.manage(NativePreviewState::new());
+
+    builder
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
@@ -102,6 +109,10 @@ pub fn run() {
             convert_document_to_pdf,
             generate_document_preview,
             get_document_page_count,
+            #[cfg(target_os = "macos")]
+            show_native_preview,
+            #[cfg(target_os = "macos")]
+            close_native_preview,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
