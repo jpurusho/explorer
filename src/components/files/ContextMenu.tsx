@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import {
   ExternalLink,
   Copy,
+  CopyPlus,
   FolderOpen,
   FolderPlus,
   Trash2,
@@ -12,6 +13,7 @@ import {
   Scissors,
   Tag,
   ChevronRight,
+  Undo2,
 } from "lucide-react";
 import { invoke } from "@tauri-apps/api/core";
 import { clsx } from "clsx";
@@ -19,6 +21,7 @@ import { detachPreview } from "../../lib/detachPreview";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useTagStore } from "../../stores/tagStore";
 import { useClipboardStore } from "../../stores/clipboardStore";
+import { useUndoStore } from "../../stores/undoStore";
 import type { FileEntry, FileType } from "../../types";
 
 interface ContextMenuProps {
@@ -300,21 +303,36 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
           onClose();
         }}
       />
-      {clipboard.paths.length > 0 && (
-        <MenuItem
-          icon={<ClipboardPaste size={13} />}
-          label="Paste"
-          shortcut="⌘V"
-          onClick={async () => {
-            const { paths, operation } = useClipboardStore.getState();
-            const dest = currentPath;
-            if (operation === "copy") await invoke("copy_items", { paths, destination: dest });
-            else { await invoke("move_items", { paths, destination: dest }); useClipboardStore.getState().clear(); }
-            refreshDirectory?.();
-            onClose();
-          }}
-        />
-      )}
+      <MenuItem
+        icon={<ClipboardPaste size={13} />}
+        label="Paste"
+        shortcut="⌘V"
+        disabled={clipboard.paths.length === 0}
+        onClick={async () => {
+          const { paths, operation } = useClipboardStore.getState();
+          if (paths.length === 0) return;
+          const dest = currentPath;
+          if (operation === "copy") await invoke("copy_items", { paths, destination: dest });
+          else { await invoke("move_items", { paths, destination: dest }); useClipboardStore.getState().clear(); }
+          refreshDirectory?.();
+          onClose();
+        }}
+      />
+
+      <MenuItem
+        icon={<CopyPlus size={13} />}
+        label="Duplicate"
+        shortcut="⌘D"
+        onClick={async () => {
+          const paths = entries.map((e) => e.path);
+          const r = await invoke<{ succeeded: number; created_paths?: string[] }>("duplicate_items", { paths });
+          if (r.created_paths && r.created_paths.length > 0) {
+            useUndoStore.getState().push({ type: "duplicate", createdPaths: r.created_paths });
+          }
+          refreshDirectory?.();
+          onClose();
+        }}
+      />
 
       <MenuItem
         icon={<FolderPlus size={13} />}
@@ -324,6 +342,18 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
           const dest = currentPath;
           try { await invoke("create_folder", { path: `${dest}/untitled folder` }); }
           catch { for (let i = 2; i < 100; i++) { try { await invoke("create_folder", { path: `${dest}/untitled folder ${i}` }); break; } catch { continue; } } }
+          refreshDirectory?.();
+          onClose();
+        }}
+      />
+
+      <MenuItem
+        icon={<Undo2 size={13} />}
+        label="Undo"
+        shortcut="⌘Z"
+        disabled={!useUndoStore.getState().canUndo()}
+        onClick={async () => {
+          await useUndoStore.getState().undo();
           refreshDirectory?.();
           onClose();
         }}

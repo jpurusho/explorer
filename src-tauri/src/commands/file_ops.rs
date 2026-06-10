@@ -9,6 +9,8 @@ use tauri::State;
 pub struct FileOpResult {
     pub succeeded: u32,
     pub failed: Vec<FileOpError>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub created_paths: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -44,7 +46,7 @@ pub async fn trash_items(paths: Vec<String>, index: State<'_, IndexDb>) -> Resul
         }
     }
 
-    Ok(FileOpResult { succeeded, failed })
+    Ok(FileOpResult { succeeded, failed, created_paths: vec![] })
 }
 
 #[tauri::command]
@@ -114,7 +116,7 @@ pub async fn move_items(paths: Vec<String>, destination: String, index: State<'_
         }
     }
 
-    Ok(FileOpResult { succeeded, failed })
+    Ok(FileOpResult { succeeded, failed, created_paths: vec![] })
 }
 
 #[tauri::command]
@@ -139,7 +141,12 @@ pub async fn copy_items(paths: Vec<String>, destination: String, index: State<'_
         }
 
         let file_name = source.file_name().unwrap_or_default();
-        let target = dest.join(file_name);
+        let mut target = dest.join(file_name);
+
+        // If target already exists (e.g. pasting into same directory), generate a unique name
+        if target.exists() {
+            target = generate_copy_name(source, dest);
+        }
 
         match copy_recursive(source, &target) {
             Ok(_) => {
@@ -153,7 +160,7 @@ pub async fn copy_items(paths: Vec<String>, destination: String, index: State<'_
         }
     }
 
-    Ok(FileOpResult { succeeded, failed })
+    Ok(FileOpResult { succeeded, failed, created_paths: vec![] })
 }
 
 #[tauri::command]
@@ -189,6 +196,76 @@ pub async fn create_folder(path: String, index: State<'_, IndexDb>) -> Result<()
     std::fs::create_dir(&folder_path)?;
     index.upsert_path(folder_path);
     Ok(())
+}
+
+#[tauri::command]
+pub async fn duplicate_items(paths: Vec<String>, index: State<'_, IndexDb>) -> Result<FileOpResult, AppError> {
+    log_info!("duplicate_items: {} items", paths.len());
+    let mut succeeded = 0u32;
+    let mut failed = Vec::new();
+    let mut created_paths = Vec::new();
+
+    for path_str in &paths {
+        let source = Path::new(path_str);
+        if !source.exists() {
+            failed.push(FileOpError {
+                path: path_str.clone(),
+                error: "Source not found".to_string(),
+            });
+            continue;
+        }
+
+        let parent = match source.parent() {
+            Some(p) => p,
+            None => {
+                failed.push(FileOpError { path: path_str.clone(), error: "No parent".to_string() });
+                continue;
+            }
+        };
+
+        let target = generate_copy_name(source, parent);
+
+        match copy_recursive(source, &target) {
+            Ok(_) => {
+                succeeded += 1;
+                created_paths.push(target.to_string_lossy().to_string());
+                index.upsert_path(&target);
+            }
+            Err(e) => failed.push(FileOpError {
+                path: path_str.clone(),
+                error: e.to_string(),
+            }),
+        }
+    }
+
+    Ok(FileOpResult { succeeded, failed, created_paths })
+}
+
+fn generate_copy_name(source: &Path, parent: &Path) -> std::path::PathBuf {
+    let stem = source.file_stem().unwrap_or_default().to_string_lossy();
+    let ext = source.extension().map(|e| format!(".{}", e.to_string_lossy())).unwrap_or_default();
+    let is_dir = source.is_dir();
+
+    let candidate = if is_dir {
+        parent.join(format!("{} copy", stem))
+    } else {
+        parent.join(format!("{} copy{}", stem, ext))
+    };
+    if !candidate.exists() {
+        return candidate;
+    }
+
+    for i in 2..1000 {
+        let candidate = if is_dir {
+            parent.join(format!("{} copy {}", stem, i))
+        } else {
+            parent.join(format!("{} copy {}{}", stem, i, ext))
+        };
+        if !candidate.exists() {
+            return candidate;
+        }
+    }
+    parent.join(format!("{} copy{}", stem, ext))
 }
 
 fn copy_recursive(source: &Path, target: &Path) -> std::io::Result<()> {

@@ -2,9 +2,8 @@ import { useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
-
-let clipboard: string[] = [];
-let clipboardOp: "copy" | "cut" | null = null;
+import { useClipboardStore } from "../stores/clipboardStore";
+import { useUndoStore } from "../stores/undoStore";
 
 export function useKeyboard() {
   useEffect(() => {
@@ -85,41 +84,70 @@ export function useKeyboard() {
           case "c":
             if (!isEditing && !window.getSelection()?.toString()) {
               e.preventDefault();
-              clipboard = fileStore.getSelectedPaths();
-              clipboardOp = "copy";
+              const copyPaths = fileStore.getSelectedPaths();
+              if (copyPaths.length > 0) {
+                useClipboardStore.getState().setPaths(copyPaths, "copy");
+              }
             }
             return;
           case "x":
             if (!isEditing) {
               e.preventDefault();
-              clipboard = fileStore.getSelectedPaths();
-              clipboardOp = "cut";
+              const cutPaths = fileStore.getSelectedPaths();
+              if (cutPaths.length > 0) {
+                useClipboardStore.getState().setPaths(cutPaths, "cut");
+              }
             }
             return;
           case "v":
-            if (!isEditing && clipboard.length > 0) {
+            if (!isEditing) {
               e.preventDefault();
+              const { paths: clipPaths, operation } = useClipboardStore.getState();
+              if (clipPaths.length === 0) return;
               const dest = navStore.currentPath;
-              if (clipboardOp === "copy") {
-                invoke("copy_items", { paths: clipboard, destination: dest }).then(() => {
+              if (operation === "copy") {
+                invoke<{ succeeded: number }>("copy_items", { paths: clipPaths, destination: dest }).then((r) => {
+                  if (r.succeeded > 0) {
+                    const created = clipPaths.map((p) => {
+                      const name = p.split("/").pop()!;
+                      return `${dest}/${name}`;
+                    });
+                    useUndoStore.getState().push({ type: "copy", createdPaths: created });
+                  }
                   navStore.refreshCurrent();
                 });
-              } else if (clipboardOp === "cut") {
-                invoke("move_items", { paths: clipboard, destination: dest }).then(() => {
-                  clipboard = [];
-                  clipboardOp = null;
+              } else if (operation === "cut") {
+                invoke<{ succeeded: number }>("move_items", { paths: clipPaths, destination: dest }).then((r) => {
+                  if (r.succeeded > 0) {
+                    const moves = clipPaths.map((p) => ({
+                      from: p,
+                      to: `${dest}/${p.split("/").pop()!}`,
+                    }));
+                    useUndoStore.getState().push({ type: "move", moves });
+                  }
+                  useClipboardStore.getState().clear();
                   navStore.refreshCurrent();
                 });
               }
             }
             return;
+          case "z":
+            if (!isEditing) {
+              e.preventDefault();
+              useUndoStore.getState().undo().then(() => {
+                navStore.refreshCurrent();
+              });
+            }
+            return;
           case "d":
             if (!isEditing) {
               e.preventDefault();
-              const paths = fileStore.getSelectedPaths();
-              const dest = navStore.currentPath;
-              if (paths.length > 0) {
-                invoke("copy_items", { paths, destination: dest }).then(() => {
+              const dupPaths = fileStore.getSelectedPaths();
+              if (dupPaths.length > 0) {
+                invoke<{ succeeded: number; created_paths?: string[] }>("duplicate_items", { paths: dupPaths }).then((r) => {
+                  if (r.created_paths && r.created_paths.length > 0) {
+                    useUndoStore.getState().push({ type: "duplicate", createdPaths: r.created_paths });
+                  }
                   navStore.refreshCurrent();
                 });
               }
