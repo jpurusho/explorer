@@ -14,11 +14,23 @@ A fast, keyboard-driven media file browser for macOS. Built with Tauri v2 (Rust 
 
 **File Management**
 - Drag-and-drop within the app and from Finder/Desktop
-- Copy, cut, paste, rename, trash with keyboard shortcuts
+- Copy, cut, paste, duplicate, rename, trash with keyboard shortcuts
+- Undo (Cmd+Z) for copy, move, and duplicate
+- Double-click a name (or Enter) to rename; right-click empty space for Paste / New Folder
 - Tag files with color-coded labels, filter by tag
 - Tag-aware search (`tag:name` or `#name`)
 - Free-form file filter (e.g. `*.png`, `.pdf`)
 - Multi-select with Cmd+click, Shift+click, Cmd+A
+
+**Scratch Pad** (Cmd+E)
+- A built-in text formatter for cleaning up content before pasting elsewhere
+- Auto-detects JSON, YAML, Markdown, or plain text (with manual override)
+- **JSON:** repairs broken JSON (missing commas/brackets, single quotes, trailing commas) and pretty-prints, highlighting the corrected lines
+- **YAML:** reformats with clean indentation and pinpoints the first error
+- **Markdown:** heuristic text→Markdown with rendered/source toggle
+- **Plain text:** wrap-to-width, full-justify, align columns into a grid, tabs→spaces (2/4/8), whitespace cleanup, unwrap, quote prefix
+- Copy formatted output, save to a file, or paste straight from the clipboard
+- Draft and settings persist across restarts
 
 **Keyboard-Driven**
 - Arrow keys to navigate, Enter to open, Backspace to go up
@@ -80,6 +92,9 @@ Produces a signed `.app` bundle for macOS (Apple Silicon).
 | `Space` | Select without navigating |
 | `Cmd+A` | Select all |
 | `Cmd+C` / `Cmd+X` / `Cmd+V` | Copy / Cut / Paste |
+| `Cmd+D` | Duplicate |
+| `Cmd+Z` | Undo last operation |
+| `Enter` / double-click name | Rename |
 | `Cmd+Shift+Backspace` | Move to Trash |
 | `Cmd+Shift+N` | New Folder |
 | `Cmd+[` / `Cmd+]` | Back / Forward |
@@ -87,9 +102,11 @@ Produces a signed `.app` bundle for macOS (Apple Silicon).
 | `Cmd+R` | Refresh |
 | `Cmd+P` | Global Search |
 | `Cmd+K` | Command Palette |
+| `Cmd+E` | Scratch Pad |
 | `Cmd+1` / `Cmd+2` | List / Grid view |
 | `Cmd+Shift+.` | Toggle hidden files |
 | `Cmd+,` | Settings |
+| `Cmd+/` | Keyboard shortcuts |
 | `Home` / `End` | Jump to first/last |
 | `Page Up` / `Page Down` | Scroll by page |
 
