@@ -91,6 +91,72 @@ export function justifyToWidth(text: string, cols: number): string {
     .join("\n\n");
 }
 
+/** Expand tab characters to spaces, honoring tab stops every `width` columns
+ *  (so indentation lines up the way an editor renders it) rather than a blind
+ *  1-tab → N-spaces swap. Column position resets at each newline. */
+export function tabsToSpaces(text: string, width = 4): string {
+  if (width < 1) width = 1;
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  return lines
+    .map((line) => {
+      let out = "";
+      let col = 0;
+      for (const ch of line) {
+        if (ch === "\t") {
+          const pad = width - (col % width);
+          out += " ".repeat(pad);
+          col += pad;
+        } else {
+          out += ch;
+          col += 1;
+        }
+      }
+      return out;
+    })
+    .join("\n");
+}
+
+/** Align tab- or multi-space-separated rows into even columns by padding each
+ *  cell to the widest cell in its column (+`gutter` spaces between columns).
+ *  This is what actually makes a ragged table line up — unlike tab-stop
+ *  expansion, which only aligns when cell widths happen to share tab stops.
+ *
+ *  Only lines that look tabular (contain a tab, or a run of 2+ spaces between
+ *  non-space text) are reflowed; other lines (prose, code, blank) pass through
+ *  unchanged, so it's safe to run on mixed content. */
+export function alignColumns(text: string, gutter = 2): string {
+  const lines = text.replace(/\r\n/g, "\n").split("\n");
+
+  const isTabular = (line: string) =>
+    line.includes("\t") || /\S {2,}\S/.test(line);
+
+  const splitCells = (line: string): string[] =>
+    line.includes("\t")
+      ? line.split("\t").map((c) => c.trim())
+      : line.trim().split(/ {2,}/).map((c) => c.trim());
+
+  // First pass: compute max width per column across the tabular rows only.
+  const colWidths: number[] = [];
+  for (const line of lines) {
+    if (!isTabular(line)) continue;
+    splitCells(line).forEach((cell, i) => {
+      colWidths[i] = Math.max(colWidths[i] ?? 0, cell.length);
+    });
+  }
+
+  // Second pass: re-emit. Tabular rows get padded; everything else untouched.
+  return lines
+    .map((line) => {
+      if (!isTabular(line)) return line;
+      const cells = splitCells(line);
+      return cells
+        .map((cell, i) => (i < cells.length - 1 ? cell.padEnd(colWidths[i] + gutter) : cell))
+        .join("")
+        .replace(/\s+$/, "");
+    })
+    .join("\n");
+}
+
 /** Collapse runs of spaces, convert tabs to spaces, trim trailing whitespace,
  *  and reduce 3+ blank lines to a single blank line. */
 export function cleanWhitespace(text: string): string {

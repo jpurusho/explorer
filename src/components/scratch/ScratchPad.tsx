@@ -15,6 +15,8 @@ import {
   cleanWhitespace,
   quotePrefix,
   joinParagraphs,
+  tabsToSpaces,
+  alignColumns,
   type ScratchFormat,
 } from "../../lib/textFormat";
 
@@ -39,8 +41,8 @@ const EXT: Record<ScratchFormat, string> = {
 
 export function ScratchPad({ onClose }: ScratchPadProps) {
   const {
-    rawText, mode, wrapWidth, doCleanup, doWrap, doJustify, doQuote, doJoin, mdShowSource, lastSaveDir,
-    setRawText, setMode, setWrapWidth, toggle, setLastSaveDir, clear,
+    rawText, mode, wrapWidth, doCleanup, doWrap, doJustify, doQuote, doJoin, doTabs, tabWidth, doAlign, mdShowSource, lastSaveDir,
+    setRawText, setMode, setWrapWidth, setTabWidth, toggle, setLastSaveDir, clear,
   } = useScratchStore();
 
   const effective: ScratchFormat = mode === "auto" ? detectFormat(rawText) : mode;
@@ -56,10 +58,13 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
       return { output: r.output, changedLines: new Set<number>(), fixCount: 0, jsonError: null, yamlError: r.error };
     }
     if (effective === "markdown") {
-      return { output: textToMarkdown(rawText), changedLines: new Set<number>(), fixCount: 0, jsonError: null, yamlError: null };
+      const src = doTabs ? tabsToSpaces(rawText, tabWidth) : rawText;
+      return { output: textToMarkdown(src), changedLines: new Set<number>(), fixCount: 0, jsonError: null, yamlError: null };
     }
     // text: apply enabled transforms in a sensible order
     let out = rawText;
+    if (doAlign) out = alignColumns(out);          // first: reads tab/space separators to build columns
+    if (doTabs) out = tabsToSpaces(out, tabWidth);  // expand any remaining tabs at tab stops
     if (doJoin) out = joinParagraphs(out);
     if (doCleanup) out = cleanWhitespace(out);
     // Justify implies wrapping; if both are on, justify wins (it wraps too).
@@ -67,7 +72,7 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
     else if (doWrap) out = wrapToWidth(out, wrapWidth);
     if (doQuote) out = quotePrefix(out);
     return { output: out, changedLines: new Set<number>(), fixCount: 0, jsonError: null, yamlError: null };
-  }, [rawText, effective, doCleanup, doWrap, doJustify, doQuote, doJoin, wrapWidth]);
+  }, [rawText, effective, doCleanup, doWrap, doJustify, doQuote, doJoin, doTabs, tabWidth, doAlign, wrapWidth]);
 
   const counts = useMemo(() => {
     const text = result.output;
@@ -84,21 +89,6 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
       toast.success("Copied to clipboard");
     } catch {
       toast.error("Copy failed");
-    }
-  };
-
-  // Clear the pad, then pull in whatever's on the system clipboard so a fresh
-  // paste is one click away. If the clipboard is empty/unreadable, just clears.
-  const handleClear = async () => {
-    clear();
-    try {
-      const clip = await navigator.clipboard.readText();
-      if (clip.trim()) {
-        setRawText(clip);
-        toast.info("Loaded clipboard");
-      }
-    } catch {
-      // clipboard read denied/empty — pad is simply cleared
     }
   };
 
@@ -191,9 +181,11 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
                 <span className="text-[var(--font-xs)] text-text-muted tabular-nums w-6">{wrapWidth}</span>
               </div>
             )}
+            <TogglePill active={doAlign} onClick={() => toggle("doAlign")} label="Align Columns" />
             <TogglePill active={doCleanup} onClick={() => toggle("doCleanup")} label="Clean" />
             <TogglePill active={doJoin} onClick={() => toggle("doJoin")} label="Unwrap" />
             <TogglePill active={doQuote} onClick={() => toggle("doQuote")} label="Quote" />
+            <TabsControl doTabs={doTabs} tabWidth={tabWidth} onToggle={() => toggle("doTabs")} onWidth={setTabWidth} />
           </>
         )}
         {effective === "json" && result.jsonError && (
@@ -212,13 +204,16 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
           <span className="text-[var(--font-xs)] text-green-400">Valid · formatted</span>
         )}
         {effective === "markdown" && (
-          <button
-            onClick={() => toggle("mdShowSource")}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[var(--font-xs)] bg-bg-tertiary text-text-muted hover:text-text-secondary transition-colors"
-          >
-            {mdShowSource ? <Code size={11} /> : <Eye size={11} />}
-            {mdShowSource ? "Source" : "Rendered"}
-          </button>
+          <>
+            <button
+              onClick={() => toggle("mdShowSource")}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[var(--font-xs)] bg-bg-tertiary text-text-muted hover:text-text-secondary transition-colors"
+            >
+              {mdShowSource ? <Code size={11} /> : <Eye size={11} />}
+              {mdShowSource ? "Source" : "Rendered"}
+            </button>
+            <TabsControl doTabs={doTabs} tabWidth={tabWidth} onToggle={() => toggle("doTabs")} onWidth={setTabWidth} />
+          </>
         )}
       </div>
 
@@ -245,7 +240,7 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
         <span className="text-[var(--font-xs)] text-text-muted tabular-nums flex-1 min-w-0 truncate">
           {counts.words} words · {counts.lines} lines · {counts.chars} chars
         </span>
-        <button onClick={handleClear} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--font-xs)] text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors shrink-0" title="Clear, then load clipboard if available">
+        <button onClick={clear} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--font-xs)] text-text-muted hover:bg-bg-hover hover:text-text-secondary transition-colors shrink-0" title="Clear the pad">
           <Trash2 size={12} /> Clear
         </button>
         <button onClick={handleSave} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--font-xs)] text-text-secondary bg-bg-tertiary hover:bg-bg-hover transition-colors shrink-0" title="Save to file">
@@ -255,6 +250,26 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
           <Copy size={12} /> Copy
         </button>
       </div>
+    </div>
+  );
+}
+
+function TabsControl({ doTabs, tabWidth, onToggle, onWidth }: { doTabs: boolean; tabWidth: number; onToggle: () => void; onWidth: (n: number) => void }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <TogglePill active={doTabs} onClick={onToggle} label="Tabs→Spaces" />
+      {doTabs && (
+        <select
+          value={tabWidth}
+          onChange={(e) => onWidth(parseInt(e.target.value))}
+          className="bg-bg-tertiary border border-border rounded-md px-1.5 py-1 text-[var(--font-xs)] text-text-secondary outline-none"
+          title="Spaces per tab"
+        >
+          {[2, 4, 8].map((n) => (
+            <option key={n} value={n}>{n} sp</option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }

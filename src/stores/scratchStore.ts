@@ -14,6 +14,9 @@ interface ScratchState {
   doJustify: boolean;
   doQuote: boolean;
   doJoin: boolean;
+  doTabs: boolean;
+  tabWidth: number;
+  doAlign: boolean;
   // Markdown: show raw source vs rendered
   mdShowSource: boolean;
   lastSaveDir: string | null;
@@ -21,7 +24,8 @@ interface ScratchState {
   setRawText: (t: string) => void;
   setMode: (m: ScratchMode) => void;
   setWrapWidth: (n: number) => void;
-  toggle: (key: "doCleanup" | "doWrap" | "doJustify" | "doQuote" | "doJoin" | "mdShowSource") => void;
+  setTabWidth: (n: number) => void;
+  toggle: (key: "doCleanup" | "doWrap" | "doJustify" | "doQuote" | "doJoin" | "doTabs" | "doAlign" | "mdShowSource") => void;
   setLastSaveDir: (dir: string) => void;
   clear: () => void;
 }
@@ -37,6 +41,9 @@ interface Persisted {
   doJustify: boolean;
   doQuote: boolean;
   doJoin: boolean;
+  doTabs: boolean;
+  tabWidth: number;
+  doAlign: boolean;
   mdShowSource: boolean;
   lastSaveDir: string | null;
 }
@@ -50,6 +57,9 @@ const defaults: Persisted = {
   doJustify: false,
   doQuote: false,
   doJoin: false,
+  doTabs: false,
+  tabWidth: 4,
+  doAlign: false,
   mdShowSource: false,
   lastSaveDir: null,
 };
@@ -88,6 +98,9 @@ export const useScratchStore = create<ScratchState>((set, get) => {
       doJustify: s.doJustify,
       doQuote: s.doQuote,
       doJoin: s.doJoin,
+      doTabs: s.doTabs,
+      tabWidth: s.tabWidth,
+      doAlign: s.doAlign,
       mdShowSource: s.mdShowSource,
       lastSaveDir: s.lastSaveDir,
     };
@@ -100,6 +113,7 @@ export const useScratchStore = create<ScratchState>((set, get) => {
     setRawText: (rawText) => { set({ rawText }); save(); },
     setMode: (mode) => { set({ mode }); save(); },
     setWrapWidth: (wrapWidth) => { set({ wrapWidth }); save(); },
+    setTabWidth: (tabWidth) => { set({ tabWidth }); save(); },
     toggle: (key) => { set((s) => ({ [key]: !s[key] }) as Partial<ScratchState>); save(); },
     setLastSaveDir: (lastSaveDir) => { set({ lastSaveDir }); save(); },
     clear: () => { set({ rawText: "" }); save(); },
