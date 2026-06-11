@@ -22,6 +22,12 @@ pub struct AppSettings {
     pub column_modified_visible: bool,
     pub font_theme: String,
     pub index_paths: Vec<String>,
+    // Sidebar section visibility + layout
+    pub show_favorites_section: bool,
+    pub show_folders_section: bool,
+    pub show_tags_section: bool,
+    pub favorites_height: u32,
+    pub folders_height: u32,
 }
 
 impl Default for AppSettings {
@@ -55,6 +61,11 @@ impl Default for AppSettings {
             column_modified_visible: true,
             font_theme: "default".to_string(),
             index_paths: vec![],
+            show_favorites_section: true,
+            show_folders_section: true,
+            show_tags_section: true,
+            favorites_height: 140,
+            folders_height: 300,
         }
     }
 }

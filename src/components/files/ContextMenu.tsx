@@ -50,7 +50,7 @@ function MenuItem({ icon, label, shortcut, onClick, destructive, disabled }: Men
       disabled={disabled}
       data-menu-item
       className={clsx(
-        "w-full flex items-center gap-2.5 px-3 py-[6px] text-left rounded-md transition-colors outline-none",
+        "w-full flex items-center gap-2.5 pl-3 pr-4 py-[6px] text-left rounded-md transition-colors outline-none",
         "text-[var(--font-sm)]",
         disabled && "opacity-40 cursor-not-allowed",
         !disabled && "hover:bg-accent/10 focus:bg-accent/10",
@@ -58,9 +58,9 @@ function MenuItem({ icon, label, shortcut, onClick, destructive, disabled }: Men
       )}
     >
       <span className={clsx("shrink-0", destructive ? "text-red-400" : "text-text-muted")}>{icon}</span>
-      <span className={clsx("flex-1", destructive ? "text-red-400" : "text-text-secondary")}>{label}</span>
+      <span className={clsx("flex-1 min-w-0 truncate", destructive ? "text-red-400" : "text-text-secondary")}>{label}</span>
       {shortcut && (
-        <span className="text-[var(--font-xs)] text-text-muted/40 font-mono shrink-0">{shortcut}</span>
+        <span className="text-[var(--font-xs)] text-text-muted/40 font-mono shrink-0 whitespace-nowrap pl-2">{shortcut}</span>
       )}
     </button>
   );
@@ -113,13 +113,13 @@ function SubMenu({ icon, label, children }: { icon: React.ReactNode; label: stri
     <div ref={ref} className="relative" onMouseEnter={show} onMouseLeave={hide}>
       <button
         data-menu-item
-        className="w-full flex items-center gap-2.5 px-3 py-[6px] text-left text-[var(--font-sm)] rounded-md hover:bg-accent/10 focus:bg-accent/10 transition-colors outline-none"
+        className="w-full flex items-center gap-2.5 pl-3 pr-4 py-[6px] text-left text-[var(--font-sm)] rounded-md hover:bg-accent/10 focus:bg-accent/10 transition-colors outline-none"
         onFocus={show}
         onBlur={hide}
       >
         <span className="text-text-muted shrink-0">{icon}</span>
-        <span className="text-text-secondary flex-1">{label}</span>
-        <ChevronRight size={11} className="text-text-muted/50" />
+        <span className="text-text-secondary flex-1 min-w-0 truncate">{label}</span>
+        <ChevronRight size={11} className="text-text-muted/50 shrink-0" />
       </button>
       <div
         ref={subRef}
@@ -217,16 +217,17 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
   };
 
   const clipboard = useClipboardStore.getState();
+  const hasItems = count > 0;
 
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[220px] max-w-[300px] py-1.5 px-1 bg-bg-secondary/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-2xl"
+      className="fixed z-50 min-w-[240px] max-w-[320px] py-1.5 px-1.5 bg-bg-secondary/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-2xl"
       style={{ left: x, top: y }}
       role="menu"
     >
       {/* Remove tag (when in tag filter) */}
-      {activeTagFilter !== null && (() => {
+      {hasItems && activeTagFilter !== null && (() => {
         const activeTag = allTags.find((t) => t.id === activeTagFilter);
         if (!activeTag) return null;
         return (
@@ -264,42 +265,49 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         />
       )}
 
-      <MenuSeparator />
-
-      {/* Copy operations */}
-      <MenuItem
-        icon={<Clipboard size={13} />}
-        label={count > 1 ? `Copy ${count} Paths` : "Copy Path"}
-        shortcut="⌥⌘C"
-        onClick={handleCopyPaths}
-      />
-      <MenuItem
-        icon={<Copy size={13} />}
-        label={count > 1 ? `Copy ${count} Names` : "Copy Name"}
-        onClick={handleCopyNames}
-      />
+      {/* Copy operations (item-specific) */}
+      {hasItems && (
+        <>
+          <MenuSeparator />
+          <MenuItem
+            icon={<Clipboard size={13} />}
+            label={count > 1 ? `Copy ${count} Paths` : "Copy Path"}
+            shortcut="⌥⌘C"
+            onClick={handleCopyPaths}
+          />
+          <MenuItem
+            icon={<Copy size={13} />}
+            label={count > 1 ? `Copy ${count} Names` : "Copy Name"}
+            onClick={handleCopyNames}
+          />
+        </>
+      )}
 
       <MenuSeparator />
 
       {/* File operations */}
-      <MenuItem
-        icon={<Copy size={13} />}
-        label="Copy"
-        shortcut="⌘C"
-        onClick={() => {
-          fileActions.copy(entries.map((e) => e.path));
-          onClose();
-        }}
-      />
-      <MenuItem
-        icon={<Scissors size={13} />}
-        label="Cut"
-        shortcut="⌘X"
-        onClick={() => {
-          fileActions.cut(entries.map((e) => e.path));
-          onClose();
-        }}
-      />
+      {hasItems && (
+        <>
+          <MenuItem
+            icon={<Copy size={13} />}
+            label="Copy"
+            shortcut="⌘C"
+            onClick={() => {
+              fileActions.copy(entries.map((e) => e.path));
+              onClose();
+            }}
+          />
+          <MenuItem
+            icon={<Scissors size={13} />}
+            label="Cut"
+            shortcut="⌘X"
+            onClick={() => {
+              fileActions.cut(entries.map((e) => e.path));
+              onClose();
+            }}
+          />
+        </>
+      )}
       <MenuItem
         icon={<ClipboardPaste size={13} />}
         label="Paste"
@@ -311,15 +319,17 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         }}
       />
 
-      <MenuItem
-        icon={<CopyPlus size={13} />}
-        label="Duplicate"
-        shortcut="⌘D"
-        onClick={() => {
-          fileActions.duplicate(entries.map((e) => e.path));
-          onClose();
-        }}
-      />
+      {hasItems && (
+        <MenuItem
+          icon={<CopyPlus size={13} />}
+          label="Duplicate"
+          shortcut="⌘D"
+          onClick={() => {
+            fileActions.duplicate(entries.map((e) => e.path));
+            onClose();
+          }}
+        />
+      )}
 
       <MenuItem
         icon={<FolderPlus size={13} />}
@@ -345,7 +355,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
       <MenuSeparator />
 
       {/* Tags submenu */}
-      {allTags.length > 0 && (
+      {hasItems && allTags.length > 0 && (
         <SubMenu icon={<Tag size={13} />} label="Tags">
           {allTags.map((tag) => {
             const paths = entries.map((e) => e.path);
@@ -359,7 +369,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
                   else tagFiles(paths, tag.id);
                   onClose();
                 }}
-                className="w-full flex items-center gap-2.5 px-3 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-accent/10 focus:bg-accent/10 transition-colors outline-none"
+                className="w-full flex items-center gap-2.5 pl-3 pr-4 py-[5px] text-left text-[var(--font-sm)] rounded-md hover:bg-accent/10 focus:bg-accent/10 transition-colors outline-none"
               >
                 <div className="w-2.5 h-2.5 rounded-full shrink-0 ring-1 ring-inset ring-white/10" style={{ backgroundColor: tag.color }} />
                 <span className="text-text-secondary flex-1">{tag.name}</span>
@@ -370,26 +380,29 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         </SubMenu>
       )}
 
-      <MenuSeparator />
-
       {/* Rename */}
       {single && (
-        <MenuItem
-          icon={<Pencil size={13} />}
-          label="Rename"
-          shortcut="↵"
-          onClick={() => { onRename?.(); onClose(); }}
-        />
+        <>
+          <MenuSeparator />
+          <MenuItem
+            icon={<Pencil size={13} />}
+            label="Rename"
+            shortcut="↵"
+            onClick={() => { onRename?.(); onClose(); }}
+          />
+        </>
       )}
 
       {/* Trash */}
-      <MenuItem
-        icon={<Trash2 size={13} />}
-        label={count > 1 ? `Move ${count} Items to Trash` : "Move to Trash"}
-        shortcut="⌘⌫"
-        destructive
-        onClick={handleTrash}
-      />
+      {hasItems && (
+        <MenuItem
+          icon={<Trash2 size={13} />}
+          label={count > 1 ? `Move ${count} Items to Trash` : "Move to Trash"}
+          shortcut="⌘⌫"
+          destructive
+          onClick={handleTrash}
+        />
+      )}
     </div>
   );
 }

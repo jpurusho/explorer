@@ -61,6 +61,11 @@ export interface AppSettings {
   column_modified_visible: boolean;
   font_theme: string;
   index_paths: string[];
+  show_favorites_section: boolean;
+  show_folders_section: boolean;
+  show_tags_section: boolean;
+  favorites_height: number;
+  folders_height: number;
 }
 
 export interface ExifData {

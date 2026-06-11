@@ -33,6 +33,11 @@ const defaultSettings: AppSettings = {
   column_modified_visible: true,
   font_theme: "default",
   index_paths: [],
+  show_favorites_section: true,
+  show_folders_section: true,
+  show_tags_section: true,
+  favorites_height: 140,
+  folders_height: 300,
 };
 
 function resolveTheme(theme: AppSettings["theme"]): ThemeName {

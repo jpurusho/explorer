@@ -14,6 +14,7 @@ interface FileListItemProps {
   visibleColumns: ColumnConfig[];
   onRename?: (newName: string) => void;
   onCancelRename?: () => void;
+  onStartRename?: () => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
@@ -48,6 +49,7 @@ export function FileListItem({
   visibleColumns,
   onRename,
   onCancelRename,
+  onStartRename,
   onClick,
   onDoubleClick,
   onContextMenu,
@@ -99,8 +101,11 @@ export function FileListItem({
             <FileIcon fileType={entry.file_type as FileType} size={16} />
           </td>
 
-          {/* Name cell */}
-          <td className="py-[3px] px-2 align-middle border-r border-border/40 overflow-hidden">
+          {/* Name cell — double-click anywhere here starts a rename */}
+          <td
+            className="py-[3px] px-2 align-middle border-r border-border/40 overflow-hidden"
+            onDoubleClick={!renaming && onStartRename ? (e) => { e.stopPropagation(); onStartRename(); } : undefined}
+          >
             <div className="flex items-center gap-2 min-w-0 overflow-hidden">
               {renaming ? (
                 <input
@@ -108,10 +113,12 @@ export function FileListItem({
                   value={renameValue}
                   onChange={(e) => setRenameValue(e.target.value)}
                   onKeyDown={(e) => {
+                    e.stopPropagation();
                     if (e.key === "Enter" && renameValue.trim() && renameValue !== entry.name) {
                       onRename?.(renameValue.trim());
+                    } else if (e.key === "Enter" || e.key === "Escape") {
+                      onCancelRename?.();
                     }
-                    if (e.key === "Escape") onCancelRename?.();
                   }}
                   onBlur={() => onCancelRename?.()}
                   onClick={(e) => e.stopPropagation()}

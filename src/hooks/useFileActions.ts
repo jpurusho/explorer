@@ -88,6 +88,10 @@ export const fileActions = {
       reportResult(r, "duplicate");
       if (r.created_paths && r.created_paths.length > 0) {
         useUndoStore.getState().push({ type: "duplicate", createdPaths: r.created_paths });
+        // Offer to rename the (single) new copy, like Finder.
+        if (r.created_paths.length === 1) {
+          useFileListStore.getState().requestRename(r.created_paths[0]);
+        }
       }
       useNavigationStore.getState().refreshCurrent();
     } catch (e) {
@@ -126,8 +130,11 @@ export const fileActions = {
   async newFolder(dest: string) {
     for (let i = 1; i < 100; i++) {
       const name = i === 1 ? "untitled folder" : `untitled folder ${i}`;
+      const path = `${dest}/${name}`;
       try {
-        await invoke("create_folder", { path: `${dest}/${name}` });
+        await invoke("create_folder", { path });
+        // Auto-start renaming the new folder, like Finder.
+        useFileListStore.getState().requestRename(path);
         useNavigationStore.getState().refreshCurrent();
         return;
       } catch {

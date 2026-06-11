@@ -1,8 +1,10 @@
-import { useRef, useState, useCallback, useMemo } from "react";
+import { useRef, useState, useCallback, useMemo, useEffect } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, Eye, EyeOff } from "lucide-react";
+import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
+import { toast } from "../../stores/toastStore";
 import { FileListItem } from "./FileListItem";
 import { ContextMenu } from "./ContextMenu";
 import type { FileEntry, SortField } from "../../types";
@@ -66,9 +68,10 @@ export function FileList() {
   const setColumnWidth = useFileListStore((s) => s.setColumnWidth);
   const toggleColumnVisibility = useFileListStore((s) => s.toggleColumnVisibility);
 
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry } | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry | null } | null>(null);
   const [renamingIndex, setRenamingIndex] = useState<number | null>(null);
   const [showVisibilityMenu, setShowVisibilityMenu] = useState(false);
+  const renameRequestPath = useFileListStore((s) => s.renameRequestPath);
 
   const visibleColumns = useMemo(() => columns.filter((c) => c.visible), [columns]);
 
@@ -79,7 +82,19 @@ export function FileList() {
     overscan: 10,
   });
 
-  const lastClickRef = useRef<{ index: number; time: number }>({ index: -1, time: 0 });
+  // Consume a pending rename request once the target entry appears (e.g. after
+  // New Folder / Duplicate refreshes the listing). Scroll it into view so the
+  // virtualized row (and its autofocus input) actually mounts.
+  useEffect(() => {
+    if (!renameRequestPath) return;
+    const idx = entries.findIndex((e) => e.path === renameRequestPath);
+    if (idx >= 0) {
+      setRenamingIndex(idx);
+      useFileListStore.getState().requestRename(null);
+      virtualizer.scrollToIndex(idx, { align: "center" });
+    }
+  }, [renameRequestPath, entries]);
+
 
   const handleClick = useCallback((index: number, e: React.MouseEvent) => {
     // Multi-select takes priority
@@ -91,31 +106,27 @@ export function FileList() {
       selectRange(index);
       return;
     }
-
-    const now = Date.now();
-    const last = lastClickRef.current;
-
-    if (last.index === index && now - last.time < 400) {
-      lastClickRef.current = { index: -1, time: 0 };
-      const entry = entries[index];
-      if (entry?.is_dir) {
-        navigateTo(entry.path);
-        return;
-      }
-    } else {
-      lastClickRef.current = { index, time: now };
-    }
-
+    // Single click selects. Opening (folders) is handled by the row's native
+    // onDoubleClick, and renaming by the name cell's onDoubleClick — keeping a
+    // manual double-click detector here would race with (and beat) rename.
     selectIndex(index);
-  }, [entries, navigateTo, toggleIndex, selectRange, selectIndex]);
+  }, [toggleIndex, selectRange, selectIndex]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileEntry, index: number) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!selectedIndices.has(index)) {
       selectIndex(index);
     }
     setContextMenu({ x: e.clientX, y: e.clientY, entry });
   }, [selectedIndices, selectIndex]);
+
+  // Right-click on empty space: show a background menu (Paste / New Folder / Undo).
+  const handleBackgroundContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    useFileListStore.getState().clearSelection();
+    setContextMenu({ x: e.clientX, y: e.clientY, entry: null });
+  }, []);
 
   const handleDragStart = useCallback((e: React.DragEvent, entry: FileEntry, index: number) => {
     if (!selectedIndices.has(index)) {
@@ -182,13 +193,13 @@ export function FileList() {
   const tableWidth = 24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0);
 
   return (
-    <div ref={parentRef} className="h-full overflow-auto file-list-font px-2" style={{ minWidth: 0 }}>
+    <div ref={parentRef} className="h-full overflow-auto file-list-font px-2" style={{ minWidth: 0 }} onContextMenu={handleBackgroundContextMenu}>
       {/* Sticky header table */}
       <div className="sticky top-0 z-10 bg-bg">
         <table
           className="border-collapse"
           style={{ tableLayout: "fixed", width: "100%", minWidth: `${tableWidth}px`, fontSize: "var(--font-filelist-item)" }}
-          onContextMenu={(e) => { e.preventDefault(); setShowVisibilityMenu(!showVisibilityMenu); }}
+          onContextMenu={(e) => { e.preventDefault(); e.stopPropagation(); setShowVisibilityMenu(!showVisibilityMenu); }}
         >
           <colgroup>
             <col style={{ width: "24px" }} />
@@ -275,12 +286,17 @@ export function FileList() {
                 renaming={renamingIndex === virtualRow.index}
                 visibleColumns={visibleColumns}
                 onRename={async (newName) => {
-                  const { invoke } = await import("@tauri-apps/api/core");
-                  await invoke("rename_item", { path: entry.path, newName });
-                  setRenamingIndex(null);
-                  useNavigationStore.getState().refreshCurrent();
+                  try {
+                    await invoke("rename_item", { path: entry.path, newName });
+                    useNavigationStore.getState().refreshCurrent();
+                  } catch (err) {
+                    toast.error(`Rename failed: ${err instanceof Error ? err.message : String(err)}`);
+                  } finally {
+                    setRenamingIndex(null);
+                  }
                 }}
                 onCancelRename={() => setRenamingIndex(null)}
+                onStartRename={() => setRenamingIndex(virtualRow.index)}
                 onClick={(e) => handleClick(virtualRow.index, e)}
                 onDoubleClick={() => {
                   if (entry.is_dir) navigateTo(entry.path);
@@ -289,9 +305,12 @@ export function FileList() {
                 draggable={renamingIndex !== virtualRow.index}
                 onDragStart={(e) => handleDragStart(e, entry, virtualRow.index)}
                 onFileDrop={entry.is_dir ? async (paths) => {
-                  const { invoke } = await import("@tauri-apps/api/core");
-                  await invoke("move_items", { paths, destination: entry.path });
-                  useNavigationStore.getState().refreshCurrent();
+                  try {
+                    await invoke("move_items", { paths, destination: entry.path });
+                    useNavigationStore.getState().refreshCurrent();
+                  } catch (err) {
+                    toast.error(`Move failed: ${err instanceof Error ? err.message : String(err)}`);
+                  }
                 } : undefined}
               />
             </div>
@@ -312,13 +331,14 @@ export function FileList() {
         <ContextMenu
           x={contextMenu.x}
           y={contextMenu.y}
-          entries={useFileListStore.getState().getSelectedEntries()}
+          entries={contextMenu.entry ? useFileListStore.getState().getSelectedEntries() : []}
           onClose={() => setContextMenu(null)}
           onOpen={() => {
-            if (contextMenu.entry.is_dir) navigateTo(contextMenu.entry.path);
+            if (contextMenu.entry?.is_dir) navigateTo(contextMenu.entry.path);
           }}
           onRename={() => {
-            const idx = entries.findIndex((e) => e.path === contextMenu.entry.path);
+            if (!contextMenu.entry) return;
+            const idx = entries.findIndex((e) => e.path === contextMenu.entry!.path);
             if (idx >= 0) setRenamingIndex(idx);
           }}
         />

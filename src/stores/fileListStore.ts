@@ -27,6 +27,10 @@ interface FileListState {
   nameWidth: number;
   columns: ColumnConfig[];
 
+  // When set, the list/grid should auto-start an inline rename of the entry at
+  // this path once it appears (used after New Folder / Duplicate).
+  renameRequestPath: string | null;
+
   // Computed getters
   selectedIndex: number;
   selectedPath: string | null;
@@ -51,6 +55,9 @@ interface FileListState {
 
   // Filter actions
   setFilterPattern: (pattern: string | null) => void;
+
+  // Rename request (auto-start inline rename once the path appears)
+  requestRename: (path: string | null) => void;
 
   // Multi-select actions
   selectIndex: (index: number) => void;
@@ -149,6 +156,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   showRowLines: false,
   filterPattern: null,
   nameWidth: 300,
+  renameRequestPath: null,
   columns: [
     { id: "type", label: "Type", width: 50, minWidth: 40, visible: true },
     { id: "size", label: "Size", width: 58, minWidth: 44, visible: true },
@@ -273,6 +281,8 @@ export const useFileListStore = create<FileListState>((set, get) => ({
       ],
     });
   },
+
+  requestRename: (path) => set({ renameRequestPath: path }),
 
   setFilterPattern: (filterPattern) => {
     const { entries, showHiddenFiles, sortBy, sortDirection } = get();

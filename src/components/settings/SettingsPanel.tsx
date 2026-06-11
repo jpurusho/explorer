@@ -235,7 +235,35 @@ function FilesTab() {
           <option value="type">Type</option>
         </select>
       </SettingRow>
+      <SidebarSectionsRows />
     </Section>
+  );
+}
+
+function SidebarSectionsRows() {
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  return (
+    <>
+      <SettingRow label="Show Favorites">
+        <Toggle
+          checked={settings.show_favorites_section}
+          onChange={() => updateSettings({ show_favorites_section: !settings.show_favorites_section })}
+        />
+      </SettingRow>
+      <SettingRow label="Show Folders">
+        <Toggle
+          checked={settings.show_folders_section}
+          onChange={() => updateSettings({ show_folders_section: !settings.show_folders_section })}
+        />
+      </SettingRow>
+      <SettingRow label="Show Tags">
+        <Toggle
+          checked={settings.show_tags_section}
+          onChange={() => updateSettings({ show_tags_section: !settings.show_tags_section })}
+        />
+      </SettingRow>
+    </>
   );
 }
 

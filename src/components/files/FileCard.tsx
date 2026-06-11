@@ -11,6 +11,10 @@ import type { FileEntry, FileType, FileContent } from "../../types";
 interface FileCardProps {
   entry: FileEntry;
   selected: boolean;
+  renaming?: boolean;
+  onRename?: (newName: string) => void;
+  onCancelRename?: () => void;
+  onStartRename?: () => void;
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
@@ -240,13 +244,14 @@ function TextSnippetPreview({ path }: { path: string }) {
   );
 }
 
-export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMenu, draggable, onDragStart, onFileDrop }: FileCardProps) {
+export function FileCard({ entry, selected, renaming, onRename, onCancelRename, onStartRename, onClick, onDoubleClick, onContextMenu, draggable, onDragStart, onFileDrop }: FileCardProps) {
   const fileType = entry.file_type as FileType;
   const isImage = fileType === "image";
   const isVideo = fileType === "video";
   const isDir = entry.is_dir;
   const [duration, setDuration] = useState<number | null>(null);
   const [isDragTarget, setIsDragTarget] = useState(false);
+  const [renameValue, setRenameValue] = useState(entry.name);
 
   const ext = entry.name.split(".").pop()?.toUpperCase() || "";
 
@@ -263,7 +268,7 @@ export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMen
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
-      draggable={draggable}
+      draggable={draggable && !renaming}
       onDragStart={onDragStart}
       onDragOver={isDir && onFileDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setIsDragTarget(true); } : undefined}
       onDragLeave={isDir ? () => setIsDragTarget(false) : undefined}
@@ -300,12 +305,34 @@ export function FileCard({ entry, selected, onClick, onDoubleClick, onContextMen
       </div>
 
       <div className="px-2.5 py-2">
-        <p className={clsx(
-          "text-[var(--font-sm)] truncate leading-tight",
-          selected ? "text-text font-medium" : "text-text"
-        )}>
-          {entry.name}
-        </p>
+        {renaming ? (
+          <input
+            autoFocus
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation();
+              if (e.key === "Enter" && renameValue.trim() && renameValue !== entry.name) {
+                onRename?.(renameValue.trim());
+              } else if (e.key === "Enter" || e.key === "Escape") {
+                onCancelRename?.();
+              }
+            }}
+            onBlur={() => onCancelRename?.()}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full bg-bg border border-accent rounded px-1.5 py-0 text-[var(--font-sm)] text-text outline-none"
+          />
+        ) : (
+          <p
+            onDoubleClick={onStartRename ? (e) => { e.stopPropagation(); onStartRename(); } : undefined}
+            className={clsx(
+              "text-[var(--font-sm)] truncate leading-tight",
+              selected ? "text-text font-medium" : "text-text"
+            )}
+          >
+            {entry.name}
+          </p>
+        )}
         <div className="flex items-center justify-between mt-1">
           <span className="text-[var(--font-xs)] text-text-muted">
             {isDir ? "Folder" : formatSize(entry.size)}

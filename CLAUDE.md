@@ -52,6 +52,13 @@ src-tauri/           # Rust backend
 - Settings stored at platform config dir via the `directories` crate
 - All rendering is native to the app — never launch external apps or browsers
 - Browser default context menu is disabled globally (app provides its own)
+- **Flex rows must not clip:** any flex row mixing a flexible text child with fixed
+  trailing elements (shortcut hints, icons, badges) must give the text child
+  `flex-1 min-w-0 truncate` and the fixed children `shrink-0`. Without `min-w-0`
+  a flex item won't shrink below its content width, pushing trailing elements past
+  the container edge. This is the root cause of recurring menu/settings clipping.
+- Floating UI (context menus, popovers) must clamp to the viewport after mount
+  (measure rect, shift left/up by overflow, keep an 8px margin)
 
 ## Key Keyboard Shortcuts
 - ↑/↓ Navigate files, Enter open/enter dir, Backspace go up

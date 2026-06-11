@@ -529,10 +529,11 @@ export function Sidebar() {
   const refreshTrigger = useNavigationStore((s) => s.refreshTrigger);
   const settings = useSettingsStore((s) => s.settings);
 
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
   const [rootDirs, setRootDirs] = useState<FileEntry[]>([]);
-  const [showFavorites, setShowFavorites] = useState(true);
-  const [showFolders, setShowFolders] = useState(true);
-  const [showTags, setShowTags] = useState(true);
+  const showFavorites = settings.show_favorites_section;
+  const showFolders = settings.show_folders_section;
+  const showTags = settings.show_tags_section;
 
   const homeDir = settings.favorites[0] || "/Users";
 
@@ -551,26 +552,33 @@ export function Sidebar() {
     if (homeDir) loadRoot();
   }, [homeDir, refreshTrigger]);
 
-  const [favHeight, setFavHeight] = useState(140);
-  const [foldersHeight, setFoldersHeight] = useState(300);
+  const [favHeight, setFavHeight] = useState(settings.favorites_height || 140);
+  const [foldersHeight, setFoldersHeight] = useState(settings.folders_height || 300);
 
-  const handleDividerDrag = (setter: React.Dispatch<React.SetStateAction<number>>, min: number) => {
+  // Re-seed heights if settings load after mount.
+  useEffect(() => { setFavHeight(settings.favorites_height || 140); }, [settings.favorites_height]);
+  useEffect(() => { setFoldersHeight(settings.folders_height || 300); }, [settings.folders_height]);
+
+  const handleDividerDrag = (which: "fav" | "folders", min: number) => {
+    const setter = which === "fav" ? setFavHeight : setFoldersHeight;
     return (e: React.MouseEvent) => {
       e.preventDefault();
       const startY = e.clientY;
-      const startHeight = setter === setFavHeight ? favHeight : foldersHeight;
+      const startHeight = which === "fav" ? favHeight : foldersHeight;
       document.body.style.cursor = "row-resize";
       document.body.style.userSelect = "none";
 
+      let latest = startHeight;
       const onMove = (ev: MouseEvent) => {
-        const delta = ev.clientY - startY;
-        setter(Math.max(min, startHeight + delta));
+        latest = Math.max(min, startHeight + (ev.clientY - startY));
+        setter(latest);
       };
       const onUp = () => {
         document.body.style.cursor = "";
         document.body.style.userSelect = "";
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
+        updateSettings(which === "fav" ? { favorites_height: latest } : { folders_height: latest });
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
@@ -588,7 +596,7 @@ export function Sidebar() {
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
                 Favorites
               </h3>
-              <button onClick={() => setShowFavorites(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
+              <button onClick={() => updateSettings({ show_favorites_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <nav className="flex flex-col gap-[2px]">
               {defaultFavorites.map((item) => {
@@ -620,7 +628,7 @@ export function Sidebar() {
         {showFavorites && showFolders && (
           <div
             className="shrink-0 h-[7px] cursor-row-resize flex items-center justify-center group"
-            onMouseDown={handleDividerDrag(setFavHeight, 60)}
+            onMouseDown={handleDividerDrag("fav", 60)}
           >
             <div className="w-8 h-[3px] rounded-full bg-border group-hover:bg-accent/40 group-active:bg-accent transition-colors" />
           </div>
@@ -633,7 +641,7 @@ export function Sidebar() {
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
                 Folders
               </h3>
-              <button onClick={() => setShowFolders(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
+              <button onClick={() => updateSettings({ show_folders_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <div className="flex flex-col">
               {rootDirs.map((entry, idx) => (
@@ -655,7 +663,7 @@ export function Sidebar() {
         {showFolders && showTags && (
           <div
             className="shrink-0 h-[7px] cursor-row-resize flex items-center justify-center group"
-            onMouseDown={handleDividerDrag(setFoldersHeight, 80)}
+            onMouseDown={handleDividerDrag("folders", 80)}
           >
             <div className="w-8 h-[3px] rounded-full bg-border group-hover:bg-accent/40 group-active:bg-accent transition-colors" />
           </div>
@@ -666,7 +674,7 @@ export function Sidebar() {
           <div className="flex-1 overflow-auto pr-3 pb-3 min-h-[60px]" style={{ paddingLeft: "20px" }}>
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
-              <button onClick={() => setShowTags(false)} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
+              <button onClick={() => updateSettings({ show_tags_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <TagsSection />
           </div>
@@ -678,13 +686,13 @@ export function Sidebar() {
       {(!showFavorites || !showFolders || !showTags) && (
         <div className="px-4 py-2 border-t border-border shrink-0">
           {!showFavorites && (
-            <button onClick={() => setShowFavorites(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Favorites</button>
+            <button onClick={() => updateSettings({ show_favorites_section: true })} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Favorites</button>
           )}
           {!showFolders && (
-            <button onClick={() => setShowFolders(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Folders</button>
+            <button onClick={() => updateSettings({ show_folders_section: true })} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Folders</button>
           )}
           {!showTags && (
-            <button onClick={() => setShowTags(true)} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Tags</button>
+            <button onClick={() => updateSettings({ show_tags_section: true })} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Tags</button>
           )}
         </div>
       )}

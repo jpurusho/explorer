@@ -100,23 +100,25 @@ export const explorerTheme = EditorView.theme({
     fontSize: "12px",
     fontFamily: "'SF Mono', monospace",
   },
-}, { dark: true });
+});
 
+// Colors reference CSS variables (defined per-theme in globals.css) so syntax
+// highlighting tracks the active theme — light themes get dark-on-light colors.
 export const explorerHighlightStyle = HighlightStyle.define([
-  { tag: t.keyword, color: "#c678dd" },
-  { tag: [t.name, t.deleted, t.character, t.macroName], color: "#e06c75" },
-  { tag: [t.function(t.variableName), t.labelName], color: "#61afef" },
-  { tag: [t.color, t.constant(t.name), t.standard(t.name)], color: "#d19a66" },
-  { tag: [t.definition(t.name), t.separator], color: "#abb2bf" },
-  { tag: [t.typeName, t.className, t.number, t.changed, t.annotation, t.modifier, t.self, t.namespace], color: "#e5c07b" },
-  { tag: [t.operator, t.operatorKeyword, t.url, t.escape, t.regexp, t.link, t.special(t.string)], color: "#56b6c2" },
-  { tag: [t.meta, t.comment], color: "#7f848e", fontStyle: "italic" },
+  { tag: t.keyword, color: "var(--syn-keyword)" },
+  { tag: [t.name, t.deleted, t.character, t.macroName], color: "var(--syn-name)" },
+  { tag: [t.function(t.variableName), t.labelName], color: "var(--syn-function)" },
+  { tag: [t.color, t.constant(t.name), t.standard(t.name)], color: "var(--syn-constant)" },
+  { tag: [t.definition(t.name), t.separator], color: "var(--syn-definition)" },
+  { tag: [t.typeName, t.className, t.number, t.changed, t.annotation, t.modifier, t.self, t.namespace], color: "var(--syn-type)" },
+  { tag: [t.operator, t.operatorKeyword, t.url, t.escape, t.regexp, t.link, t.special(t.string)], color: "var(--syn-operator)" },
+  { tag: [t.meta, t.comment], color: "var(--syn-comment)", fontStyle: "italic" },
   { tag: t.strong, fontWeight: "bold" },
   { tag: t.emphasis, fontStyle: "italic" },
   { tag: t.strikethrough, textDecoration: "line-through" },
-  { tag: t.link, color: "#61afef", textDecoration: "underline" },
-  { tag: t.heading, fontWeight: "bold", color: "#e06c75" },
-  { tag: [t.atom, t.bool, t.special(t.variableName)], color: "#d19a66" },
-  { tag: [t.processingInstruction, t.string, t.inserted], color: "#98c379" },
+  { tag: t.link, color: "var(--syn-link)", textDecoration: "underline" },
+  { tag: t.heading, fontWeight: "bold", color: "var(--syn-heading)" },
+  { tag: [t.atom, t.bool, t.special(t.variableName)], color: "var(--syn-constant)" },
+  { tag: [t.processingInstruction, t.string, t.inserted], color: "var(--syn-string)" },
   { tag: t.invalid, color: "#ff0000" },
 ]);
