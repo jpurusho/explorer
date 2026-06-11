@@ -10,6 +10,7 @@ import { SearchBar } from "../search/SearchBar";
 import { GlobalSearch } from "../search/GlobalSearch";
 import { CommandPalette } from "../CommandPalette";
 import { SettingsPanel } from "../settings/SettingsPanel";
+import { ScratchPad } from "../scratch/ScratchPad";
 import { Toaster } from "../Toaster";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useNavigationStore } from "../../stores/navigationStore";
@@ -26,6 +27,7 @@ export function AppShell() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string | undefined>(undefined);
+  const [scratchOpen, setScratchOpen] = useState(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const persistWidths = useCallback((sw: number, pw: number) => {
@@ -80,6 +82,10 @@ export function AppShell() {
         setSettingsTab("shortcuts");
         setSettingsOpen(true);
       }
+      if (e.metaKey && e.key === "e") {
+        e.preventDefault();
+        setScratchOpen((s) => !s);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
@@ -106,7 +112,7 @@ export function AppShell() {
     <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onOpenSettings={() => { setCommandPaletteOpen(false); setSettingsOpen(true); }} />
     <Toaster />
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden select-none">
-      <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} onOpenSearch={() => setGlobalSearchVisible(true)} />
+      <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} onOpenSearch={() => setGlobalSearchVisible(true)} onOpenScratch={() => setScratchOpen((s) => !s)} />
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
 
       <div className="flex-1 flex overflow-hidden">
@@ -124,6 +130,8 @@ export function AppShell() {
         <div style={{ width: previewWidth }} className="shrink-0 overflow-hidden border-l border-border">
           {settingsOpen ? (
             <SettingsPanel onClose={() => setSettingsOpen(false)} initialTab={settingsTab} />
+          ) : scratchOpen ? (
+            <ScratchPad onClose={() => setScratchOpen(false)} />
           ) : (
             <PreviewPanel />
           )}

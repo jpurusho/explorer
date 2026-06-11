@@ -4,6 +4,32 @@ use crate::log_info;
 use serde::Serialize;
 use std::path::Path;
 use tauri::State;
+use tauri_plugin_dialog::DialogExt;
+
+/// Show a native "Save As" dialog and write `content` to the chosen path.
+/// Returns the saved path, or None if the user cancelled. `default_name` seeds
+/// the filename; `start_dir` (if any) opens the dialog there.
+#[tauri::command]
+pub async fn save_text_file(
+    app: tauri::AppHandle,
+    content: String,
+    default_name: String,
+    start_dir: Option<String>,
+) -> Result<Option<String>, AppError> {
+    let mut builder = app.dialog().file().set_file_name(&default_name);
+    if let Some(dir) = start_dir.as_ref().filter(|d| !d.is_empty()) {
+        builder = builder.set_directory(dir);
+    }
+
+    let chosen = builder.blocking_save_file();
+    let path = match chosen {
+        Some(p) => p.into_path().map_err(|e| AppError::Other(e.to_string()))?,
+        None => return Ok(None),
+    };
+
+    std::fs::write(&path, content.as_bytes())?;
+    Ok(Some(path.to_string_lossy().to_string()))
+}
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FileOpResult {

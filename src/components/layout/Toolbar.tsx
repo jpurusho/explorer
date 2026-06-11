@@ -8,6 +8,7 @@ import {
   Search,
   Filter,
   X,
+  NotepadText,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -17,9 +18,10 @@ import { useFileListStore } from "../../stores/fileListStore";
 interface ToolbarProps {
   onOpenSettings: () => void;
   onOpenSearch?: () => void;
+  onOpenScratch?: () => void;
 }
 
-export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
+export function Toolbar({ onOpenSettings, onOpenSearch, onOpenScratch }: ToolbarProps) {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const canGoBack = useNavigationStore((s) => s.canGoBack);
   const canGoForward = useNavigationStore((s) => s.canGoForward);
@@ -135,6 +137,13 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
             <LayoutGrid size={14} strokeWidth={1.75} />
           </button>
           <div className="w-px h-3.5 bg-border/50 mx-1.5" />
+          <button
+            onClick={onOpenScratch}
+            className="p-1 rounded-[var(--radius-md)] text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+            title="Scratch Pad (⌘E)"
+          >
+            <NotepadText size={14} strokeWidth={1.75} />
+          </button>
           <button
             onClick={onOpenSettings}
             className="p-1 rounded-[var(--radius-md)] text-text-muted hover:bg-bg-hover hover:text-text-secondary"

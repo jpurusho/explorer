@@ -5,7 +5,7 @@ mod models;
 mod utils;
 
 use commands::archive::{list_archive_contents, extract_archive};
-use commands::file_ops::{copy_items, create_folder, duplicate_items, move_items, rename_item, trash_items};
+use commands::file_ops::{copy_items, create_folder, duplicate_items, move_items, rename_item, save_text_file, trash_items};
 use commands::preview::{convert_document_to_pdf, generate_document_preview, get_document_page_count};
 #[cfg(target_os = "macos")]
 use commands::native_preview::{close_native_preview, show_native_preview, NativePreviewState};
@@ -92,6 +92,7 @@ pub fn run() {
             duplicate_items,
             rename_item,
             create_folder,
+            save_text_file,
             get_all_tags,
             create_tag,
             update_tag,
