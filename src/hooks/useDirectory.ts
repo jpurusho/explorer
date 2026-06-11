@@ -80,6 +80,9 @@ export function useDirectory() {
   useEffect(() => {
     if (!currentPath) return;
 
+    let cancelled = false;
+    let resolvedUnlisten: (() => void) | null = null;
+
     // Delay watcher setup to avoid racing with initial list_directory
     const setupTimeout = setTimeout(() => {
       invoke("watch_directory", { path: currentPath }).catch(() => {});
@@ -95,10 +98,17 @@ export function useDirectory() {
       }
     });
 
+    // If the effect re-ran before listen() resolved, tear down immediately.
+    unlisten.then((fn) => {
+      if (cancelled) fn();
+      else resolvedUnlisten = fn;
+    });
+
     return () => {
+      cancelled = true;
       clearTimeout(setupTimeout);
       if (debounce) clearTimeout(debounce);
-      unlisten.then((fn) => fn());
+      if (resolvedUnlisten) resolvedUnlisten();
       invoke("unwatch_directory").catch(() => {});
     };
   }, [currentPath]);

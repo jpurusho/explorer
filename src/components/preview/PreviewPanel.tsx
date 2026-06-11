@@ -18,10 +18,8 @@ import { format } from "date-fns";
 import { detachPreview } from "../../lib/detachPreview";
 import { fetchFileContent, prefetchFileContent } from "../../lib/previewCache";
 import { formatSize } from "../../lib/formatters";
+import { editableTypes, renderableTypes, isPdf } from "./previewTypes";
 import type { FileContent, FileEntry, FileType } from "../../types";
-
-const editableTypes: FileType[] = ["text", "code", "markdown", "json", "yaml", "unknown"];
-const renderableTypes: FileType[] = ["markdown", "json", "yaml"];
 
 const DEBOUNCE_MS = 80;
 
@@ -224,7 +222,7 @@ export function PreviewPanel() {
       return <AudioPreview path={entry.path} name={entry.name} />;
     }
 
-    if (fileType === "document" && entry.name.toLowerCase().endsWith(".pdf")) {
+    if (fileType === "document" && isPdf(entry.name)) {
       return <PdfPreview path={entry.path} />;
     }
 

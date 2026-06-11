@@ -57,7 +57,7 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
             disabled={!canGoBack}
             title="Back (⌘[)"
             className={clsx(
-              "p-1.5 rounded-[5px] transition-colors",
+              "p-1.5 rounded-[var(--radius-md)] transition-colors",
               canGoBack
                 ? "hover:bg-bg-hover text-text-secondary active:bg-bg-tertiary"
                 : "text-text-muted/30 cursor-not-allowed"
@@ -70,7 +70,7 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
             disabled={!canGoForward}
             title="Forward (⌘])"
             className={clsx(
-              "p-1.5 rounded-[5px] transition-colors",
+              "p-1.5 rounded-[var(--radius-md)] transition-colors",
               canGoForward
                 ? "hover:bg-bg-hover text-text-secondary active:bg-bg-tertiary"
                 : "text-text-muted/30 cursor-not-allowed"
@@ -84,7 +84,7 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
         <div data-tauri-drag-region className="flex-1 flex items-center gap-0 overflow-hidden mx-1">
           <button
             onClick={() => navigateTo("/")}
-            className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[3px] hover:bg-bg-hover"
+            className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[var(--radius-md)] hover:bg-bg-hover"
           >
             /
           </button>
@@ -93,11 +93,11 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
             const isLast = i === pathParts.length - 1;
             return (
               <span key={fullPath} className="flex items-center shrink-0" data-tauri-drag-region>
-                <span data-tauri-drag-region className="text-text-muted/30 text-[10px] mx-0.5">/</span>
+                <span data-tauri-drag-region className="text-text-muted/60 text-[var(--font-xs)] mx-0.5">/</span>
                 <button
                   onClick={() => navigateTo(fullPath)}
                   className={clsx(
-                    "text-[var(--font-base)] px-1 py-0.5 rounded-[3px] hover:bg-bg-hover truncate max-w-[140px]",
+                    "text-[var(--font-base)] px-1 py-0.5 rounded-[var(--radius-md)] hover:bg-bg-hover truncate max-w-[140px]",
                     isLast ? "text-text font-medium" : "text-text-muted"
                   )}
                 >
@@ -113,7 +113,7 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
           <button
             onClick={() => setViewMode("list")}
             className={clsx(
-              "p-1 rounded-[3px]",
+              "p-1 rounded-[var(--radius-md)]",
               viewMode === "list"
                 ? "bg-bg-tertiary text-text"
                 : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
@@ -125,7 +125,7 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
           <button
             onClick={() => setViewMode("grid")}
             className={clsx(
-              "p-1 rounded-[3px]",
+              "p-1 rounded-[var(--radius-md)]",
               viewMode === "grid"
                 ? "bg-bg-tertiary text-text"
                 : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
@@ -137,7 +137,7 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
           <div className="w-px h-3.5 bg-border/50 mx-1.5" />
           <button
             onClick={onOpenSettings}
-            className="p-1 rounded-[3px] text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+            className="p-1 rounded-[var(--radius-md)] text-text-muted hover:bg-bg-hover hover:text-text-secondary"
             title="Settings (⌘,)"
           >
             <Settings size={14} strokeWidth={1.75} />
@@ -156,8 +156,8 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
           className="flex-1 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-tertiary/50 border border-border/30 hover:border-border hover:bg-bg-tertiary transition-colors text-left"
         >
           <Search size={13} className="text-text-muted shrink-0" />
-          <span className="text-[var(--font-xs)] text-text-muted/50 flex-1">Search files and folders...</span>
-          <kbd className="text-[10px] text-text-muted/40 font-mono shrink-0">⌘P</kbd>
+          <span className="text-[var(--font-xs)] text-text-muted/70 flex-1">Search files and folders...</span>
+          <kbd className="text-[var(--font-xs)] text-text-muted/40 font-mono shrink-0">⌘P</kbd>
         </button>
 
         {/* Filter input */}
@@ -190,7 +190,7 @@ export function Toolbar({ onOpenSettings, onOpenSearch }: ToolbarProps) {
                   onChange={(e) => setFilterInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Escape") { setFilterInput(""); filterInputRef.current?.blur(); } }}
                   placeholder="Filter: *.png"
-                  className="w-24 bg-transparent text-[var(--font-xs)] text-text outline-none placeholder:text-text-muted/40"
+                  className="w-24 bg-transparent text-[var(--font-xs)] text-text outline-none placeholder:text-text-muted/60"
                 />
               </div>
             </form>

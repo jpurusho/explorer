@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { FileIcon } from "./FileIcon";
 import { Folder, Play, ExternalLink } from "lucide-react";
 import { detachPreview } from "../../lib/detachPreview";
-import { formatSize, formatDuration } from "../../lib/formatters";
+import { formatSize, formatDuration, imageMimeFromPath } from "../../lib/formatters";
 import { getThumbnail, setThumbnail } from "../../lib/thumbnailCache";
 import type { FileEntry, FileType, FileContent } from "../../types";
 
@@ -36,13 +36,7 @@ function ImageThumbnail({ path }: { path: string }) {
     }).catch(() => {
       invoke<string>("read_image_base64", { path }).then((base64) => {
         if (cancelled) return;
-        const ext = path.split(".").pop()?.toLowerCase() || "png";
-        const mime = ext === "jpg" || ext === "jpeg" ? "image/jpeg"
-          : ext === "gif" ? "image/gif"
-          : ext === "webp" ? "image/webp"
-          : ext === "svg" ? "image/svg+xml"
-          : "image/png";
-        const dataUrl = `data:${mime};base64,${base64}`;
+        const dataUrl = `data:${imageMimeFromPath(path)};base64,${base64}`;
         setThumbnail(path, dataUrl);
         setSrc(dataUrl);
       }).catch(() => {});

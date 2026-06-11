@@ -7,6 +7,15 @@ import { useSettingsStore } from "../../stores/settingsStore";
 import { useTagStore } from "../../stores/tagStore";
 import type { FileEntry } from "../../types";
 
+/** List a directory's visible subdirectories, sorted by name. Shared by the
+ *  tree's load/refresh/expand paths so the filter+sort logic lives in one place. */
+async function loadChildDirs(path: string): Promise<FileEntry[]> {
+  const entries = await invoke<FileEntry[]>("list_directory", { path });
+  return entries
+    .filter((e) => e.is_dir && !e.is_hidden)
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+}
+
 function FoldIcon({ expanded }: { expanded: boolean }) {
   return (
     <svg
@@ -53,25 +62,22 @@ function TreeItem({
 
   useEffect(() => {
     if (isParentOfCurrent && !expanded && children === null) {
-      invoke<FileEntry[]>("list_directory", { path: entry.path }).then((entries) => {
-        const dirs = entries
-          .filter((e) => e.is_dir && !e.is_hidden)
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-        setChildren(dirs);
-        setExpanded(true);
-      }).catch(() => setChildren([]));
+      let cancelled = false;
+      loadChildDirs(entry.path)
+        .then((dirs) => { if (!cancelled) { setChildren(dirs); setExpanded(true); } })
+        .catch(() => { if (!cancelled) setChildren([]); });
+      return () => { cancelled = true; };
     }
   }, [isParentOfCurrent]);
 
   // Refresh children when directory contents change
   useEffect(() => {
     if (expanded && children !== null) {
-      invoke<FileEntry[]>("list_directory", { path: entry.path }).then((entries) => {
-        const dirs = entries
-          .filter((e) => e.is_dir && !e.is_hidden)
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-        setChildren(dirs);
-      }).catch(() => {});
+      let cancelled = false;
+      loadChildDirs(entry.path)
+        .then((dirs) => { if (!cancelled) setChildren(dirs); })
+        .catch(() => {});
+      return () => { cancelled = true; };
     }
   }, [refreshTrigger]);
 
@@ -79,11 +85,7 @@ function TreeItem({
     e.stopPropagation();
     if (!expanded && children === null) {
       try {
-        const entries = await invoke<FileEntry[]>("list_directory", { path: entry.path });
-        const dirs = entries
-          .filter((e) => e.is_dir && !e.is_hidden)
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-        setChildren(dirs);
+        setChildren(await loadChildDirs(entry.path));
       } catch {
         setChildren([]);
       }
@@ -95,6 +97,11 @@ function TreeItem({
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null);
   const expandTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragCountRef = useRef(0);
+
+  // Clear the pending drag-hover expand timer on unmount.
+  useEffect(() => () => {
+    if (expandTimerRef.current) clearTimeout(expandTimerRef.current);
+  }, []);
 
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify([entry.path]));
@@ -110,11 +117,7 @@ function TreeItem({
       expandTimerRef.current = setTimeout(async () => {
         if (!expanded) {
           try {
-            const entries = await invoke<FileEntry[]>("list_directory", { path: entry.path });
-            const dirs = entries
-              .filter((e) => e.is_dir && !e.is_hidden)
-              .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-            setChildren(dirs);
+            setChildren(await loadChildDirs(entry.path));
             setExpanded(true);
           } catch {
             setChildren([]);
@@ -172,7 +175,7 @@ function TreeItem({
       <div
         className={clsx(
           "flex items-center py-[2px] cursor-default relative",
-          "transition-colors duration-75 rounded-[3px]",
+          "transition-colors duration-75 rounded-[var(--radius-md)]",
           isActive
             ? "bg-accent/12 text-accent"
             : isParentOfCurrent
@@ -436,7 +439,7 @@ function TagsSection() {
                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; }}
                   onDrop={(e) => handleDrop(e, tag.id)}
                   className={clsx(
-                    "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[5px] text-left w-full",
+                    "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[var(--radius-md)] text-left w-full",
                     "transition-colors duration-75",
                     activeTagFilter === tag.id
                       ? "bg-accent/12 text-accent font-medium"
@@ -597,7 +600,7 @@ export function Sidebar() {
                     key={fullPath}
                     onClick={() => navigateTo(fullPath)}
                     className={clsx(
-                      "flex items-center gap-2.5 px-2.5 py-[5px] rounded-[5px] text-left w-full",
+                      "flex items-center gap-2.5 px-2.5 py-[5px] rounded-[var(--radius-md)] text-left w-full",
                       "transition-colors duration-75",
                       isActive
                         ? "bg-accent/12 text-accent font-medium"

@@ -28,6 +28,12 @@ pub fn run() {
     let index_read = index_db.read_conn.clone();
     let index_flag = index_db.indexing.clone();
     std::thread::spawn(move || {
+        // Bound the on-disk caches so they don't grow without limit over time.
+        utils::cache::prune_dir(&std::env::temp_dir().join("explorer_previews"), 200 * 1024 * 1024);
+        if let Some(dirs) = directories::ProjectDirs::from("com", "explorer", "Explorer") {
+            utils::cache::prune_dir(dirs.cache_dir(), 300 * 1024 * 1024);
+        }
+
         let db = indexer::IndexDb { conn: index_conn, read_conn: index_read, indexing: index_flag };
         let roots = crate::commands::search::get_index_roots_from_settings();
         if needs_rebuild || file_count == 0 {

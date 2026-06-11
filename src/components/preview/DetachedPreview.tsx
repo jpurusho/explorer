@@ -14,9 +14,8 @@ import { Editor } from "../editor/Editor";
 import { useTheme } from "../../hooks/useTheme";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useFontThemeStore } from "../../stores/fontThemeStore";
+import { editableTypes, isPdf } from "./previewTypes";
 import type { FileContent, FileType } from "../../types";
-
-const editableTypes: FileType[] = ["text", "code", "markdown", "json", "yaml", "unknown"];
 
 export function DetachedPreview() {
   const [content, setContent] = useState<FileContent | null>(null);
@@ -63,7 +62,7 @@ export function DetachedPreview() {
       return <AudioPreview path={filePath} name={fileName} />;
     }
 
-    if (fileType === "document" && fileName.toLowerCase().endsWith(".pdf")) {
+    if (fileType === "document" && isPdf(fileName)) {
       return <PdfPreview path={filePath} />;
     }
 

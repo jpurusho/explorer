@@ -59,6 +59,7 @@ pub async fn move_items(paths: Vec<String>, destination: String, index: State<'_
 
     let mut succeeded = 0u32;
     let mut failed = Vec::new();
+    let mut created_paths = Vec::new();
 
     for path_str in &paths {
         let source = Path::new(path_str);
@@ -84,12 +85,13 @@ pub async fn move_items(paths: Vec<String>, destination: String, index: State<'_
         match std::fs::rename(source, &target) {
             Ok(_) => {
                 succeeded += 1;
+                created_paths.push(target.to_string_lossy().to_string());
                 index.remove_path(source);
                 index.upsert_path(&target);
             }
             Err(e) => {
-                // Cross-device: fallback to copy + delete
-                if e.raw_os_error() == Some(18) {
+                // Cross-device (EXDEV): fall back to copy + delete.
+                if is_cross_device(&e) {
                     match copy_recursive(source, &target) {
                         Ok(_) => {
                             if source.is_dir() {
@@ -100,6 +102,7 @@ pub async fn move_items(paths: Vec<String>, destination: String, index: State<'_
                             index.remove_path(source);
                             index.upsert_path(&target);
                             succeeded += 1;
+                            created_paths.push(target.to_string_lossy().to_string());
                         }
                         Err(ce) => failed.push(FileOpError {
                             path: path_str.clone(),
@@ -116,7 +119,17 @@ pub async fn move_items(paths: Vec<String>, destination: String, index: State<'_
         }
     }
 
-    Ok(FileOpResult { succeeded, failed, created_paths: vec![] })
+    Ok(FileOpResult { succeeded, failed, created_paths })
+}
+
+/// EXDEV detection. `ErrorKind::CrossesDevices` is the portable check; fall back
+/// to the raw errno (18 on macOS/Linux) on older toolchains.
+fn is_cross_device(e: &std::io::Error) -> bool {
+    #[allow(unreachable_patterns)]
+    match e.kind() {
+        std::io::ErrorKind::CrossesDevices => true,
+        _ => e.raw_os_error() == Some(18),
+    }
 }
 
 #[tauri::command]
@@ -129,6 +142,7 @@ pub async fn copy_items(paths: Vec<String>, destination: String, index: State<'_
 
     let mut succeeded = 0u32;
     let mut failed = Vec::new();
+    let mut created_paths = Vec::new();
 
     for path_str in &paths {
         let source = Path::new(path_str);
@@ -151,6 +165,7 @@ pub async fn copy_items(paths: Vec<String>, destination: String, index: State<'_
         match copy_recursive(source, &target) {
             Ok(_) => {
                 succeeded += 1;
+                created_paths.push(target.to_string_lossy().to_string());
                 index.upsert_path(&target);
             }
             Err(e) => failed.push(FileOpError {
@@ -160,7 +175,7 @@ pub async fn copy_items(paths: Vec<String>, destination: String, index: State<'_
         }
     }
 
-    Ok(FileOpResult { succeeded, failed, created_paths: vec![] })
+    Ok(FileOpResult { succeeded, failed, created_paths })
 }
 
 #[tauri::command]

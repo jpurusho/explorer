@@ -4,6 +4,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { check, type Update, type DownloadEvent } from "@tauri-apps/plugin-updater";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
+import { formatSize } from "../../lib/formatters";
 import { Folder, File, Eye, GitBranch, Download } from "lucide-react";
 
 interface GitStatus {
@@ -16,13 +17,7 @@ interface GitStatus {
   behind: number;
 }
 
-function formatTotalSize(bytes: number): string {
-  if (bytes === 0) return "0 B";
-  const units = ["B", "KB", "MB", "GB", "TB"];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  const value = bytes / Math.pow(1024, i);
-  return `${value.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
-}
+const formatTotalSize = (bytes: number) => formatSize(bytes, { zero: "0 B" });
 
 export function StatusBar() {
   const visibleEntries = useFileListStore((s) => s.visibleEntries);

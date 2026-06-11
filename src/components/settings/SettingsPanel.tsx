@@ -6,6 +6,7 @@ import { useSettingsStore } from "../../stores/settingsStore";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useFontThemeStore } from "../../stores/fontThemeStore";
 import { themes } from "../../lib/themes";
+import { formatSize } from "../../lib/formatters";
 import type { AppSettings } from "../../types";
 
 interface SettingsPanelProps {
@@ -319,7 +320,7 @@ function ShortcutsTab() {
                 <tr key={i} className="border-b border-border/15 last:border-b-0">
                   <td className="py-1.5 text-[var(--font-xs)] text-text-muted pr-4">{desc}</td>
                   <td className="py-1.5 text-right">
-                    <kbd className="text-[10px] font-mono bg-bg-tertiary border border-border/50 rounded px-1.5 py-0.5 text-text-secondary whitespace-nowrap">
+                    <kbd className="text-[var(--font-xs)] font-mono bg-bg-tertiary border border-border/50 rounded px-1.5 py-0.5 text-text-secondary whitespace-nowrap">
                       {key}
                     </kbd>
                   </td>
@@ -345,12 +346,7 @@ function SearchTab() {
     return () => clearInterval(interval);
   }, []);
 
-  const formatBytes = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-  };
+  const formatBytes = (bytes: number) => formatSize(bytes, { zero: "0 B" });
 
   return (
     <div>
@@ -359,19 +355,19 @@ function SearchTab() {
           <div className="grid grid-cols-2 gap-2">
             <div className="text-center py-2">
               <div className="text-[var(--font-md)] text-text font-bold">{stats.file_count.toLocaleString()}</div>
-              <div className="text-[10px] text-text-muted">Files</div>
+              <div className="text-[var(--font-xs)] text-text-muted">Files</div>
             </div>
             <div className="text-center py-2">
               <div className="text-[var(--font-md)] text-text font-bold">{stats.dir_count.toLocaleString()}</div>
-              <div className="text-[10px] text-text-muted">Folders</div>
+              <div className="text-[var(--font-xs)] text-text-muted">Folders</div>
             </div>
             <div className="text-center py-2">
               <div className="text-[var(--font-md)] text-text font-bold">{stats.trigram_count.toLocaleString()}</div>
-              <div className="text-[10px] text-text-muted">Trigrams</div>
+              <div className="text-[var(--font-xs)] text-text-muted">Trigrams</div>
             </div>
             <div className="text-center py-2">
               <div className="text-[var(--font-md)] text-text font-bold">{formatBytes(stats.db_size_bytes)}</div>
-              <div className="text-[10px] text-text-muted">Size</div>
+              <div className="text-[var(--font-xs)] text-text-muted">Size</div>
             </div>
           </div>
         </Section>
@@ -398,7 +394,7 @@ function SearchTab() {
 
       <Section title="Indexed Paths" description="Directories included in the search index.">
         <IndexPathsEditor />
-        <p className="text-[10px] text-text-muted mt-2">
+        <p className="text-[var(--font-xs)] text-text-muted mt-2">
           Stored at ~/.config/explorer/index.db
         </p>
       </Section>
@@ -435,7 +431,7 @@ function IndexPathsEditor() {
       <div className="space-y-1 mb-2">
         {displayPaths.map((p, i) => (
           <div key={i} className="flex items-center justify-between gap-2 bg-bg-tertiary/50 rounded-md px-2.5 py-1.5">
-            <span className="truncate font-mono text-[10px] text-text-secondary">{p}</span>
+            <span className="truncate font-mono text-[var(--font-xs)] text-text-secondary">{p}</span>
             {paths.length > 0 && (
               <button onClick={() => removePath(i)} className="text-text-muted hover:text-red-400 shrink-0">
                 <X size={10} />
@@ -459,7 +455,7 @@ function IndexPathsEditor() {
           Add
         </button>
       </div>
-      <p className="text-[10px] text-text-muted mt-1.5">
+      <p className="text-[var(--font-xs)] text-text-muted mt-1.5">
         Empty = index all of $HOME. Reindex after changing paths.
       </p>
     </div>

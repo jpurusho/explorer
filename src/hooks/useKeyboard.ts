@@ -1,9 +1,7 @@
 import { useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
-import { useClipboardStore } from "../stores/clipboardStore";
-import { useUndoStore } from "../stores/undoStore";
+import { fileActions } from "./useFileActions";
 
 export function useKeyboard() {
   useEffect(() => {
@@ -64,12 +62,7 @@ export function useKeyboard() {
           case "Backspace":
             if (e.shiftKey) {
               e.preventDefault();
-              const paths = fileStore.getSelectedPaths();
-              if (paths.length > 0) {
-                invoke("trash_items", { paths }).then(() => {
-                  navStore.refreshCurrent();
-                });
-              }
+              fileActions.trash(fileStore.getSelectedPaths());
             } else {
               e.preventDefault();
               navStore.goUp();
@@ -84,89 +77,37 @@ export function useKeyboard() {
           case "c":
             if (!isEditing && !window.getSelection()?.toString()) {
               e.preventDefault();
-              const copyPaths = fileStore.getSelectedPaths();
-              if (copyPaths.length > 0) {
-                useClipboardStore.getState().setPaths(copyPaths, "copy");
-              }
+              fileActions.copy(fileStore.getSelectedPaths());
             }
             return;
           case "x":
             if (!isEditing) {
               e.preventDefault();
-              const cutPaths = fileStore.getSelectedPaths();
-              if (cutPaths.length > 0) {
-                useClipboardStore.getState().setPaths(cutPaths, "cut");
-              }
+              fileActions.cut(fileStore.getSelectedPaths());
             }
             return;
           case "v":
             if (!isEditing) {
               e.preventDefault();
-              const { paths: clipPaths, operation } = useClipboardStore.getState();
-              if (clipPaths.length === 0) return;
-              const dest = navStore.currentPath;
-              if (operation === "copy") {
-                invoke<{ succeeded: number }>("copy_items", { paths: clipPaths, destination: dest }).then((r) => {
-                  if (r.succeeded > 0) {
-                    const created = clipPaths.map((p) => {
-                      const name = p.split("/").pop()!;
-                      return `${dest}/${name}`;
-                    });
-                    useUndoStore.getState().push({ type: "copy", createdPaths: created });
-                  }
-                  navStore.refreshCurrent();
-                });
-              } else if (operation === "cut") {
-                invoke<{ succeeded: number }>("move_items", { paths: clipPaths, destination: dest }).then((r) => {
-                  if (r.succeeded > 0) {
-                    const moves = clipPaths.map((p) => ({
-                      from: p,
-                      to: `${dest}/${p.split("/").pop()!}`,
-                    }));
-                    useUndoStore.getState().push({ type: "move", moves });
-                  }
-                  useClipboardStore.getState().clear();
-                  navStore.refreshCurrent();
-                });
-              }
+              fileActions.paste(navStore.currentPath);
             }
             return;
           case "z":
             if (!isEditing) {
               e.preventDefault();
-              useUndoStore.getState().undo().then(() => {
-                navStore.refreshCurrent();
-              });
+              fileActions.undo();
             }
             return;
           case "d":
             if (!isEditing) {
               e.preventDefault();
-              const dupPaths = fileStore.getSelectedPaths();
-              if (dupPaths.length > 0) {
-                invoke<{ succeeded: number; created_paths?: string[] }>("duplicate_items", { paths: dupPaths }).then((r) => {
-                  if (r.created_paths && r.created_paths.length > 0) {
-                    useUndoStore.getState().push({ type: "duplicate", createdPaths: r.created_paths });
-                  }
-                  navStore.refreshCurrent();
-                });
-              }
+              fileActions.duplicate(fileStore.getSelectedPaths());
             }
             return;
           case "N":
             if (e.shiftKey && !isEditing) {
               e.preventDefault();
-              const dest = navStore.currentPath;
-              invoke("create_folder", { path: `${dest}/untitled folder` }).then(() => {
-                navStore.refreshCurrent();
-              }).catch(() => {
-                let i = 2;
-                const tryCreate = (): Promise<void> =>
-                  invoke("create_folder", { path: `${dest}/untitled folder ${i}` })
-                    .then(() => navStore.refreshCurrent())
-                    .catch(() => { i++; if (i < 100) return tryCreate(); });
-                tryCreate();
-              });
+              fileActions.newFolder(navStore.currentPath);
             }
             return;
         }
@@ -261,12 +202,7 @@ export function useKeyboard() {
 
         case "Delete":
         case "Backspace": {
-          const paths = fileStore.getSelectedPaths();
-          if (paths.length > 0) {
-            invoke("trash_items", { paths }).then(() => {
-              navStore.refreshCurrent();
-            });
-          }
+          fileActions.trash(fileStore.getSelectedPaths());
           break;
         }
       }

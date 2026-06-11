@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
@@ -11,8 +10,10 @@ import { SearchBar } from "../search/SearchBar";
 import { GlobalSearch } from "../search/GlobalSearch";
 import { CommandPalette } from "../CommandPalette";
 import { SettingsPanel } from "../settings/SettingsPanel";
+import { Toaster } from "../Toaster";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useNavigationStore } from "../../stores/navigationStore";
+import { fileActions } from "../../hooks/useFileActions";
 import { openNewWindow } from "../../lib/detachPreview";
 
 export function AppShell() {
@@ -92,9 +93,7 @@ export function AppShell() {
         const paths = event.payload.paths;
         if (paths.length > 0) {
           const dest = useNavigationStore.getState().currentPath;
-          invoke("copy_items", { paths, destination: dest })
-            .then(() => useNavigationStore.getState().refreshCurrent())
-            .catch(() => {});
+          fileActions.importPaths(paths, dest);
         }
       }
     });
@@ -105,6 +104,7 @@ export function AppShell() {
     <>
     <GlobalSearch visible={globalSearchVisible} onClose={() => setGlobalSearchVisible(false)} />
     <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onOpenSettings={() => { setCommandPaletteOpen(false); setSettingsOpen(true); }} />
+    <Toaster />
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden select-none">
       <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} onOpenSearch={() => setGlobalSearchVisible(true)} />
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />

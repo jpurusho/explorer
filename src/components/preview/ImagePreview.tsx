@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Camera, Aperture, Clock, Sun } from "lucide-react";
+import { imageMimeFromPath } from "../../lib/formatters";
 import type { ExifData } from "../../types";
 
 interface ImagePreviewProps {
@@ -20,18 +21,7 @@ export function ImagePreview({ path, name }: ImagePreviewProps) {
       try {
         const base64 = await invoke<string>("read_image_base64", { path });
         if (!cancelled) {
-          const ext = path.split(".").pop()?.toLowerCase() || "png";
-          const mime =
-            ext === "jpg" || ext === "jpeg"
-              ? "image/jpeg"
-              : ext === "gif"
-              ? "image/gif"
-              : ext === "webp"
-              ? "image/webp"
-              : ext === "svg"
-              ? "image/svg+xml"
-              : "image/png";
-          setDataUrl(`data:${mime};base64,${base64}`);
+          setDataUrl(`data:${imageMimeFromPath(path)};base64,${base64}`);
         }
       } catch {
         if (!cancelled) setDataUrl(null);

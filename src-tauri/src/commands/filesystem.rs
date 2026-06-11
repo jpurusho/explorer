@@ -314,11 +314,19 @@ pub async fn read_exif_data(path: String) -> Result<ExifData, AppError> {
 
 #[tauri::command]
 pub async fn generate_thumbnail(path: String, size: u32) -> Result<String, AppError> {
+    // Image decode + encode is CPU-heavy and blocking; run it off the async
+    // runtime so concurrent gallery thumbnails don't starve runtime workers.
+    tauri::async_runtime::spawn_blocking(move || generate_thumbnail_blocking(&path, size))
+        .await
+        .map_err(|e| AppError::Other(format!("thumbnail task failed: {}", e)))?
+}
+
+fn generate_thumbnail_blocking(path: &str, size: u32) -> Result<String, AppError> {
     use base64::Engine;
     use image::GenericImageView;
     use sha2::{Sha256, Digest};
 
-    let file_path = Path::new(&path);
+    let file_path = Path::new(path);
     if !file_path.exists() {
         return Err(AppError::NotFound(format!("File not found: {}", path)));
     }

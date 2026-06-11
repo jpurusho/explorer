@@ -182,7 +182,7 @@ export function FileList() {
   const tableWidth = 24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0);
 
   return (
-    <div ref={parentRef} className="h-full overflow-auto file-list-font" style={{ minWidth: 0 }}>
+    <div ref={parentRef} className="h-full overflow-auto file-list-font px-2" style={{ minWidth: 0 }}>
       {/* Sticky header table */}
       <div className="sticky top-0 z-10 bg-bg">
         <table

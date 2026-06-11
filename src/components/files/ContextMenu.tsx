@@ -15,13 +15,14 @@ import {
   ChevronRight,
   Undo2,
 } from "lucide-react";
-import { invoke } from "@tauri-apps/api/core";
 import { clsx } from "clsx";
 import { detachPreview } from "../../lib/detachPreview";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useTagStore } from "../../stores/tagStore";
 import { useClipboardStore } from "../../stores/clipboardStore";
 import { useUndoStore } from "../../stores/undoStore";
+import { fileActions } from "../../hooks/useFileActions";
+import { previewableTypes } from "../preview/previewTypes";
 import type { FileEntry, FileType } from "../../types";
 
 interface ContextMenuProps {
@@ -59,7 +60,7 @@ function MenuItem({ icon, label, shortcut, onClick, destructive, disabled }: Men
       <span className={clsx("shrink-0", destructive ? "text-red-400" : "text-text-muted")}>{icon}</span>
       <span className={clsx("flex-1", destructive ? "text-red-400" : "text-text-secondary")}>{label}</span>
       {shortcut && (
-        <span className="text-[10px] text-text-muted/40 font-mono shrink-0">{shortcut}</span>
+        <span className="text-[var(--font-xs)] text-text-muted/40 font-mono shrink-0">{shortcut}</span>
       )}
     </button>
   );
@@ -200,12 +201,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
     });
   }, [x, y]);
 
-  const previewableTypes: FileType[] = ["image", "video", "audio", "markdown", "json", "yaml", "text", "code", "document", "archive", "unknown"];
-
-  const handleTrash = async () => {
-    const paths = entries.map((e) => e.path);
-    await invoke("trash_items", { paths }).catch(() => {});
-    refreshDirectory?.();
+  const handleTrash = () => {
+    fileActions.trash(entries.map((e) => e.path));
     onClose();
   };
 
@@ -290,7 +287,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         label="Copy"
         shortcut="⌘C"
         onClick={() => {
-          useClipboardStore.getState().setPaths(entries.map((e) => e.path), "copy");
+          fileActions.copy(entries.map((e) => e.path));
           onClose();
         }}
       />
@@ -299,7 +296,7 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         label="Cut"
         shortcut="⌘X"
         onClick={() => {
-          useClipboardStore.getState().setPaths(entries.map((e) => e.path), "cut");
+          fileActions.cut(entries.map((e) => e.path));
           onClose();
         }}
       />
@@ -308,13 +305,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         label="Paste"
         shortcut="⌘V"
         disabled={clipboard.paths.length === 0}
-        onClick={async () => {
-          const { paths, operation } = useClipboardStore.getState();
-          if (paths.length === 0) return;
-          const dest = currentPath;
-          if (operation === "copy") await invoke("copy_items", { paths, destination: dest });
-          else { await invoke("move_items", { paths, destination: dest }); useClipboardStore.getState().clear(); }
-          refreshDirectory?.();
+        onClick={() => {
+          fileActions.paste(currentPath);
           onClose();
         }}
       />
@@ -323,13 +315,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         icon={<CopyPlus size={13} />}
         label="Duplicate"
         shortcut="⌘D"
-        onClick={async () => {
-          const paths = entries.map((e) => e.path);
-          const r = await invoke<{ succeeded: number; created_paths?: string[] }>("duplicate_items", { paths });
-          if (r.created_paths && r.created_paths.length > 0) {
-            useUndoStore.getState().push({ type: "duplicate", createdPaths: r.created_paths });
-          }
-          refreshDirectory?.();
+        onClick={() => {
+          fileActions.duplicate(entries.map((e) => e.path));
           onClose();
         }}
       />
@@ -338,11 +325,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         icon={<FolderPlus size={13} />}
         label="New Folder"
         shortcut="⇧⌘N"
-        onClick={async () => {
-          const dest = currentPath;
-          try { await invoke("create_folder", { path: `${dest}/untitled folder` }); }
-          catch { for (let i = 2; i < 100; i++) { try { await invoke("create_folder", { path: `${dest}/untitled folder ${i}` }); break; } catch { continue; } } }
-          refreshDirectory?.();
+        onClick={() => {
+          fileActions.newFolder(currentPath);
           onClose();
         }}
       />
@@ -352,9 +336,8 @@ export function ContextMenu({ x, y, entries, onClose, onOpen, onRename }: Contex
         label="Undo"
         shortcut="⌘Z"
         disabled={!useUndoStore.getState().canUndo()}
-        onClick={async () => {
-          await useUndoStore.getState().undo();
-          refreshDirectory?.();
+        onClick={() => {
+          fileActions.undo();
           onClose();
         }}
       />
