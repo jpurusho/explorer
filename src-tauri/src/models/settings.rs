@@ -28,6 +28,7 @@ pub struct AppSettings {
     pub show_tags_section: bool,
     pub favorites_height: u32,
     pub folders_height: u32,
+    pub preview_max_mb: u32,
 }
 
 impl Default for AppSettings {
@@ -66,6 +67,7 @@ impl Default for AppSettings {
             show_tags_section: true,
             favorites_height: 140,
             folders_height: 300,
+            preview_max_mb: 5,
         }
     }
 }

@@ -13,7 +13,8 @@ A fast, keyboard-driven media file browser for macOS. Built with Tauri v2 (Rust 
 - Archive contents browsing (zip, tar.gz) without extracting
 
 **File Management**
-- Drag-and-drop within the app and from Finder/Desktop
+- Drag files within the app to move them into folders
+- ⌥ (Option) + drag to drag files out to other apps (Finder, terminal, etc.)
 - Copy, cut, paste, duplicate, rename, trash with keyboard shortcuts
 - Undo (Cmd+Z) for copy, move, and duplicate
 - Double-click a name (or Enter) to rename; right-click empty space for Paste / New Folder
@@ -21,6 +22,7 @@ A fast, keyboard-driven media file browser for macOS. Built with Tauri v2 (Rust 
 - Tag-aware search (`tag:name` or `#name`)
 - Free-form file filter (e.g. `*.png`, `.pdf`)
 - Multi-select with Cmd+click, Shift+click, Cmd+A
+- Configurable preview size limit (Settings → File Display)
 
 **Scratch Pad** (Cmd+E)
 - A built-in text formatter for cleaning up content before pasting elsewhere

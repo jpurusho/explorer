@@ -236,7 +236,27 @@ function FilesTab() {
         </select>
       </SettingRow>
       <SidebarSectionsRows />
+      <PreviewSizeRow />
     </Section>
+  );
+}
+
+function PreviewSizeRow() {
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  return (
+    <SettingRow label="Preview size limit">
+      <select
+        value={settings.preview_max_mb || 5}
+        onChange={(e) => updateSettings({ preview_max_mb: parseInt(e.target.value) })}
+        className="bg-bg-tertiary border border-border rounded-md px-2 py-1 text-[var(--font-xs)] text-text-secondary outline-none"
+        title="Max file size read for preview (larger files are truncated)"
+      >
+        {[1, 5, 10, 25, 50].map((mb) => (
+          <option key={mb} value={mb}>{mb} MB</option>
+        ))}
+      </select>
+    </SettingRow>
   );
 }
 
@@ -308,6 +328,8 @@ function ShortcutsTab() {
         ["⌘ ⇧ ⌫", "Move to Trash"],
         ["Delete / ⌫", "Move to Trash"],
         ["↵ / double-click name", "Rename"],
+        ["Drag", "Move into a folder"],
+        ["⌥ Drag", "Drag out to other apps"],
       ],
     },
     {

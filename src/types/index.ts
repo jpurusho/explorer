@@ -66,6 +66,7 @@ export interface AppSettings {
   show_tags_section: boolean;
   favorites_height: number;
   folders_height: number;
+  preview_max_mb: number;
 }
 
 export interface ExifData {

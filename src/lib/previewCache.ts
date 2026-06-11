@@ -1,11 +1,16 @@
 import { invoke } from "@tauri-apps/api/core";
+import { useSettingsStore } from "../stores/settingsStore";
 import type { FileContent } from "../types";
 
 const MAX_CACHE_SIZE = 10;
 
-// Preview read cap. Larger than the 1MB backend default so realistic JSON/log/
-// text files parse fully, but still bounded so a giant file can't hang the UI.
-const PREVIEW_MAX_BYTES = 5_000_000;
+// Preview read cap, configurable via Settings (preview_max_mb). Bounds how much
+// of a large file is read for preview so a giant file can't hang the UI, while
+// being large enough that realistic JSON/log/text files parse fully.
+function previewMaxBytes(): number {
+  const mb = useSettingsStore.getState().settings.preview_max_mb || 5;
+  return mb * 1_000_000;
+}
 
 /**
  * Simple LRU cache for file content previews.
@@ -43,7 +48,7 @@ export async function fetchFileContent(path: string): Promise<FileContent> {
   const cached = cacheGet(path);
   if (cached) return cached;
 
-  const content = await invoke<FileContent>("read_file_content", { path, maxBytes: PREVIEW_MAX_BYTES });
+  const content = await invoke<FileContent>("read_file_content", { path, maxBytes: previewMaxBytes() });
   cacheSet(path, content);
   return content;
 }
@@ -54,7 +59,7 @@ export async function fetchFileContent(path: string): Promise<FileContent> {
  */
 export function prefetchFileContent(path: string): void {
   if (cache.has(path)) return;
-  invoke<FileContent>("read_file_content", { path, maxBytes: PREVIEW_MAX_BYTES })
+  invoke<FileContent>("read_file_content", { path, maxBytes: previewMaxBytes() })
     .then((content) => {
       cacheSet(path, content);
     })
