@@ -70,9 +70,13 @@ function TreeItem({
     }
   }, [isParentOfCurrent]);
 
-  // Refresh children when directory contents change
+  // Refresh children when directory contents change. Only re-list nodes on the
+  // current path's branch — otherwise EVERY expanded node re-runs list_directory
+  // on every refresh, and since the tree auto-expands and never collapses, each
+  // move fires an ever-growing storm of concurrent IPC calls (the beachball).
   useEffect(() => {
-    if (expanded && children !== null) {
+    const relevant = isActive || isParentOfCurrent;
+    if (expanded && children !== null && relevant) {
       let cancelled = false;
       loadChildDirs(entry.path)
         .then((dirs) => { if (!cancelled) setChildren(dirs); })
@@ -173,17 +177,7 @@ function TreeItem({
   return (
     <div>
       <div
-        className={clsx(
-          "flex items-center py-[2px] cursor-default relative",
-          "transition-colors duration-75 rounded-[var(--radius-md)]",
-          isActive
-            ? "bg-accent/12 text-accent"
-            : isParentOfCurrent
-            ? "text-text-secondary"
-            : "text-text-secondary hover:bg-bg-hover",
-          dragOver && "ring-2 ring-accent bg-accent/15"
-        )}
-        style={{ paddingRight: "6px" }}
+        className="flex items-center py-[2px] cursor-default relative"
         onClick={() => onNavigate(entry.path)}
         onContextMenu={handleContextMenu}
         draggable
@@ -194,7 +188,7 @@ function TreeItem({
         onDrop={handleDrop}
       >
         {/* Tree connector lines */}
-        <div className="flex items-center" style={{ width: `${depth * 16 + 4}px` }}>
+        <div className="flex items-center shrink-0" style={{ width: `${depth * 16 + 4}px` }}>
           {parentLines.map((hasLine, i) => (
             <div
               key={i}
@@ -218,23 +212,37 @@ function TreeItem({
           )}
         </div>
 
-        <button
-          onClick={toggleExpand}
-          className="flex items-center justify-center w-4 h-4 shrink-0"
+        {/* Highlight pill — hugs the folder name (truncates if long) rather than
+            spanning the whole row. */}
+        <div
+          className={clsx(
+            "flex items-center min-w-0 pr-2 rounded-[var(--radius-md)] transition-colors duration-75",
+            isActive
+              ? "bg-accent/12 text-accent"
+              : isParentOfCurrent
+              ? "text-text-secondary"
+              : "text-text-secondary hover:bg-bg-hover",
+            dragOver && "ring-2 ring-accent bg-accent/15"
+          )}
         >
-          <FoldIcon expanded={expanded} />
-        </button>
-        <Folder
-          size={13}
-          className={clsx("shrink-0 ml-0.5 mr-1.5", isActive ? "text-accent" : "text-folder")}
-          strokeWidth={1.75}
-        />
-        <span
-          className={clsx("leading-tight truncate", isActive ? "font-semibold text-text" : "text-text-secondary")}
-          style={{ fontSize: "var(--font-sidebar-item)" }}
-        >
-          {entry.name}
-        </span>
+          <button
+            onClick={toggleExpand}
+            className="flex items-center justify-center w-4 h-4 shrink-0"
+          >
+            <FoldIcon expanded={expanded} />
+          </button>
+          <Folder
+            size={13}
+            className={clsx("shrink-0 ml-0.5 mr-1.5", isActive ? "text-accent" : "text-folder")}
+            strokeWidth={1.75}
+          />
+          <span
+            className={clsx("leading-tight truncate", isActive ? "font-semibold text-text" : "text-text-secondary")}
+            style={{ fontSize: "var(--font-sidebar-item)" }}
+          >
+            {entry.name}
+          </span>
+        </div>
       </div>
 
       {expanded && children && (

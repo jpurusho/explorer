@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { toast } from "../../stores/toastStore";
+import { startNativeFileDrag } from "../../lib/dragOut";
 import { FileCard } from "./FileCard";
 import { ContextMenu } from "./ContextMenu";
 import type { FileEntry } from "../../types";
@@ -62,6 +63,14 @@ export function FileGrid() {
     if (paths.length === 0 || !paths.includes(entry.path)) {
       paths = [entry.path];
     }
+    // Hold Option (⌥) to drag OUT to other apps (native drag); plain drag moves
+    // within the app. The two can't coexist — a native drag hijacks the pointer.
+    // NOTE: do NOT preventDefault here — that cancels the drag gesture entirely.
+    if (e.altKey) {
+      startNativeFileDrag(paths);
+      return;
+    }
+
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify(paths));
     e.dataTransfer.effectAllowed = "copyMove";
 

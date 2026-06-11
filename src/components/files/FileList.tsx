@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { toast } from "../../stores/toastStore";
+import { startNativeFileDrag } from "../../lib/dragOut";
 import { FileListItem } from "./FileListItem";
 import { ContextMenu } from "./ContextMenu";
 import type { FileEntry, SortField } from "../../types";
@@ -138,6 +139,16 @@ export function FileList() {
     if (paths.length === 0 || !paths.includes(entry.path)) {
       paths = [entry.path];
     }
+    // Hold Option (⌥) to drag files OUT to other apps via a native OS drag.
+    // A native drag hijacks the pointer, so it can't coexist with the in-app
+    // HTML5 drag (which powers folder highlight, auto-expand, and move) — hence
+    // the modifier picks one. Plain drag = internal move.
+    // NOTE: do NOT preventDefault here — that cancels the drag gesture entirely.
+    if (e.altKey) {
+      startNativeFileDrag(paths);
+      return;
+    }
+
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify(paths));
     e.dataTransfer.effectAllowed = "copyMove";
 

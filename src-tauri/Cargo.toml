@@ -1,6 +1,6 @@
 [package]
 name = "explorer"
-version = "1.6.3"
+version = "1.6.4"
 description = "A native macOS filesystem explorer"
 authors = ["Jerome Purushotham"]
 edition = "2021"
@@ -39,3 +39,4 @@ tauri-plugin-process = "2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 flate2 = "1"
 tar = "0.4"
+tauri-plugin-drag = "2.1.1"

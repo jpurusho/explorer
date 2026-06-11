@@ -3,6 +3,10 @@ import type { FileContent } from "../types";
 
 const MAX_CACHE_SIZE = 10;
 
+// Preview read cap. Larger than the 1MB backend default so realistic JSON/log/
+// text files parse fully, but still bounded so a giant file can't hang the UI.
+const PREVIEW_MAX_BYTES = 5_000_000;
+
 /**
  * Simple LRU cache for file content previews.
  * Uses a Map where insertion order tracks recency (most recent at end).
@@ -39,7 +43,7 @@ export async function fetchFileContent(path: string): Promise<FileContent> {
   const cached = cacheGet(path);
   if (cached) return cached;
 
-  const content = await invoke<FileContent>("read_file_content", { path });
+  const content = await invoke<FileContent>("read_file_content", { path, maxBytes: PREVIEW_MAX_BYTES });
   cacheSet(path, content);
   return content;
 }
@@ -50,7 +54,7 @@ export async function fetchFileContent(path: string): Promise<FileContent> {
  */
 export function prefetchFileContent(path: string): void {
   if (cache.has(path)) return;
-  invoke<FileContent>("read_file_content", { path })
+  invoke<FileContent>("read_file_content", { path, maxBytes: PREVIEW_MAX_BYTES })
     .then((content) => {
       cacheSet(path, content);
     })

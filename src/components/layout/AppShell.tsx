@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Sidebar } from "./Sidebar";
 import { Toolbar } from "./Toolbar";
 import { ContentPanel } from "./ContentPanel";
@@ -13,8 +12,6 @@ import { SettingsPanel } from "../settings/SettingsPanel";
 import { ScratchPad } from "../scratch/ScratchPad";
 import { Toaster } from "../Toaster";
 import { useSettingsStore } from "../../stores/settingsStore";
-import { useNavigationStore } from "../../stores/navigationStore";
-import { fileActions } from "../../hooks/useFileActions";
 import { openNewWindow } from "../../lib/detachPreview";
 
 export function AppShell() {
@@ -108,20 +105,6 @@ export function AppShell() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // External drag-drop from Finder/Desktop
-  useEffect(() => {
-    const webview = getCurrentWebviewWindow();
-    const unlisten = webview.onDragDropEvent((event) => {
-      if (event.payload.type === "drop") {
-        const paths = event.payload.paths;
-        if (paths.length > 0) {
-          const dest = useNavigationStore.getState().currentPath;
-          fileActions.importPaths(paths, dest);
-        }
-      }
-    });
-    return () => { unlisten.then((fn) => fn()); };
-  }, []);
 
   return (
     <>

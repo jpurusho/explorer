@@ -67,6 +67,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
+        .plugin(tauri_plugin_drag::init())
         .register_asynchronous_uri_scheme_protocol("media", |_ctx, request, responder| {
             std::thread::spawn(move || {
                 let response = handle_media_request(&request);
