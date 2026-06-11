@@ -28,7 +28,24 @@ export function AppShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<string | undefined>(undefined);
   const [scratchOpen, setScratchOpen] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(() => window.innerWidth);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Track window width so the side panels can be clamped to never starve the
+  // center file list (e.g. when a wide preview width is restored on a narrower
+  // window after an update/relaunch).
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const MIN_CENTER = 320;
+  const effectiveSidebarWidth = Math.max(100, Math.min(sidebarWidth, windowWidth - MIN_CENTER - 200));
+  const effectivePreviewWidth = Math.max(
+    200,
+    Math.min(previewWidth, windowWidth - effectiveSidebarWidth - MIN_CENTER)
+  );
 
   const persistWidths = useCallback((sw: number, pw: number) => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
@@ -116,7 +133,7 @@ export function AppShell() {
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
 
       <div className="flex-1 flex overflow-hidden">
-        <div style={{ width: sidebarWidth }} className="shrink-0 border-r border-border bg-bg-secondary/60 backdrop-blur-xl">
+        <div style={{ width: effectiveSidebarWidth }} className="shrink-0 border-r border-border bg-bg-secondary/60 backdrop-blur-xl">
           <Sidebar />
         </div>
         <ResizeHandle onResize={handleSidebarResize} direction="left" />
@@ -127,7 +144,7 @@ export function AppShell() {
 
         <ResizeHandle onResize={handlePreviewResize} direction="right" />
 
-        <div style={{ width: previewWidth }} className="shrink-0 overflow-hidden border-l border-border">
+        <div style={{ width: effectivePreviewWidth }} className="shrink-0 overflow-hidden border-l border-border">
           {settingsOpen ? (
             <SettingsPanel onClose={() => setSettingsOpen(false)} initialTab={settingsTab} />
           ) : scratchOpen ? (
