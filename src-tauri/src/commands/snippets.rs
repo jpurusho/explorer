@@ -52,6 +52,135 @@ pub fn snippets_root() -> Result<PathBuf, AppError> {
     Ok(root)
 }
 
+const MARKDOWN_REFERENCE: &str = r#"# Markdown Quick Reference
+
+## Headers
+```
+# H1
+## H2
+### H3
+```
+
+## Emphasis
+```
+*italic* or _italic_
+**bold** or __bold__
+***bold italic***
+~~strikethrough~~
+```
+
+## Lists
+```
+- Unordered item
+- Another item
+  - Nested item
+
+1. Ordered item
+2. Another item
+
+- [ ] Task item
+- [x] Completed task
+```
+
+## Links & Images
+```
+[Link text](https://example.com)
+![Alt text](image.png)
+```
+
+## Code
+Inline `code` with backticks
+
+```javascript
+function hello() {
+  console.log("Hello!");
+}
+```
+
+## Blockquotes
+```
+> Quote text
+> continues here
+```
+
+## Tables
+```
+| Left | Center | Right |
+|:-----|:------:|------:|
+| A    | B      | C     |
+```
+
+## Horizontal Rules
+```
+---
+```
+
+## Mermaid Diagrams
+```mermaid
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[OK]
+  B -->|No| D[Cancel]
+```
+
+```mermaid
+sequenceDiagram
+  Alice->>Bob: Hello
+  Bob->>Alice: Hi!
+```
+"#;
+
+/// Create the default markdown-reference.md snippet if it doesn't exist.
+pub fn ensure_markdown_reference(db_path: &str) -> Result<(), AppError> {
+    let conn = Connection::open(db_path)?;
+    init_snippets_table(&conn)?;
+
+    // Check if markdown-reference.md already exists
+    let exists: bool = conn
+        .query_row(
+            "SELECT 1 FROM snippets WHERE title = 'markdown-reference.md' LIMIT 1",
+            [],
+            |_| Ok(true),
+        )
+        .unwrap_or(false);
+
+    if exists {
+        return Ok(());
+    }
+
+    // Create it
+    let id = uuid::Uuid::new_v4().to_string();
+    let now = chrono::Utc::now().to_rfc3339();
+
+    let snippet = Snippet {
+        id: id.clone(),
+        title: "markdown-reference.md".to_string(),
+        tier: SnippetTier::Local,
+        gist_id: None,
+        language: Some("markdown".to_string()),
+        created_at: now.clone(),
+        updated_at: now.clone(),
+    };
+
+    conn.execute(
+        "INSERT INTO snippets (id, title, tier, gist_id, language, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            &snippet.id,
+            &snippet.title,
+            snippet.tier.as_str(),
+            &snippet.gist_id,
+            &snippet.language,
+            &snippet.created_at,
+            &snippet.updated_at,
+        ],
+    )?;
+
+    let path = snippet_path(&snippet)?;
+    std::fs::write(&path, MARKDOWN_REFERENCE)?;
+
+    Ok(())
+}
+
 /// Path to the snippet's file on disk. For local: snippets/local/<title>.
 /// For gists: snippets/gists/<gist-id>/<filename>.
 pub fn snippet_path(snippet: &Snippet) -> Result<PathBuf, AppError> {
@@ -98,6 +227,7 @@ pub fn init_snippets_table(conn: &Connection) -> Result<(), AppError> {
 pub async fn list_snippets(db_path: String) -> Result<Vec<Snippet>, AppError> {
     let conn = Connection::open(&db_path)?;
     init_snippets_table(&conn)?;
+    ensure_markdown_reference(&db_path)?;
 
     let mut stmt = conn.prepare(
         "SELECT id, title, tier, gist_id, language, created_at, updated_at FROM snippets ORDER BY updated_at DESC",

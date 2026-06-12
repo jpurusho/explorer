@@ -231,11 +231,24 @@ async function getSnippetsRoot(): Promise<string> {
 
 async function handleSnippetClick(snippet: Snippet) {
   const root = await getSnippetsRoot();
-  const navigateTo = useNavigationStore.getState().navigateTo;
+  const { useFileListStore } = await import("../../stores/fileListStore");
+
+  // Compute the snippet's file path
+  let filePath: string;
   if (snippet.tier === "local") {
-    navigateTo(`${root}/local`);
+    filePath = `${root}/local/${snippet.title}`;
   } else {
-    // Gist tier — navigate to gists/<id>
-    navigateTo(`${root}/gists/${snippet.gist_id}`);
+    // Gist tier — file is at gists/<id>/<title>
+    filePath = `${root}/gists/${snippet.gist_id}/${snippet.title}`;
   }
+
+  // Navigate to the folder and select the file
+  const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
+  const navigateTo = useNavigationStore.getState().navigateTo;
+  navigateTo(folderPath);
+
+  // Select the specific file after a brief delay (folder load is async)
+  setTimeout(() => {
+    useFileListStore.setState({ selectedPath: filePath });
+  }, 100);
 }

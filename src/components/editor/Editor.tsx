@@ -7,11 +7,12 @@ import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
 import { syntaxHighlighting, defaultHighlightStyle, bracketMatching, foldGutter, foldKeymap } from "@codemirror/language";
 import { vim } from "@replit/codemirror-vim";
 import { invoke } from "@tauri-apps/api/core";
-import { WrapText } from "lucide-react";
+import { WrapText, HelpCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { getLanguageExtension } from "./languages";
 import { explorerTheme, explorerHighlightStyle } from "./theme";
 import { updateCache, emitContentUpdated } from "../../lib/previewCache";
+import { MarkdownReference } from "./MarkdownReference";
 
 interface EditorProps {
   path: string;
@@ -27,6 +28,9 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
   const [modified, setModified] = useState(false);
   const [savedMessage, setSavedMessage] = useState(false);
   const [wordWrap, setWordWrap] = useState(true);
+  const [showMarkdownHelp, setShowMarkdownHelp] = useState(false);
+
+  const isMarkdown = fileType === "markdown" || fileName.endsWith(".md");
 
   const saveFile = useCallback(async () => {
     if (!viewRef.current) return;
@@ -122,6 +126,15 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
           <span className="text-[var(--font-xs)] text-green-400 font-medium px-1.5 py-0.5 bg-green-400/10 rounded">Saved</span>
         )}
         <div className="flex-1" />
+        {isMarkdown && (
+          <button
+            onClick={() => setShowMarkdownHelp(true)}
+            className="p-1 rounded transition-colors text-text-muted hover:text-text-secondary hover:bg-bg-hover"
+            title="Markdown syntax help"
+          >
+            <HelpCircle size={13} />
+          </button>
+        )}
         <button
           onClick={() => setWordWrap((w) => !w)}
           className={clsx(
@@ -139,6 +152,9 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
 
       {/* Editor container */}
       <div ref={containerRef} className="flex-1 overflow-hidden editor-container" />
+
+      {/* Markdown help dialog */}
+      {showMarkdownHelp && <MarkdownReference onClose={() => setShowMarkdownHelp(false)} />}
     </div>
   );
 }
