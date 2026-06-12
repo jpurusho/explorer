@@ -25,7 +25,6 @@ dist-ssr
 
 # Rust / Cargo
 src-tauri/target/
-src-tauri/Cargo.lock
 
 # Tauri generated
 src-tauri/gen/
