@@ -97,6 +97,8 @@ Produces a signed `.app` bundle for macOS (Apple Silicon).
 | `Cmd+D` | Duplicate |
 | `Cmd+Z` | Undo last operation |
 | `Enter` / double-click name | Rename |
+| Drag | Move into a folder |
+| `Option`+Drag | Drag out to other apps |
 | `Cmd+Shift+Backspace` | Move to Trash |
 | `Cmd+Shift+N` | New Folder |
 | `Cmd+[` / `Cmd+]` | Back / Forward |
