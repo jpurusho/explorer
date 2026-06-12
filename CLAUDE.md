@@ -1,5 +1,37 @@
 # Explorer — Media-First File Viewer & Manager
 
+## Working with this project (read first)
+
+**Model selection.** Default to **Sonnet** for this project. Switch to
+**Opus** only for: root-causing nonobvious bugs that span multiple files,
+designing new subsystems (e.g. native drag, asset-protocol wiring,
+search index changes), or any "why isn't this working" investigation
+that requires holding several files in mind at once. Mechanical work —
+UI polish, version bumps, file edits with a clear spec, commit
+messages, small bug fixes with a known cause — should run on Sonnet.
+Past project totals were ~95% Opus and the dollar cost reflected that;
+most of those turns would have been just as good on Sonnet.
+
+**Where decisions live.** Anything that would otherwise be
+"established in conversation and forgotten by the next session" goes
+in `docs/decisions/` as a short ADR (Architecture Decision Record).
+Read `docs/decisions/README.md` for the format. If you find yourself
+about to give an explanation that future-me will need to re-derive
+("we picked X over Y because Z"), pause and write it as an ADR
+instead — then reference the ADR in the commit message. The repo is
+the durable spec; conversation context evaporates.
+
+**Token discipline.** This project pays for cache reads on every turn,
+so long conversations compound. After shipping a tag and starting an
+unrelated task, prefer a fresh session over continuing. Don't re-read
+files I just edited (the harness tracks state). For exploratory
+questions ("how does X work?"), ask in a new session — they're
+low-context and don't need the accumulated chat history.
+
+**Cost tally.** `python3 scripts/token_cost.py` walks all transcripts
+under `~/.claude/projects/-Users-jpurshot-experimental-explorer/` and
+prints token totals + an API-equivalent dollar estimate.
+
 ## Project Overview
 A Tauri v2 desktop app (Rust backend + React/TypeScript frontend) for viewing, previewing, and managing media files and documents. Rich inline previews, adjustable gallery grid, fast trigram-indexed search, keyboard-driven workflow, and multi-theme support.
 
@@ -50,8 +82,24 @@ src-tauri/           # Rust backend
 - State management: one Zustand store per domain (navigation, fileList, settings)
 - File type classification lives in Rust (models/file_entry.rs classify_file_type)
 - Settings stored at platform config dir via the `directories` crate
-- All rendering is native to the app — never launch external apps or browsers
+- All rendering is native to the app — never launch external apps or
+  browsers. Every preview, drag, and interaction stays inside Explorer.
 - Browser default context menu is disabled globally (app provides its own)
+- **Drag triggers:** in-app drag (folder→folder copy/move) is a normal
+  HTML5 click-and-drag. Drag-out to Finder/other apps is a **350ms
+  long-press, then drag** — escalates to a native `NSDraggingSession`
+  in `src-tauri/src/commands/drag.rs`. **Do not propose modifier-key
+  alternatives** (Cmd/Opt/Ctrl) — earlier Cmd+Opt collided with macOS
+  Hide Others; long-press is the deliberate replacement. See
+  `docs/decisions/0001-long-press-drag-out.md`.
+- **Releasing a tag:** ALWAYS bump all three manifests together —
+  `package.json`, `src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`
+  — and run `cargo check` so `Cargo.lock` updates. The auto-updater
+  parses `tauri.conf.json`'s version; mismatched manifests break it.
+- **Cargo.lock is committed** (it's an application crate, not a
+  library). v1.7.5 shipped broken because CI's `cargo update`
+  resolved a conflicting `time-macros` version. Don't re-add it to
+  `.gitignore`.
 - **Flex rows must not clip:** any flex row mixing a flexible text child with fixed
   trailing elements (shortcut hints, icons, badges) must give the text child
   `flex-1 min-w-0 truncate` and the fixed children `shrink-0`. Without `min-w-0`
