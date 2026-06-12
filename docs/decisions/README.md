@@ -50,6 +50,7 @@ Brief notes on options ruled out and why.
 - [0001 — Long-press drag-out, no modifier key](./0001-long-press-drag-out.md)
 - [0002 — Reject Tauri dragDropEnabled for drag-in](./0002-reject-tauri-dragdropenabled.md)
 - [0003 — Commit Cargo.lock for deterministic CI](./0003-commit-cargo-lock.md)
+- [0004 — Snippets feature with three storage tiers](./0004-snippets-storage-tiers.md)
 
 ## Linking
 
