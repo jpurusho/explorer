@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { X, Palette, Type, Layout, Keyboard, Search } from "lucide-react";
+import { X, Palette, Type, Layout, Keyboard, Search, Key } from "lucide-react";
 import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useFileListStore } from "../../stores/fileListStore";
@@ -14,7 +14,7 @@ interface SettingsPanelProps {
   initialTab?: string;
 }
 
-type SettingsTab = "appearance" | "font" | "files" | "shortcuts" | "search";
+type SettingsTab = "appearance" | "font" | "files" | "shortcuts" | "search" | "gists";
 
 const tabs: { id: SettingsTab; label: string; icon: typeof Palette }[] = [
   { id: "appearance", label: "Appearance", icon: Palette },
@@ -22,6 +22,7 @@ const tabs: { id: SettingsTab; label: string; icon: typeof Palette }[] = [
   { id: "files", label: "File Display", icon: Layout },
   { id: "shortcuts", label: "Shortcuts", icon: Keyboard },
   { id: "search", label: "Search Index", icon: Search },
+  { id: "gists", label: "Gists", icon: Key },
 ];
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
@@ -515,6 +516,112 @@ function IndexPathsEditor() {
   );
 }
 
+function GistsTab() {
+  const [token, setToken] = useState("");
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    invoke<string | null>("get_github_pat")
+      .then((pat) => {
+        setHasToken(!!pat);
+        if (pat) setToken("••••••••••••••••"); // Masked display
+      })
+      .catch(() => setHasToken(false));
+  }, []);
+
+  const saveToken = async () => {
+    if (!token || token === "••••••••••••••••") return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      await invoke("set_github_pat", { token });
+      setHasToken(true);
+      setToken("••••••••••••••••");
+      setMessage("Token saved to Keychain");
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      setMessage(`Save failed: ${err}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const clearToken = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      await invoke("clear_github_pat");
+      setHasToken(false);
+      setToken("");
+      setMessage("Token cleared");
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      setMessage(`Clear failed: ${err}`);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="p-6 overflow-auto">
+      <Section
+        title="GitHub Personal Access Token"
+        description="Required for syncing snippets as GitHub Gists. Never stored in config files — kept in macOS Keychain."
+      >
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="password"
+              value={token}
+              onChange={(e) => setToken(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") saveToken(); }}
+              placeholder={hasToken ? "(saved in Keychain)" : "ghp_..."}
+              className="flex-1 bg-bg-tertiary/50 border border-border/40 rounded-md px-2.5 py-1.5 text-[var(--font-xs)] text-text outline-none placeholder:text-text-muted/40 focus:border-accent/50"
+              disabled={saving}
+            />
+            <button
+              onClick={saveToken}
+              disabled={saving || !token || token === "••••••••••••••••"}
+              className="px-3 py-1.5 rounded-md text-[var(--font-xs)] font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Save
+            </button>
+            {hasToken && (
+              <button
+                onClick={clearToken}
+                disabled={saving}
+                className="px-3 py-1.5 rounded-md text-[var(--font-xs)] font-medium bg-red-500/15 text-red-500 hover:bg-red-500/25 transition-colors shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {message && (
+            <p className={clsx("text-[var(--font-xs)] mt-1", message.includes("failed") ? "text-red-500" : "text-emerald-500")}>
+              {message}
+            </p>
+          )}
+          <div className="bg-amber-500/10 border border-amber-500/20 rounded-md p-3 mt-3">
+            <p className="text-[var(--font-xs)] text-amber-600 dark:text-amber-400 font-medium mb-1">
+              Security notice
+            </p>
+            <p className="text-[var(--font-xs)] text-text-muted leading-relaxed">
+              Do NOT use snippets for passwords, API keys, or credentials. "Secret" gists are URL-protected, not encrypted — anyone with the URL can read them. Use a password manager for sensitive data.
+            </p>
+          </div>
+          <p className="text-[var(--font-xs)] text-text-muted leading-relaxed">
+            Create a token at{" "}
+            <span className="text-accent font-mono">github.com/settings/tokens</span> with{" "}
+            <span className="font-mono bg-bg-tertiary px-1 rounded">gist</span> scope.
+          </p>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
 export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>((initialTab as SettingsTab) || "appearance");
 
@@ -572,6 +679,7 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
           {activeTab === "files" && <FilesTab />}
           {activeTab === "shortcuts" && <ShortcutsTab />}
           {activeTab === "search" && <SearchTab />}
+          {activeTab === "gists" && <GistsTab />}
         </div>
       </div>
     </div>

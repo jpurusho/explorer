@@ -88,3 +88,15 @@ export type ViewMode = "list" | "grid";
 
 export type SortField = "name" | "size" | "modified" | "type";
 export type SortDirection = "asc" | "desc";
+
+export type SnippetTier = "local" | "secret" | "public";
+
+export interface Snippet {
+  id: string;
+  title: string;
+  tier: SnippetTier;
+  gist_id: string | null;
+  language: string | null;
+  created_at: string;
+  updated_at: string;
+}
