@@ -64,6 +64,7 @@ export interface AppSettings {
   show_favorites_section: boolean;
   show_folders_section: boolean;
   show_tags_section: boolean;
+  show_snippets_section: boolean;
   favorites_height: number;
   folders_height: number;
   preview_max_mb: number;

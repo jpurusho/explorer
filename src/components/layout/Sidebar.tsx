@@ -5,6 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useTagStore } from "../../stores/tagStore";
+import { SnippetsSection } from "../snippets/SnippetsSection";
 import type { FileEntry } from "../../types";
 
 /** List a directory's visible subdirectories, sorted by name. Shared by the
@@ -542,6 +543,7 @@ export function Sidebar() {
   const showFavorites = settings.show_favorites_section;
   const showFolders = settings.show_folders_section;
   const showTags = settings.show_tags_section;
+  const showSnippets = settings.show_snippets_section;
 
   const homeDir = settings.favorites[0] || "/Users";
 
@@ -677,7 +679,7 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Tags — takes remaining space */}
+        {/* Tags */}
         {showTags && (
           <div className="flex-1 overflow-auto pr-3 pb-3 min-h-[60px]" style={{ paddingLeft: "20px" }}>
             <div className="flex items-center justify-between mb-2">
@@ -688,10 +690,21 @@ export function Sidebar() {
           </div>
         )}
 
+        {/* Snippets */}
+        {showSnippets && (
+          <div className="flex-1 overflow-auto pr-3 pb-3 min-h-[60px]" style={{ paddingLeft: "20px" }}>
+            <div className="flex items-center justify-between mb-2">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-medium text-text-muted/70 uppercase tracking-[0.12em]">Snippets</h3>
+              <button onClick={() => updateSettings({ show_snippets_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
+            </div>
+            <SnippetsSection />
+          </div>
+        )}
+
       </div>
 
       {/* Show hidden panels */}
-      {(!showFavorites || !showFolders || !showTags) && (
+      {(!showFavorites || !showFolders || !showTags || !showSnippets) && (
         <div className="px-4 py-2 border-t border-border shrink-0">
           {!showFavorites && (
             <button onClick={() => updateSettings({ show_favorites_section: true })} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Favorites</button>
@@ -701,6 +714,9 @@ export function Sidebar() {
           )}
           {!showTags && (
             <button onClick={() => updateSettings({ show_tags_section: true })} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Tags</button>
+          )}
+          {!showSnippets && (
+            <button onClick={() => updateSettings({ show_snippets_section: true })} className="text-[var(--font-xs)] text-text-muted hover:text-text-secondary block py-0.5">Show Snippets</button>
           )}
         </div>
       )}

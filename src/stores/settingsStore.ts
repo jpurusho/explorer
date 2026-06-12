@@ -36,6 +36,7 @@ const defaultSettings: AppSettings = {
   show_favorites_section: true,
   show_folders_section: true,
   show_tags_section: true,
+  show_snippets_section: true,
   favorites_height: 140,
   folders_height: 300,
   preview_max_mb: 5,
