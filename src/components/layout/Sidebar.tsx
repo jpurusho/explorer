@@ -253,7 +253,7 @@ function TreeItem({
               entry={child}
               depth={depth + 1}
               isLast={idx === children.length - 1}
-              parentLines={[...parentLines, ...(depth > 0 ? [!isLast] : []), idx < children.length - 1 ? false : false].slice(0, depth)}
+              parentLines={[...parentLines, !isLast]}
               currentPath={currentPath}
               onNavigate={onNavigate}
             />
