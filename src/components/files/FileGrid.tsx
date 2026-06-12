@@ -114,7 +114,10 @@ export function FileGrid() {
     const store = useFileListStore.getState();
     let paths = store.getSelectedPaths();
     if (paths.length === 0 || !paths.includes(entry.path)) paths = [entry.path];
-    if (e.altKey) {
+    // ⌘⌥ = native drag-out. Require both because lone Option collides with
+    // macOS "Hide Others" / Option-click-Dock and can hide the destination
+    // window mid-drag.
+    if (e.altKey && e.metaKey) {
       startNativeFileDrag(paths);
       return;
     }

@@ -139,12 +139,15 @@ export function FileList() {
     if (paths.length === 0 || !paths.includes(entry.path)) {
       paths = [entry.path];
     }
-    // Hold Option (⌥) to drag files OUT to other apps via a native OS drag.
-    // A native drag hijacks the pointer, so it can't coexist with the in-app
-    // HTML5 drag (which powers folder highlight, auto-expand, and move) — hence
-    // the modifier picks one. Plain drag = internal move.
+    // Hold ⌘⌥ (Cmd+Option) to drag files OUT to other apps via a native OS
+    // drag. A native drag hijacks the pointer, so it can't coexist with the
+    // in-app HTML5 drag (which powers folder highlight, auto-expand, and move)
+    // — hence the modifier picks one. Plain drag = internal move. We require
+    // BOTH keys because lone Option collides with macOS "Hide Others" /
+    // Option-click-Dock behavior, which can hide the destination window
+    // mid-drag.
     // NOTE: do NOT preventDefault here — that cancels the drag gesture entirely.
-    if (e.altKey) {
+    if (e.altKey && e.metaKey) {
       startNativeFileDrag(paths);
       return;
     }
