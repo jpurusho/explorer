@@ -56,6 +56,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       const settings = await invoke<AppSettings>("load_settings");
       // Migrate removed "columns" view mode
       if ((settings.default_view as string) === "columns") settings.default_view = "list";
+      // Self-heal: an empty favorites array means defaults were never seeded (or
+      // a prior bug wiped them). Repopulate from the real home directory so the
+      // sidebar roots at the user's home instead of falling back to "/Users".
+      if (!settings.favorites || settings.favorites.length === 0) {
+        try {
+          const home = await invoke<string>("get_home_directory");
+          settings.favorites = [home, `${home}/Documents`, `${home}/Downloads`, `${home}/Desktop`];
+          await invoke("save_settings", { settings });
+        } catch {
+          // leave favorites empty; sidebar falls back to /Users
+        }
+      }
       const resolved = resolveTheme(settings.theme);
       applyTheme(resolved);
       set({ settings, loaded: true, resolvedTheme: resolved });
@@ -67,6 +79,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   },
 
   updateSettings: async (partial) => {
+    // Guard against persisting before the real config has loaded — otherwise an
+    // early updateSettings() (e.g. a sidebar toggle on mount) would merge into
+    // the in-memory DEFAULTS and overwrite the saved config (resetting theme,
+    // font, favorites, etc.).
+    if (!get().loaded) return;
     const current = get().settings;
     const updated = { ...current, ...partial };
     set({ settings: updated });

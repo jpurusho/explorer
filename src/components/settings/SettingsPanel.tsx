@@ -532,27 +532,30 @@ export function SettingsPanel({ onClose, initialTab }: SettingsPanelProps) {
 
   return (
     <div className="h-full flex flex-col bg-bg">
-      {/* Header with tab buttons */}
-      <div className="shrink-0 border-b border-border bg-bg-secondary/60 px-3 py-2 flex items-center gap-1 overflow-x-auto">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={clsx(
-                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--font-xs)] whitespace-nowrap transition-colors",
-                activeTab === tab.id
-                  ? "bg-accent/12 text-accent font-medium"
-                  : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
-              )}
-            >
-              <Icon size={12} className="shrink-0" />
-              {tab.label}
-            </button>
-          );
-        })}
-        <div className="flex-1" />
+      {/* Header: scrollable tab strip + pinned close button. The close button is
+          OUTSIDE the scroll container so it never gets pushed off when the tabs
+          overflow the narrow panel. */}
+      <div className="shrink-0 border-b border-border bg-bg-secondary/60 flex items-center pr-2">
+        <div className="flex-1 min-w-0 flex items-center gap-1 px-3 py-2 overflow-x-auto">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={clsx(
+                  "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[var(--font-xs)] whitespace-nowrap shrink-0 transition-colors",
+                  activeTab === tab.id
+                    ? "bg-accent/12 text-accent font-medium"
+                    : "text-text-muted hover:bg-bg-hover hover:text-text-secondary"
+                )}
+              >
+                <Icon size={12} className="shrink-0" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
         <button
           onClick={onClose}
           className="p-1 rounded-md hover:bg-bg-hover text-text-muted hover:text-text transition-colors shrink-0"
