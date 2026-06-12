@@ -11,6 +11,7 @@ import { WrapText } from "lucide-react";
 import { clsx } from "clsx";
 import { getLanguageExtension } from "./languages";
 import { explorerTheme, explorerHighlightStyle } from "./theme";
+import { invalidateCache } from "../../lib/previewCache";
 
 interface EditorProps {
   path: string;
@@ -31,6 +32,9 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
     const text = viewRef.current.state.doc.toString();
     try {
       await invoke("write_file", { path, content: text });
+      // Drop the stale cached read so re-rendering (rendered/source toggle,
+      // or returning to this file later) picks up the new bytes.
+      invalidateCache(path);
       setModified(false);
       setSavedMessage(true);
       setTimeout(() => setSavedMessage(false), 2000);
