@@ -361,21 +361,21 @@ export function PreviewPanel() {
           </div>
         </div>
         {isFollowingLink ? (
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="text-[var(--font-xs)] text-text-muted truncate">{navPath}</span>
+          <div className="flex items-center gap-2 mt-1.5 min-w-0">
+            <span className="text-[var(--font-xs)] text-text-muted truncate flex-1 min-w-0">{navPath}</span>
           </div>
         ) : (
-          <div className="flex items-center gap-3 mt-1.5">
-            <span className="text-[var(--font-sm)] text-text-muted tabular-nums">
+          <div className="flex items-center gap-3 mt-1.5 min-w-0 overflow-hidden">
+            <span className="text-[var(--font-sm)] text-text-muted tabular-nums shrink-0">
               {formatSize(entry.size)}
             </span>
             {entry.modified && (
-              <span className="text-[var(--font-sm)] text-text-muted">
+              <span className="text-[var(--font-sm)] text-text-muted shrink min-w-0 truncate">
                 {(() => { try { return format(new Date(entry.modified), "MMM d, yyyy"); } catch { return ""; } })()}
               </span>
             )}
             <span className={clsx(
-              "text-[var(--font-xs)] px-2 py-[2px] rounded-full uppercase tracking-wide font-medium",
+              "text-[var(--font-xs)] px-2 py-[2px] rounded-full uppercase tracking-wide font-medium shrink-0",
               "bg-bg-tertiary text-text-muted"
             )}>
               {entry.file_type}

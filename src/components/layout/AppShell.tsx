@@ -37,10 +37,14 @@ export function AppShell() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const MIN_CENTER = 320;
-  const effectiveSidebarWidth = Math.max(100, Math.min(sidebarWidth, windowWidth - MIN_CENTER - 200));
+  // Center panel can shrink to 180px — at that width the FileList header
+  // columns overflow but the container scrolls horizontally, and the grid
+  // view collapses to a single card column.
+  const MIN_CENTER = 180;
+  const MIN_PREVIEW = 200;
+  const effectiveSidebarWidth = Math.max(100, Math.min(sidebarWidth, windowWidth - MIN_CENTER - MIN_PREVIEW));
   const effectivePreviewWidth = Math.max(
-    200,
+    MIN_PREVIEW,
     Math.min(previewWidth, windowWidth - effectiveSidebarWidth - MIN_CENTER)
   );
 
