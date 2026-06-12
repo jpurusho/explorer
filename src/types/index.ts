@@ -67,6 +67,7 @@ export interface AppSettings {
   favorites_height: number;
   folders_height: number;
   preview_max_mb: number;
+  grid_card_size: number;
 }
 
 export interface ExifData {

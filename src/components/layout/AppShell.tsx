@@ -116,7 +116,7 @@ export function AppShell() {
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
 
       <div className="flex-1 flex overflow-hidden">
-        <div style={{ width: effectiveSidebarWidth }} className="shrink-0 border-r border-border bg-bg-secondary/60 backdrop-blur-xl">
+        <div style={{ width: effectiveSidebarWidth }} className="shrink-0 border-r border-border/50 bg-bg-secondary/60 backdrop-blur-xl">
           <Sidebar />
         </div>
         <ResizeHandle onResize={handleSidebarResize} direction="left" />
@@ -127,7 +127,7 @@ export function AppShell() {
 
         <ResizeHandle onResize={handlePreviewResize} direction="right" />
 
-        <div style={{ width: effectivePreviewWidth }} className="shrink-0 overflow-hidden border-l border-border">
+        <div style={{ width: effectivePreviewWidth }} className="shrink-0 overflow-hidden border-l border-border/50">
           {settingsOpen ? (
             <SettingsPanel onClose={() => setSettingsOpen(false)} initialTab={settingsTab} />
           ) : scratchOpen ? (

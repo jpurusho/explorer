@@ -1,12 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo, useLayoutEffect } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { toast } from "../../stores/toastStore";
 import { startNativeFileDrag } from "../../lib/dragOut";
 import { FileCard } from "./FileCard";
 import { ContextMenu } from "./ContextMenu";
 import type { FileEntry } from "../../types";
+
+const GRID_GAP = 16; // matches gap-4
 
 export function FileGrid() {
   const entries = useFileListStore((s) => s.visibleEntries);
@@ -16,17 +20,71 @@ export function FileGrid() {
   const selectRange = useFileListStore((s) => s.selectRange);
   const navigateTo = useNavigationStore((s) => s.navigateTo);
   const renameRequestPath = useFileListStore((s) => s.renameRequestPath);
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; entry: FileEntry | null } | null>(null);
   const [renamingPath, setRenamingPath] = useState<string | null>(null);
+
+  const [cardSize, setCardSize] = useState(settings.grid_card_size || 175);
+  useEffect(() => {
+    if (settings.grid_card_size && settings.grid_card_size !== cardSize) {
+      setCardSize(settings.grid_card_size);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.grid_card_size]);
+
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleSizeChange = (n: number) => {
+    setCardSize(n);
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => updateSettings({ grid_card_size: n }), 300);
+  };
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Track inner-grid width so we can compute the column count for virtualization.
+  useLayoutEffect(() => {
+    const el = innerRef.current;
+    if (!el) return;
+    const update = () => setContainerWidth(el.clientWidth);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  // Cards have a fixed-height thumbnail (h-32 = 128px) plus name + meta line.
+  // Total row height ≈ thumbnail + ~52px text block. Width is the slider value
+  // (per the auto-fill grid we used to use, columns auto-flow at >= cardSize).
+  const cardHeight = 128 + 52;
+  const cols = Math.max(1, Math.floor((containerWidth + GRID_GAP) / (cardSize + GRID_GAP)));
+  const rowCount = Math.ceil(entries.length / cols);
+  const rowHeight = cardHeight + GRID_GAP;
+
+  const virtualizer = useVirtualizer({
+    count: rowCount,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => rowHeight,
+    overscan: 4,
+  });
+
+  // Re-measure rows when card size or column count changes.
+  useEffect(() => {
+    virtualizer.measure();
+  }, [cardSize, cols, virtualizer]);
 
   // Consume a pending rename request once the target entry appears.
   useEffect(() => {
     if (!renameRequestPath) return;
-    if (entries.some((e) => e.path === renameRequestPath)) {
+    const idx = entries.findIndex((e) => e.path === renameRequestPath);
+    if (idx >= 0) {
       setRenamingPath(renameRequestPath);
       useFileListStore.getState().requestRename(null);
+      virtualizer.scrollToIndex(Math.floor(idx / cols), { align: "center" });
     }
-  }, [renameRequestPath, entries]);
+  }, [renameRequestPath, entries, cols, virtualizer]);
 
   const handleClick = (index: number, e: React.MouseEvent) => {
     if (e.metaKey) {
@@ -41,13 +99,10 @@ export function FileGrid() {
   const handleContextMenu = (e: React.MouseEvent, entry: FileEntry, index: number) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!selectedIndices.has(index)) {
-      selectIndex(index);
-    }
+    if (!selectedIndices.has(index)) selectIndex(index);
     setContextMenu({ x: e.clientX, y: e.clientY, entry });
   };
 
-  // Right-click on empty space: background menu (Paste / New Folder / Undo).
   const handleBackgroundContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     useFileListStore.getState().clearSelection();
@@ -55,17 +110,10 @@ export function FileGrid() {
   };
 
   const handleDragStart = (e: React.DragEvent, entry: FileEntry, index: number) => {
-    if (!selectedIndices.has(index)) {
-      selectIndex(index);
-    }
+    if (!selectedIndices.has(index)) selectIndex(index);
     const store = useFileListStore.getState();
     let paths = store.getSelectedPaths();
-    if (paths.length === 0 || !paths.includes(entry.path)) {
-      paths = [entry.path];
-    }
-    // Hold Option (⌥) to drag OUT to other apps (native drag); plain drag moves
-    // within the app. The two can't coexist — a native drag hijacks the pointer.
-    // NOTE: do NOT preventDefault here — that cancels the drag gesture entirely.
+    if (paths.length === 0 || !paths.includes(entry.path)) paths = [entry.path];
     if (e.altKey) {
       startNativeFileDrag(paths);
       return;
@@ -82,57 +130,83 @@ export function FileGrid() {
     requestAnimationFrame(() => document.body.removeChild(ghost));
   };
 
-  const [cardSize, setCardSize] = useState(175);
+  const gridTemplate = useMemo(
+    () => `repeat(${cols}, minmax(0, 1fr))`,
+    [cols]
+  );
 
   return (
-    <div className="h-full overflow-auto p-6 file-list-font" onContextMenu={handleBackgroundContextMenu}>
-      {/* Card size slider */}
-      <div className="flex items-center gap-3 mb-4">
-        <span className="text-[var(--font-xs)] text-text-muted">Size</span>
+    <div ref={scrollRef} className="h-full overflow-auto file-list-font" onContextMenu={handleBackgroundContextMenu}>
+      <div className="px-6 pt-4 pb-2 flex items-center justify-end gap-2 sticky top-0 z-10 bg-bg/95 backdrop-blur-sm">
+        <span className="text-[var(--font-xs)] text-text-muted/80">Size</span>
         <input
           type="range"
           min="120"
           max="300"
           step="10"
           value={cardSize}
-          onChange={(e) => setCardSize(parseInt(e.target.value))}
-          className="w-24 h-1.5 bg-bg-tertiary rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
+          onChange={(e) => handleSizeChange(parseInt(e.target.value))}
+          className="w-20 h-1 bg-bg-tertiary rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-accent"
         />
       </div>
-      <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${cardSize}px, 1fr))` }}>
-        {entries.map((entry, index) => (
-          <FileCard
-            key={entry.path}
-            entry={entry}
-            selected={selectedIndices.has(index)}
-            renaming={renamingPath === entry.path}
-            onRename={async (newName) => {
-              try {
-                await invoke("rename_item", { path: entry.path, newName });
-                useNavigationStore.getState().refreshCurrent();
-              } catch (err) {
-                toast.error(`Rename failed: ${err instanceof Error ? err.message : String(err)}`);
-              } finally {
-                setRenamingPath(null);
-              }
-            }}
-            onCancelRename={() => setRenamingPath(null)}
-            onStartRename={() => setRenamingPath(entry.path)}
-            onClick={(e) => handleClick(index, e)}
-            onDoubleClick={() => {
-              if (entry.is_dir) navigateTo(entry.path);
-            }}
-            onContextMenu={(e) => handleContextMenu(e, entry, index)}
-            draggable
-            onDragStart={(e) => handleDragStart(e, entry, index)}
-            onFileDrop={(paths) => {
-              if (paths.includes(entry.path)) return;
-              invoke("move_items", { paths, destination: entry.path })
-                .then(() => useNavigationStore.getState().refreshCurrent())
-                .catch((err) => toast.error(`Move failed: ${err instanceof Error ? err.message : String(err)}`));
-            }}
-          />
-        ))}
+      <div ref={innerRef} className="px-6 pb-6">
+        <div style={{ height: `${virtualizer.getTotalSize()}px`, position: "relative", width: "100%" }}>
+          {virtualizer.getVirtualItems().map((virtualRow) => {
+            const rowStart = virtualRow.index * cols;
+            const rowEntries = entries.slice(rowStart, rowStart + cols);
+            return (
+              <div
+                key={virtualRow.key}
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                  display: "grid",
+                  gridTemplateColumns: gridTemplate,
+                  gap: `${GRID_GAP}px`,
+                }}
+              >
+                {rowEntries.map((entry, colIdx) => {
+                  const index = rowStart + colIdx;
+                  return (
+                    <FileCard
+                      key={entry.path}
+                      entry={entry}
+                      selected={selectedIndices.has(index)}
+                      renaming={renamingPath === entry.path}
+                      onRename={async (newName) => {
+                        try {
+                          await invoke("rename_item", { path: entry.path, newName });
+                          useNavigationStore.getState().refreshCurrent();
+                        } catch (err) {
+                          toast.error(`Rename failed: ${err instanceof Error ? err.message : String(err)}`);
+                        } finally {
+                          setRenamingPath(null);
+                        }
+                      }}
+                      onCancelRename={() => setRenamingPath(null)}
+                      onStartRename={() => setRenamingPath(entry.path)}
+                      onClick={(e) => handleClick(index, e)}
+                      onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
+                      onContextMenu={(e) => handleContextMenu(e, entry, index)}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, entry, index)}
+                      onFileDrop={(paths) => {
+                        if (paths.includes(entry.path)) return;
+                        invoke("move_items", { paths, destination: entry.path })
+                          .then(() => useNavigationStore.getState().refreshCurrent())
+                          .catch((err) => toast.error(`Move failed: ${err instanceof Error ? err.message : String(err)}`));
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {contextMenu && (

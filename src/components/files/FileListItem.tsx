@@ -10,6 +10,7 @@ import type { ColumnConfig } from "../../stores/fileListStore";
 interface FileListItemProps {
   entry: FileEntry;
   selected: boolean;
+  zebra?: boolean;
   renaming?: boolean;
   visibleColumns: ColumnConfig[];
   onRename?: (newName: string) => void;
@@ -45,6 +46,7 @@ function getCellValue(colId: string, entry: FileEntry): string {
 export function FileListItem({
   entry,
   selected,
+  zebra,
   renaming,
   visibleColumns,
   onRename,
@@ -73,7 +75,10 @@ export function FileListItem({
         "transition-colors duration-75",
         selected
           ? "bg-accent/15 text-text ring-1 ring-inset ring-accent/30"
-          : "hover:bg-bg-hover text-text-secondary",
+          : clsx(
+              "hover:bg-bg-hover text-text-secondary",
+              zebra && "bg-bg-secondary/40"
+            ),
         isDragTarget && "ring-2 ring-accent bg-accent/15",
         showRowLines && "border-b border-border/30"
       )}
@@ -103,7 +108,7 @@ export function FileListItem({
 
           {/* Name cell — double-click anywhere here starts a rename */}
           <td
-            className="py-[3px] px-2 align-middle border-r border-border/40 overflow-hidden"
+            className="py-[3px] px-2 align-middle overflow-hidden"
             onDoubleClick={!renaming && onStartRename ? (e) => { e.stopPropagation(); onStartRename(); } : undefined}
           >
             <div className="flex items-center gap-2 min-w-0 overflow-hidden">
@@ -154,7 +159,7 @@ export function FileListItem({
           {visibleColumns.map((col) => (
             <td
               key={col.id}
-              className="py-[3px] px-2 text-center text-text-secondary tabular-nums truncate border-r border-border/40 align-middle overflow-hidden"
+              className="py-[3px] px-2 text-center text-text-muted tabular-nums truncate align-middle overflow-hidden"
               style={{ fontSize: "var(--font-filelist-meta)" }}
             >
               {getCellValue(col.id, entry)}

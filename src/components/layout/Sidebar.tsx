@@ -601,7 +601,7 @@ export function Sidebar() {
         {showFavorites && (
           <div className="shrink-0 overflow-auto pr-3 pb-1" style={{ paddingLeft: "20px", height: `${favHeight}px` }}>
             <div className="flex items-center justify-between mb-2">
-              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-medium text-text-muted/70 uppercase tracking-[0.12em]">
                 Favorites
               </h3>
               <button onClick={() => updateSettings({ show_favorites_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
@@ -646,7 +646,7 @@ export function Sidebar() {
         {showFolders && (
           <div className="overflow-auto pr-3 pb-1" style={{ paddingLeft: "20px", height: showTags ? `${foldersHeight}px` : undefined, flex: showTags ? "none" : "1" }}>
             <div className="flex items-center justify-between mb-2">
-              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-medium text-text-muted/70 uppercase tracking-[0.12em]">
                 Folders
               </h3>
               <button onClick={() => updateSettings({ show_folders_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
@@ -681,7 +681,7 @@ export function Sidebar() {
         {showTags && (
           <div className="flex-1 overflow-auto pr-3 pb-3 min-h-[60px]" style={{ paddingLeft: "20px" }}>
             <div className="flex items-center justify-between mb-2">
-              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-semibold text-text-muted uppercase tracking-widest">Tags</h3>
+              <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-medium text-text-muted/70 uppercase tracking-[0.12em]">Tags</h3>
               <button onClick={() => updateSettings({ show_tags_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <TagsSection />

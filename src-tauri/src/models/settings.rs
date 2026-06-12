@@ -29,6 +29,7 @@ pub struct AppSettings {
     pub favorites_height: u32,
     pub folders_height: u32,
     pub preview_max_mb: u32,
+    pub grid_card_size: u32,
 }
 
 impl Default for AppSettings {
@@ -68,6 +69,7 @@ impl Default for AppSettings {
             favorites_height: 140,
             folders_height: 300,
             preview_max_mb: 5,
+            grid_card_size: 175,
         }
     }
 }

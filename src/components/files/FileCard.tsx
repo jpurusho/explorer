@@ -4,8 +4,8 @@ import { invoke } from "@tauri-apps/api/core";
 import { FileIcon } from "./FileIcon";
 import { Folder, Play, ExternalLink } from "lucide-react";
 import { detachPreview } from "../../lib/detachPreview";
-import { formatSize, formatDuration, imageMimeFromPath } from "../../lib/formatters";
-import { getThumbnail, setThumbnail } from "../../lib/thumbnailCache";
+import { formatSize, formatDuration } from "../../lib/formatters";
+import { getThumbnail, loadThumbnail } from "../../lib/thumbnailCache";
 import type { FileEntry, FileType, FileContent } from "../../types";
 
 interface FileCardProps {
@@ -27,24 +27,12 @@ function ImageThumbnail({ path }: { path: string }) {
   const [src, setSrc] = useState<string | null>(() => getThumbnail(path) ?? null);
 
   useEffect(() => {
-    if (getThumbnail(path)) {
-      setSrc(getThumbnail(path)!);
-      return;
-    }
+    const cached = getThumbnail(path);
+    if (cached) { setSrc(cached); return; }
     let cancelled = false;
-    invoke<string>("generate_thumbnail", { path, size: 300 }).then((base64) => {
-      if (cancelled) return;
-      const dataUrl = `data:image/jpeg;base64,${base64}`;
-      setThumbnail(path, dataUrl);
-      setSrc(dataUrl);
-    }).catch(() => {
-      invoke<string>("read_image_base64", { path }).then((base64) => {
-        if (cancelled) return;
-        const dataUrl = `data:${imageMimeFromPath(path)};base64,${base64}`;
-        setThumbnail(path, dataUrl);
-        setSrc(dataUrl);
-      }).catch(() => {});
-    });
+    loadThumbnail(path, 300)
+      .then((dataUrl) => { if (!cancelled) setSrc(dataUrl); })
+      .catch(() => {});
     return () => { cancelled = true; };
   }, [path]);
 

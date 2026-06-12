@@ -1,6 +1,6 @@
 use crate::models::file_entry::{classify_file_type, ExifData, FileContent, FileEntry, FileMetadata};
 use crate::utils::errors::AppError;
-use crate::{log_info, log_error};
+use crate::log_info;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::fs;
@@ -10,74 +10,67 @@ use std::path::Path;
 #[tauri::command]
 pub async fn list_directory(path: String) -> Result<Vec<FileEntry>, AppError> {
     let start = std::time::Instant::now();
-    let dir_path = Path::new(&path);
-
     log_info!("list_directory: {}", path);
 
-    if !dir_path.exists() {
-        log_error!("list_directory: path does not exist: {}", path);
-        return Err(AppError::NotFound(format!("Path does not exist: {}", path)));
-    }
-
-    if !dir_path.is_dir() {
-        log_error!("list_directory: not a directory: {}", path);
-        return Err(AppError::Other(format!("Not a directory: {}", path)));
-    }
-
-    let mut entries = Vec::new();
-    let read_dir = fs::read_dir(dir_path).map_err(|e| {
-        if e.kind() == std::io::ErrorKind::PermissionDenied {
-            AppError::PermissionDenied(path.clone())
-        } else {
-            AppError::Io(e)
+    // Push the blocking read_dir + per-entry stat off the Tokio runtime so the
+    // UI thread (and other commands) keep flowing. Per-entry metadata can each
+    // be a syscall; on a slow disk a 5k-entry folder could otherwise block all
+    // async work for a few hundred ms.
+    let path_for_task = path.clone();
+    let entries = tauri::async_runtime::spawn_blocking(move || -> Result<Vec<FileEntry>, AppError> {
+        let dir_path = Path::new(&path_for_task);
+        if !dir_path.exists() {
+            return Err(AppError::NotFound(format!("Path does not exist: {}", path_for_task)));
         }
-    })?;
+        if !dir_path.is_dir() {
+            return Err(AppError::Other(format!("Not a directory: {}", path_for_task)));
+        }
 
-    for entry in read_dir {
-        let entry = match entry {
-            Ok(e) => e,
-            Err(_) => continue,
-        };
+        let read_dir = fs::read_dir(dir_path).map_err(|e| {
+            if e.kind() == std::io::ErrorKind::PermissionDenied {
+                AppError::PermissionDenied(path_for_task.clone())
+            } else {
+                AppError::Io(e)
+            }
+        })?;
 
-        let name = entry.file_name().to_string_lossy().to_string();
-        let entry_path = entry.path();
-        let metadata = match entry.metadata() {
-            Ok(m) => m,
-            Err(_) => continue,
-        };
+        let mut out = Vec::new();
+        for entry in read_dir {
+            let entry = match entry { Ok(e) => e, Err(_) => continue };
+            let name = entry.file_name().to_string_lossy().to_string();
+            let entry_path = entry.path();
+            let metadata = match entry.metadata() { Ok(m) => m, Err(_) => continue };
 
-        let is_dir = metadata.is_dir();
-        let is_hidden = name.starts_with('.');
-        let size = if is_dir { 0 } else { metadata.len() };
-        let modified = metadata
-            .modified()
-            .ok()
-            .and_then(|t| {
-                let dt: DateTime<Utc> = t.into();
-                Some(dt.to_rfc3339())
-            })
-            .unwrap_or_default();
+            let is_dir = metadata.is_dir();
+            let is_hidden = name.starts_with('.');
+            let size = if is_dir { 0 } else { metadata.len() };
+            let modified = metadata
+                .modified()
+                .ok()
+                .map(|t| {
+                    let dt: DateTime<Utc> = t.into();
+                    dt.to_rfc3339()
+                })
+                .unwrap_or_default();
+            let file_type = if is_dir { "directory".to_string() } else { classify_file_type(&name) };
 
-        let file_type = if is_dir {
-            "directory".to_string()
-        } else {
-            classify_file_type(&name)
-        };
-
-        entries.push(FileEntry {
-            name,
-            path: entry_path.to_string_lossy().to_string(),
-            is_dir,
-            is_hidden,
-            size,
-            modified,
-            file_type,
-        });
-    }
+            out.push(FileEntry {
+                name,
+                path: entry_path.to_string_lossy().to_string(),
+                is_dir,
+                is_hidden,
+                size,
+                modified,
+                file_type,
+            });
+        }
+        Ok(out)
+    })
+    .await
+    .map_err(|e| AppError::Other(format!("list_directory join error: {}", e)))??;
 
     let elapsed = start.elapsed();
     log_info!("list_directory: {} -> {} entries ({}ms)", path, entries.len(), elapsed.as_millis());
-
     Ok(entries)
 }
 

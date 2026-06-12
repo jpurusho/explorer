@@ -39,6 +39,7 @@ const defaultSettings: AppSettings = {
   favorites_height: 140,
   folders_height: 300,
   preview_max_mb: 5,
+  grid_card_size: 175,
 };
 
 function resolveTheme(theme: AppSettings["theme"]): ThemeName {

@@ -109,6 +109,19 @@ function matchesPattern(name: string, pattern: string): boolean {
   return lower.includes(p);
 }
 
+// Cache the last (entries, showHidden, sortBy, sortDirection, filter) tuple so a
+// no-op re-render (or an unrelated state change) doesn't re-run sort+filter
+// on a 5k-entry array. Sorting is O(n log n) on the main thread; this turns
+// repeat calls into pointer compares.
+let _visibleCache: {
+  entries: FileEntry[];
+  showHidden: boolean;
+  sortBy: SortField;
+  sortDirection: SortDirection;
+  filterPattern: string | null;
+  result: FileEntry[];
+} | null = null;
+
 function computeVisible(
   entries: FileEntry[],
   showHiddenFiles: boolean,
@@ -116,13 +129,26 @@ function computeVisible(
   sortDirection: SortDirection,
   filterPattern: string | null = null
 ): FileEntry[] {
+  const c = _visibleCache;
+  if (
+    c &&
+    c.entries === entries &&
+    c.showHidden === showHiddenFiles &&
+    c.sortBy === sortBy &&
+    c.sortDirection === sortDirection &&
+    c.filterPattern === filterPattern
+  ) {
+    return c.result;
+  }
   let filtered = showHiddenFiles
     ? entries
     : entries.filter((e) => !e.is_hidden);
   if (filterPattern) {
     filtered = filtered.filter((e) => e.is_dir || matchesPattern(e.name, filterPattern));
   }
-  return sortEntries(filtered, sortBy, sortDirection);
+  const result = sortEntries(filtered, sortBy, sortDirection);
+  _visibleCache = { entries, showHidden: showHiddenFiles, sortBy, sortDirection, filterPattern, result };
+  return result;
 }
 
 let _saveTimer: ReturnType<typeof setTimeout> | null = null;

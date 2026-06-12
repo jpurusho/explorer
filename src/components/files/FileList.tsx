@@ -201,7 +201,10 @@ export function FileList() {
     );
   };
 
-  const tableWidth = 24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0);
+  const tableWidth = useMemo(
+    () => 24 + nameWidth + visibleColumns.reduce((s, c) => s + c.width, 0),
+    [nameWidth, visibleColumns]
+  );
 
   return (
     <div ref={parentRef} className="h-full overflow-auto file-list-font px-2" style={{ minWidth: 0 }} onContextMenu={handleBackgroundContextMenu}>
@@ -221,9 +224,9 @@ export function FileList() {
           </colgroup>
           <thead>
             <tr style={{ fontSize: "var(--font-filelist-header)" }}>
-              <th className="border-b border-border py-1.5 px-1" />
+              <th className="border-b border-border/40 py-1.5 px-1" />
               <th
-                className="relative border-b border-border py-1.5 px-2 text-left cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+                className="relative border-b border-border/40 py-1.5 px-2 text-left cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
                 onClick={() => handleSort("name")}
               >
                 <div className="flex items-center gap-1">
@@ -253,7 +256,7 @@ export function FileList() {
               {visibleColumns.map((col) => (
                 <th
                   key={col.id}
-                  className="relative border-b border-border py-1.5 px-2 text-center cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
+                  className="relative border-b border-border/40 py-1.5 px-2 text-center cursor-pointer hover:text-text transition-colors text-text-secondary font-semibold uppercase tracking-wider"
                   onClick={() => handleSort(columnSortField[col.id])}
                 >
                   <div className="flex items-center justify-center gap-1">
@@ -294,6 +297,7 @@ export function FileList() {
               <FileListItem
                 entry={entry}
                 selected={selectedIndices.has(virtualRow.index)}
+                zebra={virtualRow.index % 2 === 1}
                 renaming={renamingIndex === virtualRow.index}
                 visibleColumns={visibleColumns}
                 onRename={async (newName) => {
