@@ -74,3 +74,32 @@ export function prefetchFileContent(path: string): void {
 export function invalidateCache(path: string): void {
   cache.delete(path);
 }
+
+/**
+ * Replace a path's cached content directly. Used after an in-app save so the
+ * next read returns the freshly-written bytes without re-hitting disk.
+ */
+export function updateCache(path: string, content: FileContent): void {
+  cacheSet(path, content);
+}
+
+type Listener = (path: string) => void;
+const listeners = new Set<Listener>();
+
+/**
+ * Subscribe to content-updated broadcasts. Returns an unsubscribe function.
+ * Used by the preview panel to refresh in place when the editor saves.
+ */
+export function onContentUpdated(fn: Listener): () => void {
+  listeners.add(fn);
+  return () => {
+    listeners.delete(fn);
+  };
+}
+
+/**
+ * Notify subscribers that `path`'s cached content was just refreshed.
+ */
+export function emitContentUpdated(path: string): void {
+  listeners.forEach((fn) => fn(path));
+}

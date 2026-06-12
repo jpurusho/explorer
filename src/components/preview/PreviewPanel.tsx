@@ -17,7 +17,7 @@ import { FileText, Eye, Pencil, ExternalLink, ChevronLeft, ChevronRight } from "
 import { clsx } from "clsx";
 import { format } from "date-fns";
 import { detachPreview } from "../../lib/detachPreview";
-import { fetchFileContent, prefetchFileContent } from "../../lib/previewCache";
+import { fetchFileContent, prefetchFileContent, onContentUpdated } from "../../lib/previewCache";
 import { formatSize } from "../../lib/formatters";
 import { editableTypes, renderableTypes, isPdf, isHtml } from "./previewTypes";
 import type { FileContent, FileEntry, FileType } from "../../types";
@@ -76,6 +76,22 @@ export function PreviewPanel() {
       setNavPath(null);
     }
   }, [selectedPath]);
+
+  // Listen for in-app saves of the currently-previewed file and re-fetch
+  // immediately. The cache is already refreshed at this point so the read
+  // is synchronous from memory.
+  useEffect(() => {
+    return onContentUpdated((updatedPath) => {
+      const target = navPath || selectedPath;
+      if (updatedPath !== target) return;
+      fetchFileContent(updatedPath)
+        .then((result) => {
+          if (navPath) setNavContent(result.content);
+          else setContent(result);
+        })
+        .catch(() => {});
+    });
+  }, [selectedPath, navPath]);
 
   const handleLinkNavigate = useCallback(async (targetPath: string) => {
     try {

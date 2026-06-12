@@ -11,7 +11,7 @@ import { WrapText } from "lucide-react";
 import { clsx } from "clsx";
 import { getLanguageExtension } from "./languages";
 import { explorerTheme, explorerHighlightStyle } from "./theme";
-import { invalidateCache } from "../../lib/previewCache";
+import { updateCache, emitContentUpdated } from "../../lib/previewCache";
 
 interface EditorProps {
   path: string;
@@ -32,9 +32,12 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
     const text = viewRef.current.state.doc.toString();
     try {
       await invoke("write_file", { path, content: text });
-      // Drop the stale cached read so re-rendering (rendered/source toggle,
-      // or returning to this file later) picks up the new bytes.
-      invalidateCache(path);
+      // Refresh the cached read with the fresh bytes and broadcast so the
+      // preview panel can re-render instantly without waiting for the
+      // ~300ms watcher debounce round-trip.
+      const bytes = new TextEncoder().encode(text).length;
+      updateCache(path, { content: text, mime_type: "", size: bytes, truncated: false });
+      emitContentUpdated(path);
       setModified(false);
       setSavedMessage(true);
       setTimeout(() => setSavedMessage(false), 2000);
