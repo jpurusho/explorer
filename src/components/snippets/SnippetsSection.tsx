@@ -249,6 +249,6 @@ async function handleSnippetClick(snippet: Snippet) {
 
   // Select the specific file after a brief delay (folder load is async)
   setTimeout(() => {
-    useFileListStore.setState({ selectedPath: filePath });
-  }, 100);
+    useFileListStore.getState().setSelectedPath(filePath);
+  }, 150);
 }

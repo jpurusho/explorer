@@ -11,7 +11,7 @@ export function MarkdownReference({ onClose }: MarkdownReferenceProps) {
       <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-8">
         <div className="bg-bg-secondary border border-border rounded-lg shadow-2xl w-full max-w-3xl h-full max-h-[80vh] flex flex-col pointer-events-auto">
           <div className="p-4 border-b border-border flex items-center justify-between shrink-0">
-            <h3 className="text-[var(--font-base)] font-semibold text-text">Markdown Quick Reference</h3>
+            <h3 className="font-semibold text-text" style={{ fontSize: "var(--font-base)" }}>Markdown Quick Reference</h3>
             <button
               onClick={onClose}
               className="p-1 rounded hover:bg-bg-hover text-text-muted transition-colors"
@@ -19,12 +19,12 @@ export function MarkdownReference({ onClose }: MarkdownReferenceProps) {
               <X size={16} />
             </button>
           </div>
-          <div className="flex-1 overflow-auto p-6">
-            <div className="prose prose-invert max-w-none space-y-6 text-text-secondary text-[var(--font-sm)]">
+          <div className="flex-1 overflow-auto p-6" style={{ fontFamily: "var(--font-family)" }}>
+            <div className="prose prose-invert max-w-none space-y-6 text-text-secondary" style={{ fontSize: "var(--font-sm)" }}>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Headers</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Headers</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`# H1
 ## H2
 ### H3
@@ -35,8 +35,8 @@ export function MarkdownReference({ onClose }: MarkdownReferenceProps) {
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Emphasis</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Emphasis</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`*italic* or _italic_
 **bold** or __bold__
 ***bold italic***
@@ -45,8 +45,8 @@ export function MarkdownReference({ onClose }: MarkdownReferenceProps) {
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Lists</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Lists</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`- Unordered item
 - Another item
   - Nested item
@@ -63,8 +63,8 @@ export function MarkdownReference({ onClose }: MarkdownReferenceProps) {
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Links & Images</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Links & Images</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`[Link text](https://example.com)
 [Link with title](https://example.com "Title")
 ![Alt text](image.png)
@@ -73,8 +73,8 @@ export function MarkdownReference({ onClose }: MarkdownReferenceProps) {
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Code</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Code</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`Inline \`code\` with backticks
 
 \`\`\`javascript
@@ -91,8 +91,8 @@ def hello():
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Blockquotes</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Blockquotes</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`> Single line quote
 
 > Multi-line quote
@@ -103,8 +103,8 @@ def hello():
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Tables</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Tables</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`| Left | Center | Right |
 |:-----|:------:|------:|
 | A    | B      | C     |
@@ -113,8 +113,8 @@ def hello():
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Horizontal Rules</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Horizontal Rules</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`---
 ***
 ___`}
@@ -122,8 +122,8 @@ ___`}
               </section>
 
               <section>
-                <h4 className="text-text font-semibold text-[var(--font-base)] mb-2">Mermaid Diagrams</h4>
-                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono text-[var(--font-xs)] overflow-x-auto">
+                <h4 className="text-text font-semibold mb-2" style={{ fontSize: "var(--font-base)" }}>Mermaid Diagrams</h4>
+                <pre className="bg-bg-tertiary p-3 rounded border border-border font-mono overflow-x-auto" style={{ fontSize: "var(--font-xs)" }}>
 {`\`\`\`mermaid
 graph TD
   A[Start] --> B{Decision}
