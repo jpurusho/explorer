@@ -5,6 +5,8 @@ mod models;
 mod utils;
 
 use commands::archive::{list_archive_contents, extract_archive};
+#[cfg(target_os = "macos")]
+use commands::drag::start_native_drag;
 use commands::file_ops::{copy_items, create_folder, duplicate_items, move_items, rename_item, save_text_file, trash_items};
 use commands::preview::{convert_document_to_pdf, generate_document_preview, get_document_page_count};
 #[cfg(target_os = "macos")]
@@ -67,7 +69,6 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_os::init())
-        .plugin(tauri_plugin_drag::init())
         .register_asynchronous_uri_scheme_protocol("media", |_ctx, request, responder| {
             std::thread::spawn(move || {
                 let response = handle_media_request(&request);
@@ -121,6 +122,8 @@ pub fn run() {
             show_native_preview,
             #[cfg(target_os = "macos")]
             close_native_preview,
+            #[cfg(target_os = "macos")]
+            start_native_drag,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")

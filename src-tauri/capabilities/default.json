@@ -23,7 +23,6 @@
     "dialog:default",
     "os:default",
     "updater:default",
-    "process:default",
-    "drag:default"
+    "process:default"
   ]
 }

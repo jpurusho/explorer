@@ -1,6 +1,6 @@
 [package]
 name = "explorer"
-version = "1.7.3"
+version = "1.7.4"
 description = "A native macOS filesystem explorer"
 authors = ["Jerome Purushotham"]
 edition = "2021"
@@ -39,4 +39,7 @@ tauri-plugin-process = "2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 flate2 = "1"
 tar = "0.4"
-tauri-plugin-drag = "2.1.1"
+objc2 = "0.6"
+objc2-app-kit = "0.3"
+objc2-foundation = "0.3"
+raw-window-handle = "0.6"

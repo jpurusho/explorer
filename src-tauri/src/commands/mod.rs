@@ -1,4 +1,6 @@
 pub mod archive;
+#[cfg(target_os = "macos")]
+pub mod drag;
 pub mod file_ops;
 pub mod filesystem;
 #[cfg(target_os = "macos")]
