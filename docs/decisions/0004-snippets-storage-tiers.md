@@ -25,14 +25,16 @@ snippet at creation time:
 
 | Tier | Default | Where bytes live | Privacy guarantee |
 |---|---|---|---|
-| **Local** | — | `~/.explorer/snippets/local/<title>.<ext>` | Stays on this Mac. No network. |
-| **Secret gist** | ✅ (cursor starts here) | `~/.explorer/snippets/gists/<gist-id>/` (cloned), origin = `https://gist.github.com/<user>/<id>.git` | URL-only access on GitHub. **Not real privacy** — tier dialog says so explicitly. |
+| **Local** | ✅ (default changed 2026-06-12) | `~/.config/explorer/snippets/local/<title>.<ext>` | Stays on this Mac. No network. |
+| **Secret gist** | — | `~/.config/explorer/snippets/gists/<gist-id>/` (cloned), origin = `https://gist.github.com/<user>/<id>.git` | URL-only access on GitHub. **Not real privacy** — tier dialog says so explicitly. |
 | **Public gist** | — | Same disk layout as secret | Listed on gist.github.com/discover, indexed by search engines. |
 
-**Default is Secret gist** because the productivity payoff of this
-feature is the sync; users who already wanted local-only files have
-a text editor. The unsafe-for-credentials warning is stated in the
-create dialog.
+**Default changed to Local** (2026-06-12) because (a) Application
+Support path (`~/Library/...`) is tied to the app bundle — uninstalling
+wipes snippets, and (b) requiring GitHub PAT setup before first use adds
+friction. Local-first is safer and simpler; gist sync is opt-in when
+ready. Storage moved to `~/.config/explorer/snippets/` to survive
+app reinstalls.
 
 **Auth:** GitHub Personal Access Token with `gist` scope. Stored in
 macOS Keychain via the `keyring` crate. Never written to
@@ -53,7 +55,7 @@ toast and the snippet keeps a "modified" badge until push succeeds.
 
 **Search:** the existing trigram index in `src-tauri/src/commands/
 search.rs` already indexes any directory we point it at. We simply
-add `~/.explorer/snippets/` to its index roots. Same code path,
+add `~/.config/explorer/snippets/` to its index roots. Same code path,
 same UI, no new search component.
 
 **Sidebar UI:** new "Snippets" section, toggleable in settings like

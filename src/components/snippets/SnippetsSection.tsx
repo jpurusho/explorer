@@ -223,10 +223,10 @@ export function SnippetsSection() {
 }
 
 async function getSnippetsRoot(): Promise<string> {
-  // Per ADR 0004: ~/.explorer/snippets (which is actually ProjectDirs data_dir)
+  // Snippets live at ~/.config/explorer/snippets/ alongside config.json and explorer.db
   const { homeDir } = await import("@tauri-apps/api/path");
   const home = await homeDir();
-  return `${home}/Library/Application Support/com.explorer.Explorer/snippets`;
+  return `${home}/.config/explorer/snippets`;
 }
 
 async function handleSnippetClick(snippet: Snippet) {

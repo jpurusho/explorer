@@ -42,11 +42,12 @@ pub struct Snippet {
     pub updated_at: String,
 }
 
-/// Root directory for all snippet storage: ~/.explorer/snippets/
+/// Root directory for all snippet storage: ~/.config/explorer/snippets/
 pub fn snippets_root() -> Result<PathBuf, AppError> {
-    let dirs = directories::ProjectDirs::from("com", "explorer", "Explorer")
-        .ok_or_else(|| AppError::Other("Could not determine project dir".to_string()))?;
-    let root = dirs.data_dir().join("snippets");
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| "/tmp".to_string());
+    let root = PathBuf::from(&home).join(".config").join("explorer").join("snippets");
     std::fs::create_dir_all(&root)?;
     Ok(root)
 }
