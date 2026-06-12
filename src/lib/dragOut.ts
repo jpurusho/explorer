@@ -13,7 +13,11 @@ const DRAG_ICON =
  */
 export function startNativeFileDrag(paths: string[], icon?: string): void {
   if (paths.length === 0) return;
-  startDrag({ item: paths, icon: icon || DRAG_ICON }).catch((e) => {
+  // "move" so the Dock Trash (which only accepts NSDragOperationMove) accepts
+  // the drop. Dropping into a Finder folder will therefore MOVE the file there
+  // rather than copy it — a deliberate tradeoff, since the drag operation is
+  // fixed before we know the destination and Trash support was the ask.
+  startDrag({ item: paths, icon: icon || DRAG_ICON, mode: "move" }).catch((e) => {
     toast.error(`Drag-out failed: ${e instanceof Error ? e.message : String(e)}`);
   });
 }
