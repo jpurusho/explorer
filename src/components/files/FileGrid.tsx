@@ -5,7 +5,7 @@ import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { toast } from "../../stores/toastStore";
-import { startNativeFileDrag } from "../../lib/dragOut";
+import { useLongPressDragOut } from "../../hooks/useLongPressDragOut";
 import { FileCard } from "./FileCard";
 import { ContextMenu } from "./ContextMenu";
 import type { FileEntry } from "../../types";
@@ -109,18 +109,20 @@ export function FileGrid() {
     setContextMenu({ x: e.clientX, y: e.clientY, entry: null });
   };
 
-  const handleDragStart = (e: React.DragEvent, entry: FileEntry, index: number) => {
+  const longPress = useLongPressDragOut();
+
+  const resolvePaths = (entry: FileEntry, index: number): string[] => {
     if (!selectedIndices.has(index)) selectIndex(index);
     const store = useFileListStore.getState();
     let paths = store.getSelectedPaths();
     if (paths.length === 0 || !paths.includes(entry.path)) paths = [entry.path];
-    // ⌘⌥ = native drag-out. Require both because lone Option collides with
-    // macOS "Hide Others" / Option-click-Dock and can hide the destination
-    // window mid-drag.
-    if (e.altKey && e.metaKey) {
-      startNativeFileDrag(paths);
-      return;
-    }
+    return paths;
+  };
+
+  const handleDragStart = (e: React.DragEvent, entry: FileEntry, index: number) => {
+    // Long-press already escalated to a native drag — suppress the HTML5 one.
+    if (longPress.handleDragStart(e)) return;
+    const paths = resolvePaths(entry, index);
 
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify(paths));
     e.dataTransfer.effectAllowed = "copyMove";
@@ -195,6 +197,7 @@ export function FileGrid() {
                       onClick={(e) => handleClick(index, e)}
                       onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
                       onContextMenu={(e) => handleContextMenu(e, entry, index)}
+                      onMouseDown={(e) => longPress.onMouseDown(e, () => resolvePaths(entry, index))}
                       draggable
                       onDragStart={(e) => handleDragStart(e, entry, index)}
                       onFileDrop={(paths) => {

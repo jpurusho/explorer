@@ -19,6 +19,7 @@ interface FileListItemProps {
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onMouseDown?: (e: React.MouseEvent) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onFileDrop?: (paths: string[]) => void;
@@ -55,6 +56,7 @@ export function FileListItem({
   onClick,
   onDoubleClick,
   onContextMenu,
+  onMouseDown,
   draggable,
   onDragStart,
   onFileDrop,
@@ -86,6 +88,7 @@ export function FileListItem({
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
+      onMouseDown={onMouseDown}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragOver={entry.is_dir && onFileDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setIsDragTarget(true); } : undefined}

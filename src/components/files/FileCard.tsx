@@ -18,6 +18,7 @@ interface FileCardProps {
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onMouseDown?: (e: React.MouseEvent) => void;
   draggable?: boolean;
   onDragStart?: (e: React.DragEvent) => void;
   onFileDrop?: (paths: string[]) => void;
@@ -232,7 +233,7 @@ function TextSnippetPreview({ path }: { path: string }) {
   );
 }
 
-export function FileCard({ entry, selected, renaming, onRename, onCancelRename, onStartRename, onClick, onDoubleClick, onContextMenu, draggable, onDragStart, onFileDrop }: FileCardProps) {
+export function FileCard({ entry, selected, renaming, onRename, onCancelRename, onStartRename, onClick, onDoubleClick, onContextMenu, onMouseDown, draggable, onDragStart, onFileDrop }: FileCardProps) {
   const fileType = entry.file_type as FileType;
   const isImage = fileType === "image";
   const isVideo = fileType === "video";
@@ -256,6 +257,7 @@ export function FileCard({ entry, selected, renaming, onRename, onCancelRename, 
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
+      onMouseDown={onMouseDown}
       draggable={draggable && !renaming}
       onDragStart={onDragStart}
       onDragOver={isDir && onFileDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setIsDragTarget(true); } : undefined}

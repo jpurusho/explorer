@@ -5,7 +5,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { toast } from "../../stores/toastStore";
-import { startNativeFileDrag } from "../../lib/dragOut";
+import { useLongPressDragOut } from "../../hooks/useLongPressDragOut";
 import { FileListItem } from "./FileListItem";
 import { ContextMenu } from "./ContextMenu";
 import type { FileEntry, SortField } from "../../types";
@@ -129,28 +129,28 @@ export function FileList() {
     setContextMenu({ x: e.clientX, y: e.clientY, entry: null });
   }, []);
 
-  const handleDragStart = useCallback((e: React.DragEvent, entry: FileEntry, index: number) => {
+  const longPress = useLongPressDragOut();
+
+  const resolvePaths = useCallback((entry: FileEntry, index: number): string[] => {
     if (!selectedIndices.has(index)) {
       selectIndex(index);
     }
     const store = useFileListStore.getState();
-    // If item wasn't selected, getSelectedPaths might not include it yet
     let paths = store.getSelectedPaths();
     if (paths.length === 0 || !paths.includes(entry.path)) {
       paths = [entry.path];
     }
-    // Hold ⌘⌥ (Cmd+Option) to drag files OUT to other apps via a native OS
-    // drag. A native drag hijacks the pointer, so it can't coexist with the
-    // in-app HTML5 drag (which powers folder highlight, auto-expand, and move)
-    // — hence the modifier picks one. Plain drag = internal move. We require
-    // BOTH keys because lone Option collides with macOS "Hide Others" /
-    // Option-click-Dock behavior, which can hide the destination window
-    // mid-drag.
-    // NOTE: do NOT preventDefault here — that cancels the drag gesture entirely.
-    if (e.altKey && e.metaKey) {
-      startNativeFileDrag(paths);
-      return;
-    }
+    return paths;
+  }, [selectedIndices, selectIndex]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent, entry: FileEntry, index: number) => {
+    longPress.onMouseDown(e, () => resolvePaths(entry, index));
+  }, [longPress, resolvePaths]);
+
+  const handleDragStart = useCallback((e: React.DragEvent, entry: FileEntry, index: number) => {
+    // Long-press already escalated to a native drag — suppress the HTML5 one.
+    if (longPress.handleDragStart(e)) return;
+    const paths = resolvePaths(entry, index);
 
     e.dataTransfer.setData("application/x-explorer-files", JSON.stringify(paths));
     e.dataTransfer.effectAllowed = "copyMove";
@@ -161,7 +161,7 @@ export function FileList() {
     document.body.appendChild(ghost);
     e.dataTransfer.setDragImage(ghost, 0, 0);
     requestAnimationFrame(() => document.body.removeChild(ghost));
-  }, [selectedIndices, selectIndex]);
+  }, [longPress, resolvePaths]);
 
   const handleSort = useCallback((field: SortField) => {
     if (sortBy === field) {
@@ -320,6 +320,7 @@ export function FileList() {
                   if (entry.is_dir) navigateTo(entry.path);
                 }}
                 onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
+                onMouseDown={(e) => handleMouseDown(e, entry, virtualRow.index)}
                 draggable={renamingIndex !== virtualRow.index}
                 onDragStart={(e) => handleDragStart(e, entry, virtualRow.index)}
                 onFileDrop={entry.is_dir ? async (paths) => {

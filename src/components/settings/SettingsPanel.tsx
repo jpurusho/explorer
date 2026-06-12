@@ -329,7 +329,7 @@ function ShortcutsTab() {
         ["Delete / ⌫", "Move to Trash"],
         ["↵ / double-click name", "Rename"],
         ["Drag", "Move into a folder"],
-        ["⌘ ⌥ Drag", "Drag out to other apps"],
+        ["Hold + Drag", "Press and hold ~0.3s, then drag out to other apps"],
       ],
     },
     {
