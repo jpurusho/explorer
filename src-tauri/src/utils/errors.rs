@@ -8,6 +8,9 @@ pub enum AppError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
+    #[error("Database error: {0}")]
+    Db(#[from] rusqlite::Error),
+
     #[error("Path not found: {0}")]
     NotFound(String),
 

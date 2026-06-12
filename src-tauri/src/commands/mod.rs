@@ -1,4 +1,5 @@
 pub mod archive;
+pub mod auth;
 #[cfg(target_os = "macos")]
 pub mod drag;
 pub mod file_ops;
@@ -8,5 +9,6 @@ pub mod native_preview;
 pub mod preview;
 pub mod search;
 pub mod settings;
+pub mod snippets;
 pub mod tags;
 pub mod watcher;

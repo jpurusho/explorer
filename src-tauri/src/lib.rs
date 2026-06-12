@@ -5,6 +5,7 @@ mod models;
 mod utils;
 
 use commands::archive::{list_archive_contents, extract_archive};
+use commands::auth::{set_github_pat, get_github_pat, clear_github_pat};
 #[cfg(target_os = "macos")]
 use commands::drag::start_native_drag;
 use commands::file_ops::{copy_items, create_folder, duplicate_items, move_items, rename_item, save_text_file, trash_items};
@@ -14,6 +15,7 @@ use commands::native_preview::{close_native_preview, show_native_preview, Native
 use commands::search::{search_files, get_index_stats, is_indexing, reindex, rebuild_trigrams};
 use commands::filesystem::{generate_thumbnail, get_file_entries, get_file_metadata, get_git_status, get_home_directory, list_directory, read_exif_data, read_file_content, read_image_base64, write_file};
 use commands::settings::{load_settings, save_settings, list_font_themes, load_font_theme, write_log};
+use commands::snippets::{list_snippets, create_snippet, delete_snippet, update_snippet_content};
 use commands::tags::{get_all_tags, create_tag, update_tag, delete_tag, tag_files, untag_files, get_tags_for_files, get_files_by_tag};
 use commands::watcher::{watch_directory, unwatch_directory, WatcherState};
 use std::path::PathBuf;
@@ -115,6 +117,13 @@ pub fn run() {
             unwatch_directory,
             list_archive_contents,
             extract_archive,
+            set_github_pat,
+            get_github_pat,
+            clear_github_pat,
+            list_snippets,
+            create_snippet,
+            delete_snippet,
+            update_snippet_content,
             convert_document_to_pdf,
             generate_document_preview,
             get_document_page_count,
