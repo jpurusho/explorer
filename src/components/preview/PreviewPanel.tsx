@@ -31,6 +31,7 @@ export function PreviewPanel() {
   const [content, setContent] = useState<FileContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Preview navigation for following links within documents
   const previewNav = usePreviewNavStore();
@@ -147,7 +148,17 @@ export function PreviewPanel() {
 
     if (!selectedPath || !entry || entry.is_dir) {
       setContent(null);
+      setHasUnsavedChanges(false);
       return;
+    }
+
+    // Warn if switching files with unsaved changes
+    if (hasUnsavedChanges) {
+      const confirmed = window.confirm(
+        "You have unsaved changes. Switching files will discard them.\n\nContinue without saving?"
+      );
+      if (!confirmed) return;
+      setHasUnsavedChanges(false);
     }
 
     // Default to rendered view for markdown/json/yaml/html
@@ -299,6 +310,7 @@ export function PreviewPanel() {
           content={content.content}
           fileType={entry.file_type}
           fileName={entry.name}
+          onModifiedChange={setHasUnsavedChanges}
         />
       );
     }
@@ -341,7 +353,16 @@ export function PreviewPanel() {
             {hasRenderedView && content && !isFollowingLink && (
               <>
                 <button
-                  onClick={() => setEditMode(false)}
+                  onClick={() => {
+                    if (hasUnsavedChanges) {
+                      const confirmed = window.confirm(
+                        "You have unsaved changes. Switching to rendered view will discard them.\n\nContinue without saving?"
+                      );
+                      if (!confirmed) return;
+                    }
+                    setEditMode(false);
+                    setHasUnsavedChanges(false);
+                  }}
                   className={clsx(
                     "p-1.5 rounded-[4px] transition-colors",
                     !editMode

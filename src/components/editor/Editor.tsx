@@ -18,9 +18,10 @@ interface EditorProps {
   content: string;
   fileType: string;
   fileName: string;
+  onModifiedChange?: (modified: boolean) => void;
 }
 
-export function Editor({ path, content, fileType, fileName }: EditorProps) {
+export function Editor({ path, content, fileType, fileName, onModifiedChange }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const [modified, setModified] = useState(false);
@@ -39,12 +40,13 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
       updateCache(path, { content: text, mime_type: "", size: bytes, truncated: false });
       emitContentUpdated(path);
       setModified(false);
+      onModifiedChange?.(false);
       setSavedMessage(true);
       setTimeout(() => setSavedMessage(false), 2000);
     } catch {
       // Save failed — user sees "Modified" badge persist
     }
-  }, [path]);
+  }, [path, onModifiedChange]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -82,6 +84,7 @@ export function Editor({ path, content, fileType, fileName }: EditorProps) {
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
           setModified(true);
+          onModifiedChange?.(true);
         }
       }),
     ];

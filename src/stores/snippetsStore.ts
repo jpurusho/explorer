@@ -30,16 +30,23 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
   },
 
   createSnippet: async (title, tier, content, language) => {
-    const dbPath = await getDbPath();
-    const snippet = await invoke<Snippet>("create_snippet", {
-      dbPath,
-      title,
-      tier,
-      content,
-      language: language || null,
-    });
-    set({ snippets: [snippet, ...get().snippets] });
-    return snippet;
+    try {
+      const dbPath = await getDbPath();
+      console.log("Creating snippet:", { dbPath, title, tier, content: content.substring(0, 50) });
+      const snippet = await invoke<Snippet>("create_snippet", {
+        dbPath,
+        title,
+        tier,
+        content,
+        language: language || null,
+      });
+      console.log("Snippet created:", snippet);
+      set({ snippets: [snippet, ...get().snippets] });
+      return snippet;
+    } catch (err) {
+      console.error("createSnippet store error:", err);
+      throw err;
+    }
   },
 
   deleteSnippet: async (id) => {
@@ -61,11 +68,8 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
 }));
 
 async function getDbPath(): Promise<string> {
-  // Reuse the existing tags.db location logic. The tags.db is stored at
-  // ProjectDirs::from("com", "explorer", "Explorer").data_dir() + "/tags.db"
-  // which mirrors how the Rust side computes it. We'll invoke a helper command
-  // to get the path, or hardcode based on the pattern used elsewhere.
+  // The DB is at ~/.config/explorer/explorer.db (see src-tauri/src/db.rs get_db_path)
   const { homeDir } = await import("@tauri-apps/api/path");
   const home = await homeDir();
-  return `${home}/Library/Application Support/com.explorer.Explorer/tags.db`;
+  return `${home}/.config/explorer/explorer.db`;
 }

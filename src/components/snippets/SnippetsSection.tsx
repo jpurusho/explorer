@@ -12,17 +12,20 @@ interface CreateSnippetDialogProps {
 
 function CreateSnippetDialog({ onClose, onCreate }: CreateSnippetDialogProps) {
   const [title, setTitle] = useState("");
-  const [tier, setTier] = useState<SnippetTier>("secret");
+  const [tier, setTier] = useState<SnippetTier>("local");
   const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCreate = async () => {
     if (!title.trim() || creating) return;
     setCreating(true);
+    setError(null);
     try {
       await onCreate(title.trim(), tier);
       onClose();
     } catch (err) {
       console.error("Create snippet failed:", err);
+      setError(err instanceof Error ? err.message : String(err));
       setCreating(false);
     }
   };
@@ -106,6 +109,13 @@ function CreateSnippetDialog({ onClose, onCreate }: CreateSnippetDialogProps) {
                 </label>
               </div>
             </div>
+            {error && (
+              <div className="px-4 pb-2">
+                <div className="bg-red-500/10 border border-red-500/30 rounded-md px-3 py-2 text-[var(--font-xs)] text-red-400">
+                  {error}
+                </div>
+              </div>
+            )}
           </div>
           <div className="p-4 border-t border-border flex items-center justify-end gap-2">
             <button
