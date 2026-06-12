@@ -250,9 +250,9 @@ function PreviewSizeRow() {
         value={settings.preview_max_mb || 5}
         onChange={(e) => updateSettings({ preview_max_mb: parseInt(e.target.value) })}
         className="bg-bg-tertiary border border-border rounded-md px-2 py-1 text-[var(--font-xs)] text-text-secondary outline-none"
-        title="Max file size read for preview (larger files are truncated)"
+        title="Max bytes read for text/code/markdown/JSON/YAML/HTML previews. Files above this are truncated."
       >
-        {[1, 5, 10, 25, 50].map((mb) => (
+        {[1, 5, 10, 25, 50, 100].map((mb) => (
           <option key={mb} value={mb}>{mb} MB</option>
         ))}
       </select>

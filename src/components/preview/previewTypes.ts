@@ -16,3 +16,9 @@ export const previewableTypes: FileType[] = [
 export function isPdf(name: string): boolean {
   return name.toLowerCase().endsWith(".pdf");
 }
+
+/** True for HTML documents (offered as rendered iframe view). */
+export function isHtml(name: string): boolean {
+  const n = name.toLowerCase();
+  return n.endsWith(".html") || n.endsWith(".htm");
+}

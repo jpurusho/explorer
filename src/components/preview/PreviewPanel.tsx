@@ -11,6 +11,7 @@ import { YamlPreview } from "./YamlPreview";
 import { PdfPreview } from "./PdfPreview";
 import { ArchivePreview } from "./ArchivePreview";
 import { DocumentPreview } from "./DocumentPreview";
+import { HtmlPreview } from "./HtmlPreview";
 import { Editor } from "../editor/Editor";
 import { FileText, Eye, Pencil, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
@@ -18,7 +19,7 @@ import { format } from "date-fns";
 import { detachPreview } from "../../lib/detachPreview";
 import { fetchFileContent, prefetchFileContent } from "../../lib/previewCache";
 import { formatSize } from "../../lib/formatters";
-import { editableTypes, renderableTypes, isPdf } from "./previewTypes";
+import { editableTypes, renderableTypes, isPdf, isHtml } from "./previewTypes";
 import type { FileContent, FileEntry, FileType } from "../../types";
 
 const DEBOUNCE_MS = 80;
@@ -44,7 +45,8 @@ export function PreviewPanel() {
   const listEntry = visibleEntries[selectedIndex];
   const entry = listEntry || resolvedEntry;
   const fileType = entry?.file_type as FileType | undefined;
-  const hasRenderedView = fileType ? renderableTypes.includes(fileType) : false;
+  const isHtmlFile = entry ? isHtml(entry.name) : false;
+  const hasRenderedView = (fileType ? renderableTypes.includes(fileType) : false) || isHtmlFile;
 
   // When selectedPath doesn't match a visibleEntries item (e.g. column view),
   // fetch metadata directly
@@ -132,8 +134,8 @@ export function PreviewPanel() {
       return;
     }
 
-    // Default to rendered view for markdown/json/yaml
-    if (fileType && renderableTypes.includes(fileType)) {
+    // Default to rendered view for markdown/json/yaml/html
+    if ((fileType && renderableTypes.includes(fileType)) || (entry && isHtml(entry.name))) {
       setEditMode(false);
     } else {
       setEditMode(true);
@@ -250,8 +252,18 @@ export function PreviewPanel() {
       );
     }
 
-    // Rendered view for markdown/json/yaml
+    // Rendered view for markdown/json/yaml/html
     if (!editMode && hasRenderedView) {
+      if (isHtmlFile) {
+        return (
+          <HtmlPreview
+            content={content.content}
+            basePath={entry.path}
+            truncated={content.truncated}
+            size={content.size}
+          />
+        );
+      }
       if (fileType === "markdown") {
         return <MarkdownPreview content={content.content} basePath={entry.path} onNavigate={handleLinkNavigate} />;
       }

@@ -8,7 +8,6 @@ import { useFontThemeStore } from "./stores/fontThemeStore";
 import { useDirectory } from "./hooks/useDirectory";
 import { useTheme } from "./hooks/useTheme";
 import { useKeyboard } from "./hooks/useKeyboard";
-import { fileActions } from "./hooks/useFileActions";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { logger } from "./lib/logger";
@@ -50,34 +49,6 @@ function MainApp() {
     init();
     return () => { cancelled = true; };
   }, []);
-
-  // Native drag-drop from outside the app (Finder, Dock, other apps). With
-  // dragDropEnabled: true in tauri.conf.json, the OS intercepts drops before
-  // the WebView sees them and Tauri forwards real absolute file paths here.
-  // We import them as a copy into the current directory — same flow as the
-  // existing in-app folder drop targets.
-  useEffect(() => {
-    if (!ready) return;
-    let unlisten: (() => void) | undefined;
-    getCurrentWebviewWindow()
-      .onDragDropEvent((event) => {
-        if (event.payload.type !== "drop") return;
-        const paths = event.payload.paths;
-        if (!paths || paths.length === 0) return;
-        const dest = useNavigationStore.getState().currentPath;
-        if (!dest) return;
-        // Skip drops where every source is already inside the destination —
-        // copying a file into its own directory is a no-op-with-rename and
-        // almost always the user releasing their own drag back into Explorer.
-        if (paths.every((p) => p.startsWith(dest + "/") && !p.slice(dest.length + 1).includes("/"))) {
-          return;
-        }
-        fileActions.importPaths(paths, dest);
-      })
-      .then((u) => { unlisten = u; })
-      .catch((e) => logger.error(`drag-drop subscribe failed: ${e}`));
-    return () => { unlisten?.(); };
-  }, [ready]);
 
   if (!ready) return null;
   return <AppShell />;

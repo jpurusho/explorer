@@ -194,10 +194,21 @@ pub async fn copy_items(paths: Vec<String>, destination: String, index: State<'_
                 created_paths.push(target.to_string_lossy().to_string());
                 index.upsert_path(&target);
             }
-            Err(e) => failed.push(FileOpError {
-                path: path_str.clone(),
-                error: e.to_string(),
-            }),
+            Err(e) => {
+                // Drag-in from other apps can deliver promise files whose bytes
+                // haven't materialized yet — copy_recursive may create the
+                // target before failing, leaving a 0-byte stub. Always clean up
+                // the partial target on error.
+                if target.is_dir() {
+                    std::fs::remove_dir_all(&target).ok();
+                } else if target.exists() {
+                    std::fs::remove_file(&target).ok();
+                }
+                failed.push(FileOpError {
+                    path: path_str.clone(),
+                    error: e.to_string(),
+                });
+            }
         }
     }
 

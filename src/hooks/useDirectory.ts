@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useNavigationStore } from "../stores/navigationStore";
@@ -9,6 +9,7 @@ import type { FileEntry } from "../types";
 export function useDirectory() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const refreshTrigger = useNavigationStore((s) => s.refreshTrigger);
+  const lastPathRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!currentPath) return;
@@ -17,7 +18,13 @@ export function useDirectory() {
     const fileStore = useFileListStore.getState();
     const tagStore = useTagStore.getState();
 
-    fileStore.setLoading(true);
+    // Path change vs in-place refresh. Path change is navigation: spinner +
+    // accept any result (empty included). In-place refresh is the watcher
+    // firing on the same dir: keep entries in view, and guard against the
+    // transient empty reads that FSEvents can produce mid-write.
+    const isNavigation = lastPathRef.current !== targetPath;
+    lastPathRef.current = targetPath;
+    if (isNavigation) fileStore.setLoading(true);
     fileStore.setError(null);
 
     const activeTag = tagStore.activeTagFilter;
@@ -51,6 +58,14 @@ export function useDirectory() {
       invoke<FileEntry[]>("list_directory", { path: targetPath })
         .then((entries) => {
           if (useNavigationStore.getState().currentPath !== targetPath) return;
+          // Defend against transient empty reads during external operations
+          // (atomic rename, mid-write FSEvents tick). On a watcher refresh,
+          // if the result is empty but we currently have entries, skip the
+          // update — the next refresh will confirm. Navigation always
+          // commits the result, including a genuinely empty directory.
+          if (!isNavigation && entries.length === 0 && fileStore.entries.length > 0) {
+            return;
+          }
           fileStore.setEntries(entries);
           const paths = entries.map((e) => e.path);
           tagStore.loadTagsForFiles(paths).catch(() => {});
