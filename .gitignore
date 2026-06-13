@@ -28,3 +28,4 @@ src-tauri/target/
 
 # Tauri generated
 src-tauri/gen/
+.claude/
