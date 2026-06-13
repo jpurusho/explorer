@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, MoreVertical, Trash2, Download, Globe, Lock, HardDrive } from "lucide-react";
 import { clsx } from "clsx";
 import { useSnippetsStore } from "../../stores/snippetsStore";
@@ -285,12 +285,51 @@ export function SnippetsSection() {
   const pulling = useSnippetsStore((s) => s.pulling);
   const [showCreate, setShowCreate] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ snippet: Snippet; x: number; y: number } | null>(null);
+  const [dragOver, setDragOver] = useState(false);
   const showSuccess = useToastStore((s) => s.success);
   const showError = useToastStore((s) => s.error);
 
   useEffect(() => {
     loadSnippets();
   }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (e.dataTransfer.types.includes("application/x-explorer-files")) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      setDragOver(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const data = e.dataTransfer.getData("application/x-explorer-files");
+    if (!data) return;
+
+    const { invoke } = await import("@tauri-apps/api/core");
+    const paths: string[] = JSON.parse(data);
+
+    let imported = 0;
+    for (const filePath of paths) {
+      const fileName = filePath.split("/").pop() || "untitled";
+      try {
+        const result = await invoke<{ content: string }>("read_file_content", { path: filePath });
+        await createSnippet(fileName, "local", result.content);
+        imported++;
+      } catch (err) {
+        console.error(`Failed to import ${fileName}:`, err);
+      }
+    }
+
+    if (imported > 0) {
+      showSuccess(`Imported ${imported} snippet${imported > 1 ? "s" : ""}`);
+    }
+  }, [createSnippet, showSuccess]);
 
   const handlePullGists = async () => {
     try {
@@ -320,7 +359,12 @@ export function SnippetsSection() {
 
   if (snippets.length === 0) {
     return (
-      <div>
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={clsx(dragOver && "ring-1 ring-accent/50 rounded-md bg-accent/5")}
+      >
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 text-text-muted hover:text-text-secondary py-1 text-left w-full"
@@ -328,13 +372,21 @@ export function SnippetsSection() {
         >
           <Plus size={12} /> New snippet
         </button>
+        {dragOver && (
+          <div className="py-2 text-center text-[var(--font-xs)] text-accent">Drop to import</div>
+        )}
         {showCreate && <CreateSnippetDialog onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
       </div>
     );
   }
 
   return (
-    <div>
+    <div
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+      className={clsx(dragOver && "ring-1 ring-accent/50 rounded-md bg-accent/5")}
+    >
       <div className="flex items-center gap-2 mb-1">
         <button
           onClick={() => setShowCreate(true)}
