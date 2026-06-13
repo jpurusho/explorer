@@ -3,8 +3,6 @@ name: Build & Test
 on:
   push:
     branches: [master]
-    tags-ignore:
-      - "v*"
   pull_request:
     branches: [master]
 
@@ -12,7 +10,28 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  skip-if-tagged:
+    name: Check for release tag
+    runs-on: ubuntu-latest
+    outputs:
+      should_skip: ${{ steps.check.outputs.should_skip }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG=$(gh api repos/${{ github.repository }}/git/matching-refs/tags/v \
+            --jq '.[] | select(.object.sha == "${{ github.sha }}") | .ref' 2>/dev/null | head -1)
+          if [ -n "$TAG" ]; then
+            echo "Skipping: commit ${{ github.sha }} has release tag $TAG"
+            echo "should_skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
   check:
+    needs: skip-if-tagged
+    if: needs.skip-if-tagged.outputs.should_skip != 'true'
     name: Type Check & Lint
     runs-on: macos-latest
     steps:
@@ -45,7 +64,8 @@ jobs:
   build:
     name: Build macOS App
     runs-on: macos-latest
-    needs: check
+    needs: [skip-if-tagged, check]
+    if: needs.skip-if-tagged.outputs.should_skip != 'true'
     strategy:
       matrix:
         target: [aarch64-apple-darwin]
