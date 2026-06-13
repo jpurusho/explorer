@@ -1,10 +1,11 @@
+use crate::commands::snippets::snippets_root;
 use crate::indexer::{FileResult, IndexDb, IndexStats};
 use crate::models::settings::config_file_path;
 use crate::utils::errors::AppError;
 use tauri::State;
 
 pub fn get_index_roots_from_settings() -> Vec<String> {
-    if let Ok(content) = std::fs::read_to_string(config_file_path()) {
+    let mut roots = if let Ok(content) = std::fs::read_to_string(config_file_path()) {
         if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&content) {
             if let Some(paths) = settings.get("index_paths").and_then(|v| v.as_array()) {
                 let custom: Vec<String> = paths.iter()
@@ -12,12 +13,28 @@ pub fn get_index_roots_from_settings() -> Vec<String> {
                     .filter(|p| !p.is_empty())
                     .collect();
                 if !custom.is_empty() {
-                    return custom;
+                    custom
+                } else {
+                    vec![std::env::var("HOME").unwrap_or_else(|_| "/".to_string())]
                 }
+            } else {
+                vec![std::env::var("HOME").unwrap_or_else(|_| "/".to_string())]
             }
+        } else {
+            vec![std::env::var("HOME").unwrap_or_else(|_| "/".to_string())]
+        }
+    } else {
+        vec![std::env::var("HOME").unwrap_or_else(|_| "/".to_string())]
+    };
+
+    // Always include snippets directory in the index
+    if let Ok(snippets_path) = snippets_root() {
+        if let Some(snippets_str) = snippets_path.to_str() {
+            roots.push(snippets_str.to_string());
         }
     }
-    vec![std::env::var("HOME").unwrap_or_else(|_| "/".to_string())]
+
+    roots
 }
 
 #[tauri::command]

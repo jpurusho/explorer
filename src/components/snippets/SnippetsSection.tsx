@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
-import { Plus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, MoreVertical, Trash2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useSnippetsStore } from "../../stores/snippetsStore";
 import { useNavigationStore } from "../../stores/navigationStore";
+import { useToastStore } from "../../stores/toastStore";
 import type { Snippet, SnippetTier } from "../../types";
 
 interface CreateSnippetDialogProps {
@@ -149,11 +150,105 @@ function tierDotClass(tier: SnippetTier): string {
   }
 }
 
+function SnippetContextMenu({
+  snippet,
+  position,
+  onClose,
+}: {
+  snippet: Snippet;
+  position: { x: number; y: number };
+  onClose: () => void;
+}) {
+  const moveSnippetTier = useSnippetsStore((s) => s.moveSnippetTier);
+  const deleteSnippet = useSnippetsStore((s) => s.deleteSnippet);
+  const showSuccess = useToastStore((s) => s.success);
+  const showError = useToastStore((s) => s.error);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [onClose]);
+
+  const handleMoveTier = async (newTier: SnippetTier) => {
+    try {
+      await moveSnippetTier(snippet.id, newTier);
+      showSuccess(`Moved to ${newTier}`);
+      onClose();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Delete "${snippet.title}"?`)) return;
+    try {
+      await deleteSnippet(snippet.id);
+      showSuccess("Snippet deleted");
+      onClose();
+    } catch (err) {
+      showError(err instanceof Error ? err.message : String(err));
+    }
+  };
+
+  const tiers: Array<{ tier: SnippetTier; label: string; color: string }> = [
+    { tier: "local", label: "Local", color: "bg-zinc-500" },
+    { tier: "secret", label: "Secret gist", color: "bg-amber-500" },
+    { tier: "public", label: "Public gist", color: "bg-emerald-500" },
+  ];
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div
+        ref={menuRef}
+        className="fixed z-50 bg-bg-secondary border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
+        style={{ left: position.x, top: position.y }}
+      >
+        <div className="px-2 py-1 text-[var(--font-xs)] text-text-muted">Move to...</div>
+        {tiers
+          .filter((t) => t.tier !== snippet.tier)
+          .map((t) => (
+            <button
+              key={t.tier}
+              onClick={() => handleMoveTier(t.tier)}
+              className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-[var(--font-sm)] text-text hover:bg-bg-hover"
+            >
+              <div className={clsx("w-1.5 h-1.5 rounded-full", t.color)} />
+              <span>{t.label}</span>
+            </button>
+          ))}
+        <div className="my-1 border-t border-border" />
+        <button
+          onClick={handleDelete}
+          className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-[var(--font-sm)] text-red-400 hover:bg-bg-hover"
+        >
+          <Trash2 size={13} />
+          <span>Delete</span>
+        </button>
+      </div>
+    </>
+  );
+}
+
 export function SnippetsSection() {
   const snippets = useSnippetsStore((s) => s.snippets);
   const loadSnippets = useSnippetsStore((s) => s.loadSnippets);
   const createSnippet = useSnippetsStore((s) => s.createSnippet);
   const [showCreate, setShowCreate] = useState(false);
+  const [contextMenu, setContextMenu] = useState<{ snippet: Snippet; x: number; y: number } | null>(null);
 
   useEffect(() => {
     loadSnippets();
@@ -201,23 +296,40 @@ export function SnippetsSection() {
       </div>
       <nav className="flex flex-col gap-[2px]">
         {snippets.map((snippet) => (
-          <button
-            key={snippet.id}
-            onClick={() => handleSnippetClick(snippet)}
-            className={clsx(
-              "flex items-center gap-2.5 px-2.5 py-[4px] rounded-[var(--radius-md)] text-left w-full",
-              "transition-colors duration-75",
-              "text-text-secondary hover:bg-bg-hover"
-            )}
-          >
-            <div className={clsx("w-1.5 h-1.5 rounded-full shrink-0", tierDotClass(snippet.tier))} />
-            <span className="flex-1 min-w-0 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>
-              {snippet.title}
-            </span>
-          </button>
+          <div key={snippet.id} className="flex items-center gap-1 group">
+            <button
+              onClick={() => handleSnippetClick(snippet)}
+              className={clsx(
+                "flex-1 flex items-center gap-2.5 px-2.5 py-[4px] rounded-[var(--radius-md)] text-left",
+                "transition-colors duration-75",
+                "text-text-secondary hover:bg-bg-hover"
+              )}
+            >
+              <div className={clsx("w-1.5 h-1.5 rounded-full shrink-0", tierDotClass(snippet.tier))} />
+              <span className="flex-1 min-w-0 truncate" style={{ fontSize: "var(--font-sidebar-item)" }}>
+                {snippet.title}
+              </span>
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setContextMenu({ snippet, x: e.clientX, y: e.clientY });
+              }}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-bg-hover transition-opacity"
+            >
+              <MoreVertical size={12} className="text-text-muted" />
+            </button>
+          </div>
         ))}
       </nav>
       {showCreate && <CreateSnippetDialog onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
+      {contextMenu && (
+        <SnippetContextMenu
+          snippet={contextMenu.snippet}
+          position={{ x: contextMenu.x, y: contextMenu.y }}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </div>
   );
 }

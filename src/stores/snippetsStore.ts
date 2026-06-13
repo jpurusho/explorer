@@ -10,6 +10,8 @@ interface SnippetsState {
   createSnippet: (title: string, tier: SnippetTier, content: string, language?: string) => Promise<Snippet>;
   deleteSnippet: (id: string) => Promise<void>;
   updateSnippetContent: (id: string, content: string) => Promise<void>;
+  moveSnippetTier: (id: string, newTier: SnippetTier) => Promise<Snippet>;
+  saveAndPushSnippet: (id: string, content: string) => Promise<void>;
 }
 
 export const useSnippetsStore = create<SnippetsState>((set, get) => ({
@@ -59,6 +61,30 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
     const dbPath = await getDbPath();
     await invoke("update_snippet_content", { dbPath, id, content });
     // Update the updated_at field locally (server sets it but we don't re-fetch)
+    set({
+      snippets: get().snippets.map((s) =>
+        s.id === id ? { ...s, updated_at: new Date().toISOString() } : s
+      ),
+    });
+  },
+
+  moveSnippetTier: async (id, newTier) => {
+    const dbPath = await getDbPath();
+    const updatedSnippet = await invoke<Snippet>("move_snippet_tier", {
+      dbPath,
+      id,
+      newTier,
+    });
+    set({
+      snippets: get().snippets.map((s) => (s.id === id ? updatedSnippet : s)),
+    });
+    return updatedSnippet;
+  },
+
+  saveAndPushSnippet: async (id, content) => {
+    const dbPath = await getDbPath();
+    await invoke("save_and_push_snippet", { dbPath, id, content });
+    // Update the updated_at field locally
     set({
       snippets: get().snippets.map((s) =>
         s.id === id ? { ...s, updated_at: new Date().toISOString() } : s

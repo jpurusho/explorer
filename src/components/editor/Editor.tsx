@@ -13,6 +13,7 @@ import { getLanguageExtension } from "./languages";
 import { explorerTheme, explorerHighlightStyle } from "./theme";
 import { updateCache, emitContentUpdated } from "../../lib/previewCache";
 import { MarkdownReference } from "./MarkdownReference";
+import { useSnippetsStore } from "../../stores/snippetsStore";
 
 interface EditorProps {
   path: string;
@@ -29,14 +30,41 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
   const [savedMessage, setSavedMessage] = useState(false);
   const [wordWrap, setWordWrap] = useState(true);
   const [showMarkdownHelp, setShowMarkdownHelp] = useState(false);
+  const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const snippets = useSnippetsStore((s) => s.snippets);
+  const saveAndPushSnippet = useSnippetsStore((s) => s.saveAndPushSnippet);
 
   const isMarkdown = fileType === "markdown" || fileName.endsWith(".md");
+
+  // Check if this file is a snippet (for auto-push to gist)
+  const snippet = snippets.find((s) => {
+    const snippetsRoot = path.includes("/.config/explorer/snippets/");
+    if (!snippetsRoot) return false;
+    // Match by filename in the path
+    return path.endsWith(`/${s.title}`);
+  });
+  const isGistSnippet = snippet && (snippet.tier === "secret" || snippet.tier === "public");
+
+  // Clear auto-save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
 
   const saveFile = useCallback(async () => {
     if (!viewRef.current) return;
     const text = viewRef.current.state.doc.toString();
     try {
-      await invoke("write_file", { path, content: text });
+      // If it's a gist snippet, use saveAndPushSnippet (saves + commits + pushes)
+      if (isGistSnippet && snippet) {
+        await saveAndPushSnippet(snippet.id, text);
+      } else {
+        await invoke("write_file", { path, content: text });
+      }
       // Refresh the cached read with the fresh bytes and broadcast so the
       // preview panel can re-render instantly without waiting for the
       // ~300ms watcher debounce round-trip.
@@ -47,10 +75,11 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
       onModifiedChange?.(false);
       setSavedMessage(true);
       setTimeout(() => setSavedMessage(false), 2000);
-    } catch {
+    } catch (err) {
+      console.error("Save failed:", err);
       // Save failed — user sees "Modified" badge persist
     }
-  }, [path, onModifiedChange]);
+  }, [path, onModifiedChange, isGistSnippet, snippet, saveAndPushSnippet]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -89,6 +118,16 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
         if (update.docChanged) {
           setModified(true);
           onModifiedChange?.(true);
+
+          // For gist snippets, debounce auto-save by 2s (ADR 0004)
+          if (isGistSnippet) {
+            if (autoSaveTimerRef.current) {
+              clearTimeout(autoSaveTimerRef.current);
+            }
+            autoSaveTimerRef.current = setTimeout(() => {
+              saveFile();
+            }, 2000);
+          }
         }
       }),
     ];
