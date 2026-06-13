@@ -1,8 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import remarkSupersub from "remark-supersub";
+import rehypeKatex from "rehype-katex";
+import rehypeRaw from "rehype-raw";
 import mermaid from "mermaid";
 import { ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import hljs from "highlight.js";
+import "katex/dist/katex.min.css";
+import "highlight.js/styles/github-dark.min.css";
 
 interface MarkdownPreviewProps {
   content: string;
@@ -79,19 +86,43 @@ function MermaidBlock({ code }: { code: string }) {
   );
 }
 
+const COLOR_RE = /^#(?:[0-9a-fA-F]{3}){1,2}$|^#(?:[0-9a-fA-F]{4}){1,2}$|^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$|^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*[\d.]+\s*\)$|^hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)$/;
+
 export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPreviewProps) {
   const renderCode = useCallback(({ className, children, ...props }: any) => {
     const match = /language-(\w+)/.exec(className || "");
     const lang = match?.[1];
     const code = String(children).replace(/\n$/, "");
+    const isBlock = !!lang || code.includes("\n");
 
     if (lang === "mermaid") {
       return <MermaidBlock code={code} />;
     }
 
-    if (lang) {
+    if (isBlock) {
+      let highlighted: string;
+      if (lang && hljs.getLanguage(lang)) {
+        highlighted = hljs.highlight(code, { language: lang }).value;
+      } else {
+        highlighted = hljs.highlightAuto(code).value;
+      }
       return (
-        <code className={className} {...props}>
+        <code
+          className={`hljs ${className || ""}`}
+          dangerouslySetInnerHTML={{ __html: highlighted }}
+          {...props}
+        />
+      );
+    }
+
+    // Inline code: check if it's a color value and show a swatch
+    if (COLOR_RE.test(code.trim())) {
+      return (
+        <code {...props}>
+          <span
+            className="inline-block w-3 h-3 rounded-sm mr-1 align-middle border border-border/50"
+            style={{ backgroundColor: code.trim() }}
+          />
           {children}
         </code>
       );
@@ -152,12 +183,75 @@ export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPrevi
     );
   }, [basePath, onNavigate]);
 
+  const renderBlockquote = useCallback(({ children, ...props }: any) => {
+    // Detect GitHub-style admonitions: > [!NOTE], > [!TIP], > [!WARNING], > [!CAUTION], > [!IMPORTANT]
+    const childArray = Array.isArray(children) ? children : [children];
+    const firstParagraph = childArray.find(
+      (c: any) => c?.type === "p" || (c?.props?.children && typeof c !== "string")
+    );
+
+    let textContent = "";
+    if (firstParagraph?.props?.children) {
+      const pChildren = Array.isArray(firstParagraph.props.children)
+        ? firstParagraph.props.children
+        : [firstParagraph.props.children];
+      textContent = pChildren
+        .filter((c: any) => typeof c === "string")
+        .join("");
+    }
+
+    const admonitionMatch = textContent.match(/^\[!(NOTE|TIP|WARNING|CAUTION|IMPORTANT)\]\s*/i);
+    if (admonitionMatch) {
+      const type = admonitionMatch[1].toUpperCase();
+      const styles: Record<string, { border: string; bg: string; icon: string; title: string }> = {
+        NOTE: { border: "border-blue-500/40", bg: "bg-blue-500/5", icon: "ℹ️", title: "text-blue-400" },
+        TIP: { border: "border-green-500/40", bg: "bg-green-500/5", icon: "💡", title: "text-green-400" },
+        WARNING: { border: "border-amber-500/40", bg: "bg-amber-500/5", icon: "⚠️", title: "text-amber-400" },
+        CAUTION: { border: "border-red-500/40", bg: "bg-red-500/5", icon: "🚨", title: "text-red-400" },
+        IMPORTANT: { border: "border-purple-500/40", bg: "bg-purple-500/5", icon: "❗", title: "text-purple-400" },
+      };
+      const s = styles[type] || styles.NOTE;
+
+      // Remove the [!TYPE] marker from the rendered content
+      const modifiedChildren = childArray.map((child: any, i: number) => {
+        if (child === firstParagraph && child?.props?.children) {
+          const pChildren = Array.isArray(child.props.children)
+            ? [...child.props.children]
+            : [child.props.children];
+          // Strip the admonition marker from the first text node
+          for (let j = 0; j < pChildren.length; j++) {
+            if (typeof pChildren[j] === "string" && pChildren[j].match(/^\[!(NOTE|TIP|WARNING|CAUTION|IMPORTANT)\]\s*/i)) {
+              pChildren[j] = pChildren[j].replace(/^\[!(NOTE|TIP|WARNING|CAUTION|IMPORTANT)\]\s*/i, "");
+              if (!pChildren[j]) pChildren.splice(j, 1);
+              break;
+            }
+          }
+          return <p key={i}>{pChildren}</p>;
+        }
+        return child;
+      });
+
+      return (
+        <div className={`my-3 rounded-md border-l-4 ${s.border} ${s.bg} px-4 py-3`}>
+          <div className={`flex items-center gap-2 font-medium text-[var(--font-sm)] ${s.title} mb-1`}>
+            <span>{s.icon}</span>
+            <span>{type.charAt(0) + type.slice(1).toLowerCase()}</span>
+          </div>
+          <div className="text-text-secondary">{modifiedChildren}</div>
+        </div>
+      );
+    }
+
+    return <blockquote {...props}>{children}</blockquote>;
+  }, []);
+
   return (
     <div className="h-full overflow-auto">
       <div className="py-5 prose-explorer max-w-full" style={{ paddingLeft: "calc(var(--panel-px) + 8px)", paddingRight: "var(--panel-px)" }}>
         <ReactMarkdown
-          remarkPlugins={[remarkGfm]}
-          components={{ code: renderCode, a: renderLink }}
+          remarkPlugins={[remarkGfm, remarkMath, remarkSupersub]}
+          rehypePlugins={[rehypeKatex, rehypeRaw]}
+          components={{ code: renderCode, a: renderLink, blockquote: renderBlockquote }}
         >
           {content}
         </ReactMarkdown>

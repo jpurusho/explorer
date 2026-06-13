@@ -67,6 +67,7 @@ export interface AppSettings {
   show_snippets_section: boolean;
   favorites_height: number;
   folders_height: number;
+  tags_height: number;
   preview_max_mb: number;
   grid_card_size: number;
 }

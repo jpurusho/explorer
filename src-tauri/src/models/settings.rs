@@ -29,6 +29,7 @@ pub struct AppSettings {
     pub show_snippets_section: bool,
     pub favorites_height: u32,
     pub folders_height: u32,
+    pub tags_height: u32,
     pub preview_max_mb: u32,
     pub grid_card_size: u32,
 }
@@ -70,6 +71,7 @@ impl Default for AppSettings {
             show_snippets_section: true,
             favorites_height: 140,
             folders_height: 300,
+            tags_height: 200,
             preview_max_mb: 5,
             grid_card_size: 175,
         }

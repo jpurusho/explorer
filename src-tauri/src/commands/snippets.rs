@@ -105,80 +105,451 @@ fn migrate_old_snippets() -> Result<(), AppError> {
 
 const MARKDOWN_REFERENCE: &str = r#"# Markdown Quick Reference
 
+Each section shows the **raw syntax** followed by the **rendered result**.
+
+---
+
 ## Headers
+
+**Syntax:**
 ```
-# H1
-## H2
-### H3
+# Header 1
+## Header 2
+### Header 3
+#### Header 4
+##### Header 5
+###### Header 6
 ```
 
+**Rendered:**
+
+# Header 1
+## Header 2
+### Header 3
+#### Header 4
+##### Header 5
+###### Header 6
+
+---
+
 ## Emphasis
+
+**Syntax:**
 ```
 *italic* or _italic_
 **bold** or __bold__
 ***bold italic***
 ~~strikethrough~~
+H~2~O (subscript)
+X^2^ (superscript)
 ```
+
+**Rendered:**
+
+*italic* or _italic_
+
+**bold** or __bold__
+
+***bold italic***
+
+~~strikethrough~~
+
+H~2~O (subscript)
+
+X^2^ (superscript)
+
+---
 
 ## Lists
+
+**Syntax:**
 ```
-- Unordered item
-- Another item
+- First item
+- Second item
   - Nested item
+    - Deeper nesting
 
-1. Ordered item
-2. Another item
+1. First item
+2. Second item
+   1. Nested ordered
 
-- [ ] Task item
+- [ ] Uncompleted task
 - [x] Completed task
 ```
 
-## Links & Images
+**Rendered:**
+
+- First item
+- Second item
+  - Nested item
+    - Deeper nesting
+
+1. First item
+2. Second item
+   1. Nested ordered
+
+- [ ] Uncompleted task
+- [x] Completed task
+- [ ] Another pending task
+
+---
+
+## Links
+
+**Syntax:**
 ```
-[Link text](https://example.com)
-![Alt text](image.png)
+[Link text](./markdown-reference.md)
+Autolink: <https://github.com>
 ```
 
+**Rendered:**
+
+[Link text](./markdown-reference.md)
+
+Autolink: <https://github.com>
+
+---
+
 ## Code
-Inline `code` with backticks
+
+**Syntax:**
+
+````
+Inline: `const x = 42;`
+
+Color codes: `#ff6600` `#4da8ff` `rgb(255, 100, 50)`
 
 ```javascript
 function hello() {
   console.log("Hello!");
 }
 ```
+````
+
+**Rendered:**
+
+Inline: `const x = 42;`
+
+Color codes: `#ff6600` `#4da8ff` `#22c55e` `rgb(255, 100, 50)`
+
+```javascript
+function fibonacci(n) {
+  if (n <= 1) return n;
+  return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+const result = fibonacci(10);
+console.log(`Fibonacci(10) = ${result}`);
+```
+
+```rust
+fn main() {
+    let names = vec!["Alice", "Bob", "Charlie"];
+    for name in &names {
+        println!("Hello, {}!", name);
+    }
+}
+```
+
+```python
+from dataclasses import dataclass
+
+@dataclass
+class Point:
+    x: float
+    y: float
+
+    def distance(self, other: "Point") -> float:
+        return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
+```
+
+```css
+.container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+```
+
+```bash
+#!/bin/bash
+for file in *.md; do
+  echo "Processing: $file"
+  wc -w "$file"
+done
+```
+
+---
 
 ## Blockquotes
+
+**Syntax:**
 ```
-> Quote text
-> continues here
+> A single line quote.
+
+> Multi-line quote
+> continues here.
+
+> Nested quotes:
+>> Second level
+>>> Third level
 ```
 
+**Rendered:**
+
+> A single line quote.
+
+> Multi-line quote
+> continues here.
+>
+> With a paragraph break.
+
+> Nested quotes:
+>> Second level
+>>> Third level
+
+---
+
 ## Tables
+
+**Syntax:**
 ```
 | Left | Center | Right |
 |:-----|:------:|------:|
 | A    | B      | C     |
+| D    | E      | F     |
 ```
+
+**Rendered:**
+
+| Feature | Status | Notes |
+|:--------|:------:|------:|
+| Syntax highlighting | ✅ | highlight.js |
+| Math rendering | ✅ | KaTeX |
+| Mermaid diagrams | ✅ | Built-in |
+| Color swatches | ✅ | Inline code |
+| Admonitions | ✅ | GFM style |
+
+---
 
 ## Horizontal Rules
+
+**Syntax:**
 ```
 ---
+***
+___
 ```
 
+**Rendered:**
+
+---
+
+***
+
+___
+
+---
+
+## Footnotes
+
+**Syntax:**
+```
+Sentence with a footnote.[^1]
+Another with a named one.[^named]
+
+[^1]: Footnote content.
+[^named]: Named footnote content.
+```
+
+**Rendered:**
+
+Here's a sentence with a footnote.[^1]
+
+And another with a named footnote.[^named]
+
+[^1]: This is the first footnote content.
+[^named]: Named footnotes work the same way.
+
+---
+
+## HTML Elements
+
+**Syntax:**
+```html
+<details>
+<summary>Click to expand</summary>
+Hidden content with **markdown** inside.
+</details>
+
+<kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>
+<mark>Highlighted text</mark>
+Text with <sup>super</sup> and <sub>sub</sub>
+```
+
+**Rendered:**
+
+<details>
+<summary>Click to expand this section</summary>
+
+This content is hidden by default.
+
+**Markdown** works *inside* HTML blocks.
+
+- List item one
+- List item two
+
+</details>
+
+Keyboard shortcuts: <kbd>Cmd</kbd> + <kbd>Shift</kbd> + <kbd>P</kbd>
+
+<mark>Highlighted text</mark> stands out.
+
+Text with <sup>superscript</sup> and <sub>subscript</sub> elements.
+
+---
+
+## Math (KaTeX)
+
+**Syntax:**
+```
+Inline: $E = mc^2$
+
+Block:
+$$
+\frac{n!}{k!(n-k)!} = \binom{n}{k}
+$$
+```
+
+**Rendered:**
+
+Inline math: $E = mc^2$ and $\sum_{i=1}^{n} i = \frac{n(n+1)}{2}$
+
+$$
+\frac{n!}{k!(n-k)!} = \binom{n}{k}
+$$
+
+$$
+\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}
+$$
+
+---
+
 ## Mermaid Diagrams
+
+**Syntax:**
+````
 ```mermaid
 graph TD
   A[Start] --> B{Decision}
   B -->|Yes| C[OK]
   B -->|No| D[Cancel]
 ```
+````
+
+**Rendered:**
+
+```mermaid
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Process]
+  B -->|No| D[Skip]
+  C --> E[End]
+  D --> E
+```
 
 ```mermaid
 sequenceDiagram
-  Alice->>Bob: Hello
-  Bob->>Alice: Hi!
+  participant U as User
+  participant A as App
+  participant S as Server
+  U->>A: Click button
+  A->>S: API request
+  S-->>A: Response
+  A-->>U: Update UI
 ```
+
+```mermaid
+pie title Language Usage
+  "TypeScript" : 45
+  "Rust" : 30
+  "CSS" : 15
+  "Other" : 10
+```
+
+---
+
+## Admonitions
+
+**Syntax:**
+```
+> [!NOTE]
+> Informational note.
+
+> [!TIP]
+> Helpful advice.
+
+> [!WARNING]
+> Important warning.
+
+> [!CAUTION]
+> Critical information.
+
+> [!IMPORTANT]
+> Key information.
+```
+
+**Rendered:**
+
+> [!NOTE]
+> This is an informational note. Use it for general information.
+
+> [!TIP]
+> This is a helpful tip. Use it for best practices and suggestions.
+
+> [!WARNING]
+> This is a warning. Use it for potential issues to watch out for.
+
+> [!CAUTION]
+> This is a caution notice. Use it for dangerous or destructive actions.
+
+> [!IMPORTANT]
+> This is important information that should not be missed.
+
+---
+
+## Line Breaks
+
+**Syntax:**
+```
+First line with two trailing spaces
+creates a hard line break.
+
+Or use a backslash\
+at the end of a line.
+```
+
+**Rendered:**
+
+First line with two trailing spaces
+creates a hard line break.
+
+Or use a backslash\
+at the end of a line.
+
+---
+
+## Escape Characters
+
+**Syntax:**
+```
+\* \# \[ \] \\ \` \| \_ \~
+```
+
+**Rendered:**
+
+These are literal: \* \# \[ \] \\ \` \| \_ \~
 "#;
 
 /// Create the default markdown-reference.md snippet if it doesn't exist.
@@ -489,7 +860,7 @@ async fn clone_gist(gist_id: &str, pat: &str) -> Result<PathBuf, AppError> {
         return Ok(gist_dir);
     }
 
-    let url = format!("https://github.com/{}.git", gist_id);
+    let url = format!("https://gist.github.com/{}.git", gist_id);
 
     let mut callbacks = RemoteCallbacks::new();
     callbacks.credentials(|_url, username_from_url, _allowed_types| {
@@ -765,4 +1136,140 @@ pub async fn save_and_push_snippet(
     }
 
     Ok(())
+}
+
+/// Pull all gists from the user's GitHub account.
+/// Imports any gists not already tracked in the local DB.
+#[tauri::command]
+pub async fn pull_gists(db_path: String) -> Result<Vec<Snippet>, AppError> {
+    let pat = get_pat().await?;
+    let client = reqwest::Client::new();
+
+    // Fetch all gists (paginated)
+    let mut all_gists: Vec<serde_json::Value> = Vec::new();
+    let mut page = 1u32;
+    loop {
+        let resp = client
+            .get("https://api.github.com/gists")
+            .query(&[("per_page", "100"), ("page", &page.to_string())])
+            .header("Authorization", format!("token {}", pat))
+            .header("User-Agent", "explorer-app")
+            .send()
+            .await
+            .map_err(|e| AppError::Other(format!("GitHub API request failed: {}", e)))?;
+
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(AppError::Other(format!("GitHub API error {}: {}", status, text)));
+        }
+
+        let gists: Vec<serde_json::Value> = resp
+            .json()
+            .await
+            .map_err(|e| AppError::Other(format!("Failed to parse GitHub response: {}", e)))?;
+
+        if gists.is_empty() {
+            break;
+        }
+        all_gists.extend(gists);
+        page += 1;
+    }
+
+    // Get existing gist_ids to skip (scoped so conn is dropped before awaits)
+    let existing_ids: std::collections::HashSet<String> = {
+        let conn = Connection::open(&db_path)?;
+        init_snippets_table(&conn)?;
+        let mut stmt = conn.prepare("SELECT gist_id FROM snippets WHERE gist_id IS NOT NULL")?;
+        let ids: Vec<String> = stmt
+            .query_map([], |row| row.get::<_, String>(0))?
+            .filter_map(|r| r.ok())
+            .collect();
+        drop(stmt);
+        drop(conn);
+        ids.into_iter().collect()
+    };
+
+    // Collect gists to import (parse metadata before any async work)
+    struct GistInfo {
+        gist_id: String,
+        title: String,
+        tier: SnippetTier,
+        language: Option<String>,
+    }
+    let mut to_import: Vec<GistInfo> = Vec::new();
+
+    for gist in &all_gists {
+        let gist_id = match gist["id"].as_str() {
+            Some(id) => id,
+            None => continue,
+        };
+        if existing_ids.contains(gist_id) {
+            continue;
+        }
+        let is_public = gist["public"].as_bool().unwrap_or(false);
+        let tier = if is_public { SnippetTier::Public } else { SnippetTier::Secret };
+        let files = match gist["files"].as_object() {
+            Some(f) => f,
+            None => continue,
+        };
+        let first_file = match files.values().next() {
+            Some(f) => f,
+            None => continue,
+        };
+        let title = first_file["filename"]
+            .as_str()
+            .unwrap_or("untitled")
+            .to_string();
+        let language = first_file["language"].as_str().map(|s| s.to_lowercase());
+
+        to_import.push(GistInfo { gist_id: gist_id.to_string(), title, tier, language });
+    }
+
+    // Clone gists (async work, no DB connection held)
+    let mut cloned: Vec<GistInfo> = Vec::new();
+    for info in to_import {
+        if let Err(e) = clone_gist(&info.gist_id, &pat).await {
+            eprintln!("Failed to clone gist {}: {}", info.gist_id, e);
+            continue;
+        }
+        cloned.push(info);
+    }
+
+    // Insert into DB (no awaits after this)
+    let mut imported: Vec<Snippet> = Vec::new();
+    {
+        let conn = Connection::open(&db_path)?;
+        for info in cloned {
+            let id = uuid::Uuid::new_v4().to_string();
+            let now = chrono::Utc::now().to_rfc3339();
+
+            let snippet = Snippet {
+                id: id.clone(),
+                title: info.title,
+                tier: info.tier,
+                gist_id: Some(info.gist_id),
+                language: info.language,
+                created_at: now.clone(),
+                updated_at: now,
+            };
+
+            conn.execute(
+                "INSERT INTO snippets (id, title, tier, gist_id, language, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    &snippet.id,
+                    &snippet.title,
+                    snippet.tier.as_str(),
+                    &snippet.gist_id,
+                    &snippet.language,
+                    &snippet.created_at,
+                    &snippet.updated_at,
+                ],
+            )?;
+
+            imported.push(snippet);
+        }
+    }
+
+    Ok(imported)
 }

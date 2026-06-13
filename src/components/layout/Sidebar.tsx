@@ -564,17 +564,19 @@ export function Sidebar() {
 
   const [favHeight, setFavHeight] = useState(settings.favorites_height || 140);
   const [foldersHeight, setFoldersHeight] = useState(settings.folders_height || 300);
+  const [tagsHeight, setTagsHeight] = useState(settings.tags_height || 200);
 
   // Re-seed heights if settings load after mount.
   useEffect(() => { setFavHeight(settings.favorites_height || 140); }, [settings.favorites_height]);
   useEffect(() => { setFoldersHeight(settings.folders_height || 300); }, [settings.folders_height]);
+  useEffect(() => { setTagsHeight(settings.tags_height || 200); }, [settings.tags_height]);
 
-  const handleDividerDrag = (which: "fav" | "folders", min: number) => {
-    const setter = which === "fav" ? setFavHeight : setFoldersHeight;
+  const handleDividerDrag = (which: "fav" | "folders" | "tags", min: number) => {
+    const setter = which === "fav" ? setFavHeight : which === "folders" ? setFoldersHeight : setTagsHeight;
     return (e: React.MouseEvent) => {
       e.preventDefault();
       const startY = e.clientY;
-      const startHeight = which === "fav" ? favHeight : foldersHeight;
+      const startHeight = which === "fav" ? favHeight : which === "folders" ? foldersHeight : tagsHeight;
       document.body.style.cursor = "row-resize";
       document.body.style.userSelect = "none";
 
@@ -588,7 +590,8 @@ export function Sidebar() {
         document.body.style.userSelect = "";
         document.removeEventListener("mousemove", onMove);
         document.removeEventListener("mouseup", onUp);
-        updateSettings(which === "fav" ? { favorites_height: latest } : { folders_height: latest });
+        const key = which === "fav" ? "favorites_height" : which === "folders" ? "folders_height" : "tags_height";
+        updateSettings({ [key]: latest });
       };
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", onUp);
@@ -640,13 +643,13 @@ export function Sidebar() {
             className="shrink-0 h-[7px] cursor-row-resize flex items-center justify-center group"
             onMouseDown={handleDividerDrag("fav", 60)}
           >
-            <div className="w-8 h-[3px] rounded-full bg-border group-hover:bg-accent/40 group-active:bg-accent transition-colors" />
+            <div className="w-10 h-[3px] rounded-full bg-border/60 group-hover:bg-accent/50 group-active:bg-accent transition-colors" />
           </div>
         )}
 
         {/* Folders */}
         {showFolders && (
-          <div className="overflow-auto pr-3 pb-1" style={{ paddingLeft: "20px", height: showTags ? `${foldersHeight}px` : undefined, flex: showTags ? "none" : "1" }}>
+          <div className="overflow-auto pr-3 pb-1" style={{ paddingLeft: "20px", height: (showTags || showSnippets) ? `${foldersHeight}px` : undefined, flex: (showTags || showSnippets) ? "none" : "1" }}>
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-medium text-text-muted/70 uppercase tracking-[0.12em]">
                 Folders
@@ -669,24 +672,34 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Draggable divider between Folders and Tags */}
-        {showFolders && showTags && (
+        {/* Draggable divider between Folders and next section */}
+        {showFolders && (showTags || showSnippets) && (
           <div
             className="shrink-0 h-[7px] cursor-row-resize flex items-center justify-center group"
             onMouseDown={handleDividerDrag("folders", 80)}
           >
-            <div className="w-8 h-[3px] rounded-full bg-border group-hover:bg-accent/40 group-active:bg-accent transition-colors" />
+            <div className="w-10 h-[3px] rounded-full bg-border/60 group-hover:bg-accent/50 group-active:bg-accent transition-colors" />
           </div>
         )}
 
         {/* Tags */}
         {showTags && (
-          <div className="flex-1 overflow-auto pr-3 pb-3 min-h-[60px]" style={{ paddingLeft: "20px" }}>
+          <div className="overflow-auto pr-3 pb-1 min-h-[60px]" style={{ paddingLeft: "20px", height: showSnippets ? `${tagsHeight}px` : undefined, flex: showSnippets ? "none" : "1" }}>
             <div className="flex items-center justify-between mb-2">
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-medium text-text-muted/70 uppercase tracking-[0.12em]">Tags</h3>
               <button onClick={() => updateSettings({ show_tags_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
             <TagsSection />
+          </div>
+        )}
+
+        {/* Draggable divider between Tags and Snippets */}
+        {showTags && showSnippets && (
+          <div
+            className="shrink-0 h-[7px] cursor-row-resize flex items-center justify-center group"
+            onMouseDown={handleDividerDrag("tags", 60)}
+          >
+            <div className="w-10 h-[3px] rounded-full bg-border/60 group-hover:bg-accent/50 group-active:bg-accent transition-colors" />
           </div>
         )}
 

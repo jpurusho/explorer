@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Plus, MoreVertical, Trash2 } from "lucide-react";
+import { Plus, MoreVertical, Trash2, Download, Globe, Lock, HardDrive } from "lucide-react";
 import { clsx } from "clsx";
 import { useSnippetsStore } from "../../stores/snippetsStore";
 import { useNavigationStore } from "../../stores/navigationStore";
@@ -171,16 +171,46 @@ function SnippetContextMenu({
         onClose();
       }
     };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { onClose(); return; }
+      const menu = menuRef.current;
+      if (!menu) return;
+      const items = Array.from(menu.querySelectorAll("[data-menu-item]:not(:disabled)")) as HTMLElement[];
+      const active = document.activeElement as HTMLElement;
+      const idx = items.indexOf(active);
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        items[idx < items.length - 1 ? idx + 1 : 0]?.focus();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        items[idx > 0 ? idx - 1 : items.length - 1]?.focus();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (active && items.includes(active)) active.click();
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [onClose]);
+
+  // Viewport clamping + focus first item
+  useEffect(() => {
+    if (!menuRef.current) return;
+    const menu = menuRef.current;
+    const rect = menu.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    if (rect.right > vw - 8) menu.style.left = `${Math.max(8, position.x - rect.width)}px`;
+    if (rect.bottom > vh - 8) menu.style.top = `${Math.max(8, position.y - rect.height)}px`;
+    requestAnimationFrame(() => {
+      const first = menu.querySelector("[data-menu-item]:not(:disabled)") as HTMLElement;
+      first?.focus();
+    });
+  }, [position.x, position.y]);
 
   const handleMoveTier = async (newTier: SnippetTier) => {
     try {
@@ -203,40 +233,44 @@ function SnippetContextMenu({
     }
   };
 
-  const tiers: Array<{ tier: SnippetTier; label: string; color: string }> = [
-    { tier: "local", label: "Local", color: "bg-zinc-500" },
-    { tier: "secret", label: "Secret gist", color: "bg-amber-500" },
-    { tier: "public", label: "Public gist", color: "bg-emerald-500" },
+  const tierOptions: Array<{ tier: SnippetTier; label: string; icon: React.ReactNode }> = [
+    { tier: "local", label: "Local", icon: <HardDrive size={13} /> },
+    { tier: "secret", label: "Secret gist", icon: <Lock size={13} /> },
+    { tier: "public", label: "Public gist", icon: <Globe size={13} /> },
   ];
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="fixed inset-0 z-40" />
       <div
         ref={menuRef}
-        className="fixed z-50 bg-bg-secondary border border-border rounded-lg shadow-xl py-1 min-w-[160px]"
+        className="fixed z-50 min-w-[180px] py-1.5 px-1 bg-bg-secondary/95 backdrop-blur-xl border border-border/60 rounded-xl shadow-2xl"
         style={{ left: position.x, top: position.y }}
       >
-        <div className="px-2 py-1 text-[var(--font-xs)] text-text-muted">Move to...</div>
-        {tiers
+        <div className="px-3 py-1 text-[10px] uppercase tracking-wider text-text-muted/60 font-medium">
+          Move to
+        </div>
+        {tierOptions
           .filter((t) => t.tier !== snippet.tier)
           .map((t) => (
             <button
               key={t.tier}
+              data-menu-item
               onClick={() => handleMoveTier(t.tier)}
-              className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-[var(--font-sm)] text-text hover:bg-bg-hover"
+              className="w-full flex items-center gap-2.5 pl-3 pr-4 py-[6px] text-left text-[var(--font-sm)] rounded-md transition-colors outline-none hover:bg-accent/10 focus:bg-accent/10"
             >
-              <div className={clsx("w-1.5 h-1.5 rounded-full", t.color)} />
-              <span>{t.label}</span>
+              <span className="text-text-muted shrink-0">{t.icon}</span>
+              <span className="text-text-secondary flex-1 min-w-0 truncate">{t.label}</span>
             </button>
           ))}
-        <div className="my-1 border-t border-border" />
+        <div className="h-[1px] bg-border/40 my-1 mx-3" />
         <button
+          data-menu-item
           onClick={handleDelete}
-          className="w-full flex items-center gap-2 px-3 py-1.5 text-left text-[var(--font-sm)] text-red-400 hover:bg-bg-hover"
+          className="w-full flex items-center gap-2.5 pl-3 pr-4 py-[6px] text-left text-[var(--font-sm)] rounded-md transition-colors outline-none hover:bg-red-500/10 focus:bg-red-500/10"
         >
-          <Trash2 size={13} />
-          <span>Delete</span>
+          <span className="text-red-400 shrink-0"><Trash2 size={13} /></span>
+          <span className="text-red-400 flex-1 min-w-0 truncate">Delete</span>
         </button>
       </div>
     </>
@@ -247,12 +281,29 @@ export function SnippetsSection() {
   const snippets = useSnippetsStore((s) => s.snippets);
   const loadSnippets = useSnippetsStore((s) => s.loadSnippets);
   const createSnippet = useSnippetsStore((s) => s.createSnippet);
+  const pullGists = useSnippetsStore((s) => s.pullGists);
+  const pulling = useSnippetsStore((s) => s.pulling);
   const [showCreate, setShowCreate] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ snippet: Snippet; x: number; y: number } | null>(null);
+  const showSuccess = useToastStore((s) => s.success);
+  const showError = useToastStore((s) => s.error);
 
   useEffect(() => {
     loadSnippets();
   }, []);
+
+  const handlePullGists = async () => {
+    try {
+      const imported = await pullGists();
+      if (imported.length > 0) {
+        showSuccess(`Imported ${imported.length} gist${imported.length > 1 ? "s" : ""}`);
+      } else {
+        showSuccess("All gists already imported");
+      }
+    } catch (err) {
+      showError(err instanceof Error ? err.message : String(err));
+    }
+  };
 
   const handleCreate = async (title: string, tier: SnippetTier) => {
     await createSnippet(title, tier, "# " + title + "\n\n");
@@ -284,7 +335,7 @@ export function SnippetsSection() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center gap-2 mb-1">
         <button
           onClick={() => setShowCreate(true)}
           className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary py-0.5"
@@ -293,10 +344,28 @@ export function SnippetsSection() {
           <Plus size={11} />
           <span>New</span>
         </button>
+        <button
+          onClick={handlePullGists}
+          disabled={pulling}
+          className="flex items-center gap-1.5 text-text-muted hover:text-text-secondary py-0.5 disabled:opacity-40"
+          style={{ fontSize: "var(--font-sidebar-item)" }}
+          title="Import gists from GitHub"
+        >
+          <Download size={11} />
+          <span>{pulling ? "Pulling..." : "Pull"}</span>
+        </button>
       </div>
       <nav className="flex flex-col gap-[2px]">
         {snippets.map((snippet) => (
-          <div key={snippet.id} className="flex items-center gap-1 group">
+          <div
+            key={snippet.id}
+            className="flex items-center gap-1 group"
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setContextMenu({ snippet, x: e.clientX, y: e.clientY });
+            }}
+          >
             <button
               onClick={() => handleSnippetClick(snippet)}
               className={clsx(

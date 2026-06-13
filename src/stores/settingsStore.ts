@@ -39,6 +39,7 @@ const defaultSettings: AppSettings = {
   show_snippets_section: true,
   favorites_height: 140,
   folders_height: 300,
+  tags_height: 200,
   preview_max_mb: 5,
   grid_card_size: 175,
 };

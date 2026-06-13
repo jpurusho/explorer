@@ -5,6 +5,7 @@ import type { Snippet, SnippetTier } from "../types";
 interface SnippetsState {
   snippets: Snippet[];
   loading: boolean;
+  pulling: boolean;
 
   loadSnippets: () => Promise<void>;
   createSnippet: (title: string, tier: SnippetTier, content: string, language?: string) => Promise<Snippet>;
@@ -12,11 +13,13 @@ interface SnippetsState {
   updateSnippetContent: (id: string, content: string) => Promise<void>;
   moveSnippetTier: (id: string, newTier: SnippetTier) => Promise<Snippet>;
   saveAndPushSnippet: (id: string, content: string) => Promise<void>;
+  pullGists: () => Promise<Snippet[]>;
 }
 
 export const useSnippetsStore = create<SnippetsState>((set, get) => ({
   snippets: [],
   loading: false,
+  pulling: false,
 
   loadSnippets: async () => {
     set({ loading: true });
@@ -90,6 +93,20 @@ export const useSnippetsStore = create<SnippetsState>((set, get) => ({
         s.id === id ? { ...s, updated_at: new Date().toISOString() } : s
       ),
     });
+  },
+
+  pullGists: async () => {
+    set({ pulling: true });
+    try {
+      const dbPath = await getDbPath();
+      const imported = await invoke<Snippet[]>("pull_gists", { dbPath });
+      if (imported.length > 0) {
+        set({ snippets: [...imported, ...get().snippets] });
+      }
+      return imported;
+    } finally {
+      set({ pulling: false });
+    }
   },
 }));
 
