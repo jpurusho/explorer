@@ -52,6 +52,57 @@ pub fn snippets_root() -> Result<PathBuf, AppError> {
     Ok(root)
 }
 
+/// Old snippet root (pre-v1.7.10): ~/Library/Application Support/com.explorer.Explorer/snippets/
+fn old_snippets_root() -> Option<PathBuf> {
+    directories::ProjectDirs::from("com", "explorer", "Explorer")
+        .map(|dirs| dirs.data_dir().join("snippets"))
+}
+
+/// Migrate snippets from old Application Support location to ~/.config/explorer/snippets/
+fn migrate_old_snippets() -> Result<(), AppError> {
+    let old_root = match old_snippets_root() {
+        Some(r) if r.exists() => r,
+        _ => return Ok(()), // Nothing to migrate
+    };
+
+    let new_root = snippets_root()?;
+
+    // Migrate local/ folder
+    let old_local = old_root.join("local");
+    let new_local = new_root.join("local");
+    if old_local.exists() {
+        std::fs::create_dir_all(&new_local)?;
+        for entry in std::fs::read_dir(&old_local)? {
+            let entry = entry?;
+            let file_name = entry.file_name();
+            let old_path = entry.path();
+            let new_path = new_local.join(&file_name);
+            // Only move if target doesn't exist (avoid overwriting)
+            if old_path.is_file() && !new_path.exists() {
+                std::fs::rename(&old_path, &new_path)?;
+            }
+        }
+    }
+
+    // Migrate gists/ folder (if it exists in future)
+    let old_gists = old_root.join("gists");
+    let new_gists = new_root.join("gists");
+    if old_gists.exists() {
+        std::fs::create_dir_all(&new_gists)?;
+        for entry in std::fs::read_dir(&old_gists)? {
+            let entry = entry?;
+            let gist_id = entry.file_name();
+            let old_gist_dir = entry.path();
+            let new_gist_dir = new_gists.join(&gist_id);
+            if old_gist_dir.is_dir() && !new_gist_dir.exists() {
+                std::fs::rename(&old_gist_dir, &new_gist_dir)?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
 const MARKDOWN_REFERENCE: &str = r#"# Markdown Quick Reference
 
 ## Headers
@@ -227,6 +278,7 @@ pub fn init_snippets_table(conn: &Connection) -> Result<(), AppError> {
 pub async fn list_snippets(db_path: String) -> Result<Vec<Snippet>, AppError> {
     let conn = Connection::open(&db_path)?;
     init_snippets_table(&conn)?;
+    migrate_old_snippets()?;
     ensure_markdown_reference(&db_path)?;
 
     let mut stmt = conn.prepare(
