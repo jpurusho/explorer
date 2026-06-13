@@ -193,20 +193,36 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   selectedPath: null,
 
   setEntries: (entries) => {
-    const { showHiddenFiles, sortBy, sortDirection, filterPattern } = get();
+    const { showHiddenFiles, sortBy, sortDirection, filterPattern, selectedPath } = get();
     const visibleEntries = computeVisible(entries, showHiddenFiles, sortBy, sortDirection, filterPattern);
-    // Auto-select first file for preview, or first item if no files
-    const firstFileIdx = visibleEntries.findIndex((e) => !e.is_dir);
-    const autoIdx = firstFileIdx >= 0 ? firstFileIdx : (visibleEntries.length > 0 ? 0 : -1);
-    const autoEntry = autoIdx >= 0 ? visibleEntries[autoIdx] : null;
-    set({
-      entries,
-      visibleEntries,
-      selectedIndices: autoIdx >= 0 ? new Set([autoIdx]) : new Set(),
-      anchorIndex: autoIdx,
-      selectedIndex: autoIdx,
-      selectedPath: autoEntry?.path ?? null,
-    });
+
+    // If selectedPath is set and exists in the new entries, preserve it
+    const preservedIdx = selectedPath ? visibleEntries.findIndex((e) => e.path === selectedPath) : -1;
+
+    if (preservedIdx >= 0) {
+      // Keep the existing selection
+      set({
+        entries,
+        visibleEntries,
+        selectedIndices: new Set([preservedIdx]),
+        anchorIndex: preservedIdx,
+        selectedIndex: preservedIdx,
+        selectedPath,
+      });
+    } else {
+      // Auto-select first file for preview, or first item if no files
+      const firstFileIdx = visibleEntries.findIndex((e) => !e.is_dir);
+      const autoIdx = firstFileIdx >= 0 ? firstFileIdx : (visibleEntries.length > 0 ? 0 : -1);
+      const autoEntry = autoIdx >= 0 ? visibleEntries[autoIdx] : null;
+      set({
+        entries,
+        visibleEntries,
+        selectedIndices: autoIdx >= 0 ? new Set([autoIdx]) : new Set(),
+        anchorIndex: autoIdx,
+        selectedIndex: autoIdx,
+        selectedPath: autoEntry?.path ?? null,
+      });
+    }
   },
 
   setLoading: (loading) => set({ loading }),

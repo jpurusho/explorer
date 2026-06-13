@@ -242,13 +242,11 @@ async function handleSnippetClick(snippet: Snippet) {
     filePath = `${root}/gists/${snippet.gist_id}/${snippet.title}`;
   }
 
-  // Navigate to the folder and select the file
+  // Set the selected path BEFORE navigating so setEntries preserves it
+  useFileListStore.getState().setSelectedPath(filePath);
+
+  // Navigate to the folder (setEntries will preserve our selection)
   const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
   const navigateTo = useNavigationStore.getState().navigateTo;
   navigateTo(folderPath);
-
-  // Select the specific file after a brief delay (folder load is async)
-  setTimeout(() => {
-    useFileListStore.getState().setSelectedPath(filePath);
-  }, 150);
 }
