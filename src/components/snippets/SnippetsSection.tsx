@@ -447,12 +447,6 @@ export function SnippetsSection() {
           </div>
         ))}
       </nav>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-2.5 pt-2 pb-1 text-text-muted" style={{ fontSize: "var(--font-xs)" }}>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-zinc-500 inline-block" />Local</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Secret</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />Public</span>
-        <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />Not pushed</span>
-      </div>
       {showCreate && <CreateSnippetDialog onClose={() => setShowCreate(false)} onCreate={handleCreate} />}
       {contextMenu && (
         <SnippetContextMenu

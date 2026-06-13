@@ -705,12 +705,20 @@ export function Sidebar() {
 
         {/* Snippets */}
         {showSnippets && (
-          <div className="flex-1 overflow-auto pr-3 pb-3 min-h-[60px]" style={{ paddingLeft: "20px" }}>
-            <div className="flex items-center justify-between mb-2">
+          <div className="flex-1 flex flex-col min-h-[60px]">
+            <div className="flex items-center justify-between mb-2 pr-3" style={{ paddingLeft: "20px" }}>
               <h3 style={{ fontSize: "var(--font-sidebar-heading)" }} className="font-medium text-text-muted/70 uppercase tracking-[0.12em]">Snippets</h3>
               <button onClick={() => updateSettings({ show_snippets_section: false })} className="p-0.5 rounded hover:bg-bg-hover text-text-muted text-[var(--font-xs)]">✕</button>
             </div>
-            <SnippetsSection />
+            <div className="flex-1 overflow-auto pr-3 pb-1 min-h-0" style={{ paddingLeft: "20px" }}>
+              <SnippetsSection />
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-5 pt-1.5 pb-2 border-t border-border/50 shrink-0 text-text-muted" style={{ fontSize: "var(--font-xs)" }}>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-zinc-500 inline-block" />Local</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />Secret</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />Public</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-blue-500 inline-block" />Not pushed</span>
+            </div>
           </div>
         )}
 
