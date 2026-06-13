@@ -51,6 +51,8 @@ Brief notes on options ruled out and why.
 - [0002 — Reject Tauri dragDropEnabled for drag-in](./0002-reject-tauri-dragdropenabled.md)
 - [0003 — Commit Cargo.lock for deterministic CI](./0003-commit-cargo-lock.md)
 - [0004 — Snippets feature with three storage tiers](./0004-snippets-storage-tiers.md)
+- [0007 — Sync-status dot indicator (pushed vs local)](./0007-sync-status-dot-indicator.md)
+- [0008 — Skip Build & Test on tagged commits](./0008-ci-skip-build-on-tagged-commits.md)
 
 ## Linking
 
