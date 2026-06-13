@@ -242,11 +242,7 @@ async function handleSnippetClick(snippet: Snippet) {
     filePath = `${root}/gists/${snippet.gist_id}/${snippet.title}`;
   }
 
-  // Set the selected path BEFORE navigating so setEntries preserves it
+  // Open snippet directly in preview without navigating the center panel
+  // This keeps the user's current folder view intact
   useFileListStore.getState().setSelectedPath(filePath);
-
-  // Navigate to the folder (setEntries will preserve our selection)
-  const folderPath = filePath.substring(0, filePath.lastIndexOf('/'));
-  const navigateTo = useNavigationStore.getState().navigateTo;
-  navigateTo(folderPath);
 }

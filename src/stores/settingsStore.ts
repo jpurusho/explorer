@@ -70,6 +70,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           // leave favorites empty; sidebar falls back to /Users
         }
       }
+
+      // Auto-add snippets directory to search index if not already present
+      try {
+        const home = await invoke<string>("get_home_directory");
+        const snippetsPath = `${home}/.config/explorer/snippets`;
+        if (!settings.index_paths?.includes(snippetsPath)) {
+          settings.index_paths = [...(settings.index_paths || []), snippetsPath];
+          await invoke("save_settings", { settings });
+        }
+      } catch {
+        // Ignore if we can't get home dir
+      }
       const resolved = resolveTheme(settings.theme);
       applyTheme(resolved);
       set({ settings, loaded: true, resolvedTheme: resolved });
