@@ -27,6 +27,8 @@ interface FileListState {
   nameWidth: number;
   columns: ColumnConfig[];
 
+  syncStatusMap: Map<string, "pushed" | "local">;
+
   // When set, the list/grid should auto-start an inline rename of the entry at
   // this path once it appears (used after New Folder / Duplicate).
   renameRequestPath: string | null;
@@ -55,6 +57,9 @@ interface FileListState {
 
   // Filter actions
   setFilterPattern: (pattern: string | null) => void;
+
+  // Sync status
+  setSyncStatusMap: (map: Map<string, "pushed" | "local">) => void;
 
   // Rename request (auto-start inline rename once the path appears)
   requestRename: (path: string | null) => void;
@@ -182,6 +187,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
   showRowLines: false,
   filterPattern: null,
   nameWidth: 300,
+  syncStatusMap: new Map(),
   renameRequestPath: null,
   columns: [
     { id: "type", label: "Type", width: 50, minWidth: 40, visible: true },
@@ -324,6 +330,7 @@ export const useFileListStore = create<FileListState>((set, get) => ({
     });
   },
 
+  setSyncStatusMap: (map) => set({ syncStatusMap: map }),
   requestRename: (path) => set({ renameRequestPath: path }),
 
   setFilterPattern: (filterPattern) => {

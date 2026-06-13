@@ -6,6 +6,7 @@ import { Folder, Play, ExternalLink } from "lucide-react";
 import { detachPreview } from "../../lib/detachPreview";
 import { formatSize, formatDuration } from "../../lib/formatters";
 import { getThumbnail, loadThumbnail } from "../../lib/thumbnailCache";
+import { useFileListStore } from "../../stores/fileListStore";
 import type { FileEntry, FileType, FileContent } from "../../types";
 
 interface FileCardProps {
@@ -241,6 +242,7 @@ export function FileCard({ entry, selected, renaming, onRename, onCancelRename, 
   const [duration, setDuration] = useState<number | null>(null);
   const [isDragTarget, setIsDragTarget] = useState(false);
   const [renameValue, setRenameValue] = useState(entry.name);
+  const syncStatus = useFileListStore((s) => s.syncStatusMap.get(entry.path));
 
   const ext = entry.name.split(".").pop()?.toUpperCase() || "";
 
@@ -313,15 +315,21 @@ export function FileCard({ entry, selected, renaming, onRename, onCancelRename, 
             className="w-full bg-bg border border-accent rounded px-1.5 py-0 text-[var(--font-sm)] text-text outline-none"
           />
         ) : (
-          <p
+          <div
             onDoubleClick={onStartRename ? (e) => { e.stopPropagation(); onStartRename(); } : undefined}
             className={clsx(
-              "text-[var(--font-sm)] truncate leading-tight",
+              "flex items-center gap-1.5 text-[var(--font-sm)] leading-tight",
               selected ? "text-text font-medium" : "text-text"
             )}
           >
-            {entry.name}
-          </p>
+            {syncStatus && (
+              <div className={clsx(
+                "w-1.5 h-1.5 rounded-full shrink-0",
+                syncStatus === "pushed" ? "bg-emerald-500" : "bg-blue-500"
+              )} />
+            )}
+            <span className="truncate">{entry.name}</span>
+          </div>
         )}
         <div className="flex items-center justify-between mt-1">
           <span className="text-[var(--font-xs)] text-text-muted">

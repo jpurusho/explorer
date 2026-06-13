@@ -70,6 +70,13 @@ export function useDirectory() {
           fileStore.setEntries(entries);
           const paths = entries.map((e) => e.path);
           tagStore.loadTagsForFiles(paths).catch(() => {});
+          invoke<Record<string, string>>("get_sync_statuses", { path: targetPath })
+            .then((statusObj) => {
+              if (useNavigationStore.getState().currentPath !== targetPath) return;
+              const map = new Map(Object.entries(statusObj) as [string, "pushed" | "local"][]);
+              useFileListStore.getState().setSyncStatusMap(map);
+            })
+            .catch(() => {});
         })
         .catch((err) => {
           if (useNavigationStore.getState().currentPath !== targetPath) return;

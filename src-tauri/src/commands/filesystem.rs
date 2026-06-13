@@ -250,6 +250,93 @@ pub async fn get_git_status(path: String) -> Result<GitStatus, AppError> {
 }
 
 #[tauri::command]
+pub async fn get_sync_statuses(path: String) -> Result<std::collections::HashMap<String, String>, AppError> {
+    use std::collections::HashMap;
+
+    let path_clone = path.clone();
+    tauri::async_runtime::spawn_blocking(move || -> Result<HashMap<String, String>, AppError> {
+        let dir_path = Path::new(&path_clone);
+        let repo = match git2::Repository::discover(dir_path) {
+            Ok(r) => r,
+            Err(_) => return Ok(HashMap::new()),
+        };
+
+        // Find upstream remote tree for the current branch
+        let remote_tree = (|| -> Option<git2::Tree> {
+            let head = repo.head().ok()?;
+            let branch_name = head.shorthand()?;
+            let upstream = repo.find_branch(
+                &format!("origin/{}", branch_name),
+                git2::BranchType::Remote,
+            ).ok()?;
+            let commit = upstream.get().peel_to_commit().ok()?;
+            commit.tree().ok()
+        })();
+
+        let remote_tree = match remote_tree {
+            Some(t) => t,
+            None => {
+                // No upstream — everything is local
+                let mut map = HashMap::new();
+                if let Ok(rd) = fs::read_dir(dir_path) {
+                    for entry in rd.flatten() {
+                        map.insert(
+                            entry.path().to_string_lossy().to_string(),
+                            "local".to_string(),
+                        );
+                    }
+                }
+                return Ok(map);
+            }
+        };
+
+        let workdir = repo.workdir().unwrap_or(dir_path);
+        let mut map = HashMap::new();
+
+        if let Ok(rd) = fs::read_dir(dir_path) {
+            for entry in rd.flatten() {
+                let entry_path = entry.path();
+                let rel = match entry_path.strip_prefix(workdir) {
+                    Ok(r) => r,
+                    Err(_) => {
+                        map.insert(entry_path.to_string_lossy().to_string(), "local".to_string());
+                        continue;
+                    }
+                };
+
+                let rel_str = rel.to_string_lossy().replace('\\', "/");
+                let status = if remote_tree.get_path(std::path::Path::new(&rel_str)).is_ok() {
+                    // Check if the working tree version differs from remote
+                    let remote_entry = remote_tree.get_path(std::path::Path::new(&rel_str)).unwrap();
+                    let in_index = repo.index().ok().and_then(|idx| {
+                        idx.get_path(std::path::Path::new(&rel_str), 0)
+                    });
+                    match in_index {
+                        Some(idx_entry) if idx_entry.id == remote_entry.id() => {
+                            // Index matches remote — check if working tree is clean
+                            let st = repo.status_file(std::path::Path::new(&rel_str))
+                                .unwrap_or(git2::Status::WT_NEW);
+                            if st.is_empty() {
+                                "pushed"
+                            } else {
+                                "local"
+                            }
+                        }
+                        _ => "local",
+                    }
+                } else {
+                    "local"
+                };
+
+                map.insert(entry_path.to_string_lossy().to_string(), status.to_string());
+            }
+        }
+
+        Ok(map)
+    }).await.map_err(|e| AppError::Other(e.to_string()))?
+}
+
+#[tauri::command]
 pub async fn read_image_base64(path: String) -> Result<String, AppError> {
     use base64::Engine;
     let file_path = Path::new(&path);

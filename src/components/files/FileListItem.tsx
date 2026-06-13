@@ -63,6 +63,7 @@ export function FileListItem({
 }: FileListItemProps) {
   const nameWidth = useFileListStore((s) => s.nameWidth);
   const showRowLines = useFileListStore((s) => s.showRowLines);
+  const syncStatus = useFileListStore((s) => s.syncStatusMap.get(entry.path));
   const fileTagMap = useTagStore((s) => s.fileTagMap);
   const tags = fileTagMap.get(entry.path) || [];
   const [isDragTarget, setIsDragTarget] = useState(false);
@@ -134,14 +135,22 @@ export function FileListItem({
                   style={{ fontSize: "inherit" }}
                 />
               ) : (
-                <span
-                  className={clsx(
-                    "truncate",
-                    selected ? "text-text font-semibold" : entry.is_dir ? "text-text-secondary font-medium" : "text-text-secondary"
+                <>
+                  {syncStatus && (
+                    <div className={clsx(
+                      "w-1.5 h-1.5 rounded-full shrink-0",
+                      syncStatus === "pushed" ? "bg-emerald-500" : "bg-blue-500"
+                    )} />
                   )}
-                >
-                  {entry.name}
-                </span>
+                  <span
+                    className={clsx(
+                      "truncate",
+                      selected ? "text-text font-semibold" : entry.is_dir ? "text-text-secondary font-medium" : "text-text-secondary"
+                    )}
+                  >
+                    {entry.name}
+                  </span>
+                </>
               )}
               {tags.length > 0 && (
                 <div className="flex items-center gap-1 shrink-0">
