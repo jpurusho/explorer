@@ -32,6 +32,8 @@ pub struct AppSettings {
     pub tags_height: u32,
     pub preview_max_mb: u32,
     pub grid_card_size: u32,
+    pub autosave: bool,
+    pub autosave_delay_ms: u32,
 }
 
 impl Default for AppSettings {
@@ -74,6 +76,8 @@ impl Default for AppSettings {
             tags_height: 200,
             preview_max_mb: 5,
             grid_card_size: 175,
+            autosave: false,
+            autosave_delay_ms: 1000,
         }
     }
 }

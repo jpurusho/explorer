@@ -70,6 +70,8 @@ export interface AppSettings {
   tags_height: number;
   preview_max_mb: number;
   grid_card_size: number;
+  autosave: boolean;
+  autosave_delay_ms: number;
 }
 
 export interface ExifData {

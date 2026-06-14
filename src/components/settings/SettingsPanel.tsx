@@ -238,7 +238,41 @@ function FilesTab() {
       </SettingRow>
       <SidebarSectionsRows />
       <PreviewSizeRow />
+      <AutosaveRows />
     </Section>
+  );
+}
+
+function AutosaveRows() {
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  return (
+    <>
+      <SettingRow label="Auto-save">
+        <Toggle
+          checked={settings.autosave}
+          onChange={() => updateSettings({ autosave: !settings.autosave })}
+        />
+      </SettingRow>
+      {settings.autosave && (
+        <SettingRow label="Save delay">
+          <div className="flex items-center gap-2">
+            <input
+              type="range"
+              min={500}
+              max={5000}
+              step={500}
+              value={settings.autosave_delay_ms || 1000}
+              onChange={(e) => updateSettings({ autosave_delay_ms: parseInt(e.target.value) })}
+              className="w-20 accent-accent"
+            />
+            <span className="text-[var(--font-xs)] text-text-muted tabular-nums w-8">
+              {((settings.autosave_delay_ms || 1000) / 1000).toFixed(1)}s
+            </span>
+          </div>
+        </SettingRow>
+      )}
+    </>
   );
 }
 

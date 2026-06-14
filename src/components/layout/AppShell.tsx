@@ -12,7 +12,10 @@ import { SettingsPanel } from "../settings/SettingsPanel";
 import { ScratchPad } from "../scratch/ScratchPad";
 import { Toaster } from "../Toaster";
 import { useSettingsStore } from "../../stores/settingsStore";
+import { useEditorBufferStore } from "../../stores/editorBufferStore";
 import { openNewWindow } from "../../lib/detachPreview";
+import { invoke } from "@tauri-apps/api/core";
+import { updateCache, emitContentUpdated } from "../../lib/previewCache";
 
 export function AppShell() {
   const settings = useSettingsStore((s) => s.settings);
@@ -72,6 +75,27 @@ export function AppShell() {
     });
   }, [sidebarWidth, persistWidths]);
 
+  const handlePanelSwitch = useCallback((toggle: () => void) => {
+    // Buffer store preserves editor state across panel switches — just toggle.
+    // If autosave is on, flush dirty buffers to disk as a courtesy.
+    const { autosave } = useSettingsStore.getState().settings;
+    if (autosave) {
+      const dirtyPaths = useEditorBufferStore.getState().getDirtyPaths();
+      for (const p of dirtyPaths) {
+        const buffer = useEditorBufferStore.getState().getBuffer(p);
+        if (buffer) {
+          invoke("write_file", { path: p, content: buffer.content }).then(() => {
+            const bytes = new TextEncoder().encode(buffer.content).length;
+            updateCache(p, { content: buffer.content, mime_type: "", size: bytes, truncated: false });
+            emitContentUpdated(p);
+            useEditorBufferStore.getState().markSaved(p, buffer.content);
+          }).catch(() => {});
+        }
+      }
+    }
+    toggle();
+  }, []);
+
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.metaKey && e.key === "f") {
@@ -92,17 +116,23 @@ export function AppShell() {
       }
       if (e.metaKey && e.key === ",") {
         e.preventDefault();
-        setSettingsTab(undefined);
-        setSettingsOpen((s) => !s);
+        handlePanelSwitch(() => {
+          setSettingsTab(undefined);
+          setSettingsOpen((s) => !s);
+        });
       }
       if (e.metaKey && e.key === "/") {
         e.preventDefault();
-        setSettingsTab("shortcuts");
-        setSettingsOpen(true);
+        handlePanelSwitch(() => {
+          setSettingsTab("shortcuts");
+          setSettingsOpen(true);
+        });
       }
       if (e.metaKey && e.key === "e") {
         e.preventDefault();
-        setScratchOpen((s) => !s);
+        handlePanelSwitch(() => {
+          setScratchOpen((s) => !s);
+        });
       }
     };
     window.addEventListener("keydown", handler);
@@ -116,7 +146,7 @@ export function AppShell() {
     <CommandPalette open={commandPaletteOpen} onClose={() => setCommandPaletteOpen(false)} onOpenSettings={() => { setCommandPaletteOpen(false); setSettingsOpen(true); }} />
     <Toaster />
     <div className="h-screen w-screen flex flex-col bg-bg overflow-hidden select-none">
-      <Toolbar onOpenSettings={() => setSettingsOpen(!settingsOpen)} onOpenSearch={() => setGlobalSearchVisible(true)} onOpenScratch={() => setScratchOpen((s) => !s)} />
+      <Toolbar onOpenSettings={() => handlePanelSwitch(() => setSettingsOpen(!settingsOpen))} onOpenSearch={() => setGlobalSearchVisible(true)} onOpenScratch={() => handlePanelSwitch(() => setScratchOpen((s) => !s))} />
       <SearchBar visible={searchVisible} onClose={() => setSearchVisible(false)} />
 
       <div className="flex-1 flex overflow-hidden">

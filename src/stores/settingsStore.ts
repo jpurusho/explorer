@@ -42,6 +42,8 @@ const defaultSettings: AppSettings = {
   tags_height: 200,
   preview_max_mb: 5,
   grid_card_size: 175,
+  autosave: false,
+  autosave_delay_ms: 1000,
 };
 
 function resolveTheme(theme: AppSettings["theme"]): ThemeName {

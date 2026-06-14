@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Compartment } from "@codemirror/state";
 import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, drawSelection, rectangularSelection } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
 import { searchKeymap, highlightSelectionMatches } from "@codemirror/search";
@@ -14,6 +14,10 @@ import { explorerTheme, explorerHighlightStyle } from "./theme";
 import { updateCache, emitContentUpdated } from "../../lib/previewCache";
 import { MarkdownReference } from "./MarkdownReference";
 import { useSnippetsStore } from "../../stores/snippetsStore";
+import { useEditorBufferStore } from "../../stores/editorBufferStore";
+import { useSettingsStore } from "../../stores/settingsStore";
+
+const wrapCompartments = new WeakMap<EditorView, Compartment>();
 
 interface EditorProps {
   path: string;
@@ -31,22 +35,21 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
   const [wordWrap, setWordWrap] = useState(true);
   const [showMarkdownHelp, setShowMarkdownHelp] = useState(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveFileRef = useRef<() => void>(() => {});
 
   const snippets = useSnippetsStore((s) => s.snippets);
   const saveAndPushSnippet = useSnippetsStore((s) => s.saveAndPushSnippet);
+  const bufferStore = useEditorBufferStore;
 
   const isMarkdown = fileType === "markdown" || fileName.endsWith(".md");
 
-  // Check if this file is a snippet (for auto-push to gist)
   const snippet = snippets.find((s) => {
     const snippetsRoot = path.includes("/.config/explorer/snippets/");
     if (!snippetsRoot) return false;
-    // Match by filename in the path
     return path.endsWith(`/${s.title}`);
   });
   const isGistSnippet = snippet && (snippet.tier === "secret" || snippet.tier === "public");
 
-  // Clear auto-save timer on unmount
   useEffect(() => {
     return () => {
       if (autoSaveTimerRef.current) {
@@ -59,32 +62,60 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
     if (!viewRef.current) return;
     const text = viewRef.current.state.doc.toString();
     try {
-      // If it's a gist snippet, use saveAndPushSnippet (saves + commits + pushes)
       if (isGistSnippet && snippet) {
         await saveAndPushSnippet(snippet.id, text);
       } else {
         await invoke("write_file", { path, content: text });
       }
-      // Refresh the cached read with the fresh bytes and broadcast so the
-      // preview panel can re-render instantly without waiting for the
-      // ~300ms watcher debounce round-trip.
       const bytes = new TextEncoder().encode(text).length;
       updateCache(path, { content: text, mime_type: "", size: bytes, truncated: false });
       emitContentUpdated(path);
+      bufferStore.getState().markSaved(path, text);
       setModified(false);
       onModifiedChange?.(false);
       setSavedMessage(true);
       setTimeout(() => setSavedMessage(false), 2000);
     } catch (err) {
       console.error("Save failed:", err);
-      // Save failed — user sees "Modified" badge persist
     }
-  }, [path, onModifiedChange, isGistSnippet, snippet, saveAndPushSnippet]);
+  }, [path, onModifiedChange, isGistSnippet, snippet, saveAndPushSnippet, bufferStore]);
 
+  saveFileRef.current = saveFile;
+
+  // Attach/detach EditorView — keeps it alive across unmounts
   useEffect(() => {
     if (!containerRef.current) return;
+    const container = containerRef.current;
+
+    const existingBuffer = bufferStore.getState().getBuffer(path);
+
+    if (existingBuffer?.view) {
+      // Reparent the existing view's DOM into our container
+      if (existingBuffer.view.dom.parentElement !== container) {
+        container.appendChild(existingBuffer.view.dom);
+      }
+      existingBuffer.view.requestMeasure();
+      viewRef.current = existingBuffer.view;
+      bufferStore.getState().touch(path);
+
+      // Sync modified state from buffer
+      const dirty = bufferStore.getState().isDirty(path);
+      setModified(dirty);
+      onModifiedChange?.(dirty);
+
+      return () => {
+        if (viewRef.current && viewRef.current.dom.parentElement === container) {
+          container.removeChild(viewRef.current.dom);
+        }
+        viewRef.current = null;
+      };
+    }
+
+    // No existing buffer (or evicted) — create a fresh EditorView
+    const wrapCompartment = new Compartment();
 
     const langExt = getLanguageExtension(fileType, fileName);
+    const initialContent = existingBuffer ? existingBuffer.content : content;
 
     const extensions = [
       vim(),
@@ -102,6 +133,7 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
       syntaxHighlighting(explorerHighlightStyle),
       explorerTheme,
       ...(langExt ? [langExt] : []),
+      wrapCompartment.of(wordWrap ? EditorView.lineWrapping : []),
       keymap.of([
         ...closeBracketsKeymap,
         ...defaultKeymap,
@@ -111,45 +143,67 @@ export function Editor({ path, content, fileType, fileName, onModifiedChange }: 
         indentWithTab,
         {
           key: "Mod-s",
-          run: () => { saveFile(); return true; },
+          run: () => { saveFileRef.current(); return true; },
         },
       ]),
       EditorView.updateListener.of((update) => {
         if (update.docChanged) {
+          const newText = update.state.doc.toString();
+          bufferStore.getState().updateContent(path, newText);
           setModified(true);
           onModifiedChange?.(true);
 
-          // For gist snippets, debounce auto-save by 2s (ADR 0004)
-          if (isGistSnippet) {
+          // Autosave: gist snippets always auto-save; regular files if setting enabled
+          const shouldAutoSave = isGistSnippet || useSettingsStore.getState().settings.autosave;
+          if (shouldAutoSave) {
             if (autoSaveTimerRef.current) {
               clearTimeout(autoSaveTimerRef.current);
             }
+            const delay = isGistSnippet ? 2000 : (useSettingsStore.getState().settings.autosave_delay_ms || 1000);
             autoSaveTimerRef.current = setTimeout(() => {
-              saveFile();
-            }, 2000);
+              saveFileRef.current();
+            }, delay);
           }
         }
       }),
     ];
 
-    if (wordWrap) {
-      extensions.push(EditorView.lineWrapping);
+    const state = EditorState.create({ doc: initialContent, extensions });
+    const view = new EditorView({ state, parent: container });
+    viewRef.current = view;
+    wrapCompartments.set(view, wrapCompartment);
+
+    // Register in buffer store — preserve dirty state if restoring evicted buffer
+    if (existingBuffer) {
+      bufferStore.getState().registerView(path, view, container, existingBuffer.savedContent);
+      bufferStore.getState().updateContent(path, existingBuffer.content);
+      if (existingBuffer.content !== existingBuffer.savedContent) {
+        setModified(true);
+        onModifiedChange?.(true);
+      }
+    } else {
+      bufferStore.getState().registerView(path, view, container, content);
     }
 
-    const state = EditorState.create({ doc: content, extensions });
-
-    const view = new EditorView({
-      state,
-      parent: containerRef.current,
-    });
-
-    viewRef.current = view;
-
     return () => {
-      view.destroy();
+      if (viewRef.current && viewRef.current.dom.parentElement === container) {
+        container.removeChild(viewRef.current.dom);
+      }
       viewRef.current = null;
     };
-  }, [path, content, wordWrap]);
+  }, [path]);
+
+  // Toggle word wrap via compartment (no view recreation)
+  useEffect(() => {
+    if (!viewRef.current) return;
+    const compartment = wrapCompartments.get(viewRef.current);
+    if (!compartment) return;
+    viewRef.current.dispatch({
+      effects: compartment.reconfigure(
+        wordWrap ? EditorView.lineWrapping : []
+      ),
+    });
+  }, [wordWrap]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">

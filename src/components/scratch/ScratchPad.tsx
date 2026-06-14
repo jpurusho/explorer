@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { X, Copy, Save, Trash2, Eye, Code, ClipboardPaste } from "lucide-react";
 import { clsx } from "clsx";
@@ -83,6 +83,37 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
     };
   }, [result.output]);
 
+  const [inputHeight, setInputHeight] = useState(38);
+  const containerRefScratch = useRef<HTMLDivElement>(null);
+
+  const handleDividerDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    const startY = e.clientY;
+    const startHeight = inputHeight;
+    const container = containerRefScratch.current;
+    if (!container) return;
+    const containerHeight = container.getBoundingClientRect().height;
+
+    document.body.style.cursor = "row-resize";
+    document.body.style.userSelect = "none";
+
+    const onMouseMove = (ev: MouseEvent) => {
+      const delta = ev.clientY - startY;
+      const newPct = startHeight + (delta / containerHeight) * 100;
+      setInputHeight(Math.max(15, Math.min(75, newPct)));
+    };
+
+    const onMouseUp = () => {
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+  }, [inputHeight]);
+
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(result.output);
@@ -125,7 +156,7 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
   };
 
   return (
-    <div className="h-full bg-bg flex flex-col overflow-hidden">
+    <div ref={containerRefScratch} className="h-full bg-bg flex flex-col overflow-hidden">
       {/* Header */}
       <div className="shrink-0 border-b border-border bg-bg-secondary/60 flex items-center gap-2" style={{ padding: "8px var(--panel-px)" }}>
         <span className="text-[var(--font-sm)] font-semibold text-text-secondary flex-1 min-w-0 truncate">Scratch Pad</span>
@@ -155,7 +186,7 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
       </div>
 
       {/* Input */}
-      <div className="shrink-0 border-b border-border/40" style={{ height: "38%" }}>
+      <div className="shrink-0" style={{ height: `${inputHeight}%` }}>
         <textarea
           value={rawText}
           onChange={(e) => setRawText(e.target.value)}
@@ -163,6 +194,14 @@ export function ScratchPad({ onClose }: ScratchPadProps) {
           spellCheck={false}
           className="w-full h-full resize-none bg-transparent text-text outline-none p-3 font-mono text-[var(--font-sm)] leading-relaxed placeholder:text-text-muted/60"
         />
+      </div>
+
+      {/* Resize handle */}
+      <div
+        onMouseDown={handleDividerDrag}
+        className="h-[5px] shrink-0 cursor-row-resize relative z-10 border-b border-border/40"
+      >
+        <div className="absolute inset-0 hover:bg-accent/20 active:bg-accent/40 transition-colors" />
       </div>
 
       {/* Per-mode controls */}

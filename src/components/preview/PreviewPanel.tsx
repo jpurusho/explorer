@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useFileListStore } from "../../stores/fileListStore";
 import { usePreviewNavStore } from "../../stores/previewNavStore";
+import { useEditorBufferStore } from "../../stores/editorBufferStore";
+import { useSettingsStore } from "../../stores/settingsStore";
 import { ImagePreview } from "./ImagePreview";
 import { VideoPreview } from "./VideoPreview";
 import { AudioPreview } from "./AudioPreview";
@@ -31,7 +33,13 @@ export function PreviewPanel() {
   const [content, setContent] = useState<FileContent | null>(null);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const autosave = useSettingsStore((s) => s.settings.autosave);
+  const bufferDirty = useEditorBufferStore((s) => {
+    if (!selectedPath) return false;
+    const entry = s.buffers.get(selectedPath);
+    return entry ? entry.content !== entry.savedContent : false;
+  });
+  const prevPathRef = useRef<string | null>(null);
 
   // Preview navigation for following links within documents
   const previewNav = usePreviewNavStore();
@@ -148,21 +156,43 @@ export function PreviewPanel() {
 
     if (!selectedPath || !entry || entry.is_dir) {
       setContent(null);
-      setHasUnsavedChanges(false);
       return;
     }
 
-    // Warn if switching files with unsaved changes
-    if (hasUnsavedChanges) {
-      const confirmed = window.confirm(
-        "You have unsaved changes. Switching files will discard them.\n\nContinue without saving?"
-      );
-      if (!confirmed) return;
-      setHasUnsavedChanges(false);
+    // Check if previous file has unsaved changes
+    const prevPath = prevPathRef.current;
+    if (prevPath && prevPath !== selectedPath) {
+      const isDirty = useEditorBufferStore.getState().isDirty(prevPath);
+      if (isDirty) {
+        if (autosave) {
+          // Autosave the previous buffer silently
+          const buffer = useEditorBufferStore.getState().getBuffer(prevPath);
+          if (buffer) {
+            invoke("write_file", { path: prevPath, content: buffer.content }).then(() => {
+              useEditorBufferStore.getState().markSaved(prevPath, buffer.content);
+            }).catch(() => {});
+          }
+        } else {
+          const confirmed = window.confirm(
+            "You have unsaved changes. Switching files will discard them.\n\nContinue without saving?"
+          );
+          if (!confirmed) return;
+          // Discard: reset buffer content to saved
+          const buffer = useEditorBufferStore.getState().getBuffer(prevPath);
+          if (buffer) {
+            useEditorBufferStore.getState().removeBuffer(prevPath);
+          }
+        }
+      }
     }
+    prevPathRef.current = selectedPath;
 
-    // Default to rendered view for markdown/json/yaml/html
-    if ((fileType && renderableTypes.includes(fileType)) || (entry && isHtml(entry.name))) {
+    // Default to rendered view for markdown/json/yaml/html — but preserve
+    // edit mode if there's a live buffer (user was editing before panel switch)
+    const hasBuffer = useEditorBufferStore.getState().getBuffer(selectedPath);
+    if (hasBuffer?.view) {
+      setEditMode(true);
+    } else if ((fileType && renderableTypes.includes(fileType)) || (entry && isHtml(entry.name))) {
       setEditMode(false);
     } else {
       setEditMode(true);
@@ -310,7 +340,6 @@ export function PreviewPanel() {
           content={content.content}
           fileType={entry.file_type}
           fileName={entry.name}
-          onModifiedChange={setHasUnsavedChanges}
         />
       );
     }
@@ -347,6 +376,9 @@ export function PreviewPanel() {
               </button>
             )}
             <p className="font-medium text-text truncate" style={{ fontSize: "var(--font-preview-title)" }}>{displayName}</p>
+            {bufferDirty && (
+              <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0" title="Unsaved changes" />
+            )}
           </div>
           <div className="flex items-center gap-0.5 shrink-0">
             {/* View/Edit toggle for renderable files */}
@@ -354,14 +386,27 @@ export function PreviewPanel() {
               <>
                 <button
                   onClick={() => {
-                    if (hasUnsavedChanges) {
-                      const confirmed = window.confirm(
-                        "You have unsaved changes. Switching to rendered view will discard them.\n\nContinue without saving?"
-                      );
-                      if (!confirmed) return;
+                    const currentPath = selectedPath;
+                    if (currentPath) {
+                      const dirty = useEditorBufferStore.getState().isDirty(currentPath);
+                      if (dirty) {
+                        if (autosave) {
+                          const buffer = useEditorBufferStore.getState().getBuffer(currentPath);
+                          if (buffer) {
+                            invoke("write_file", { path: currentPath, content: buffer.content }).then(() => {
+                              useEditorBufferStore.getState().markSaved(currentPath, buffer.content);
+                            }).catch(() => {});
+                          }
+                        } else {
+                          const confirmed = window.confirm(
+                            "You have unsaved changes. Switching to rendered view will discard them.\n\nContinue without saving?"
+                          );
+                          if (!confirmed) return;
+                          useEditorBufferStore.getState().removeBuffer(currentPath);
+                        }
+                      }
                     }
                     setEditMode(false);
-                    setHasUnsavedChanges(false);
                   }}
                   className={clsx(
                     "p-1.5 rounded-[4px] transition-colors",
