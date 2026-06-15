@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import { useNavigationStore } from "../stores/navigationStore";
 import { useFileListStore } from "../stores/fileListStore";
 import { useSettingsStore } from "../stores/settingsStore";
+import { toast } from "../stores/toastStore";
 import { openNewWindow } from "../lib/detachPreview";
 
 interface CommandItem {
@@ -56,10 +57,21 @@ export function CommandPalette({ open, onClose, onOpenSettings }: CommandPalette
       { id: "refresh", label: "Refresh Directory", description: "Reload current folder", icon: <RotateCcw size={14} />, action: refreshCurrent, category: "action" },
       { id: "new-folder", label: "New Folder", description: "Create folder in current directory", icon: <FolderPlus size={14} />, action: async () => {
         const name = "untitled folder";
-        await invoke("create_folder", { parentPath: currentPath, name });
-        refreshCurrent();
+        try {
+          await invoke("create_folder", { parentPath: currentPath, name });
+          refreshCurrent();
+        } catch (err) {
+          toast.error(`Create folder failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
       }, category: "action" },
-      { id: "reindex", label: "Rebuild Search Index", description: "Full reindex of all files", icon: <Search size={14} />, action: () => invoke("reindex"), category: "action" },
+      { id: "reindex", label: "Rebuild Search Index", description: "Full reindex of all files", icon: <Search size={14} />, action: async () => {
+        try {
+          await invoke("reindex");
+          toast.success("Reindex started");
+        } catch (err) {
+          toast.error(`Reindex failed: ${err instanceof Error ? err.message : String(err)}`);
+        }
+      }, category: "action" },
       { id: "new-window", label: "New Window", description: "Open a new Explorer window (Cmd+N)", icon: <Plus size={14} />, action: () => openNewWindow(), category: "action" },
     ];
   }, [showHiddenFiles, navigateTo, goUp, setViewMode, toggleHiddenFiles, refreshCurrent, currentPath, onOpenSettings, settings]);

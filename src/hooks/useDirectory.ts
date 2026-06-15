@@ -11,10 +11,16 @@ export function useDirectory() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const refreshTrigger = useNavigationStore((s) => s.refreshTrigger);
   const lastPathRef = useRef<string | null>(null);
+  // Monotonic generation counter so an effect rerun cancels any in-flight
+  // listing from the previous run. Comparing to currentPath alone misses
+  // back-to-same-path races (A → B → A while A's first list is in flight).
+  const genRef = useRef(0);
 
   useEffect(() => {
     if (!currentPath) return;
     const targetPath = currentPath;
+    const myGen = ++genRef.current;
+    const isCurrent = () => genRef.current === myGen;
 
     const fileStore = useFileListStore.getState();
     const tagStore = useTagStore.getState();
@@ -33,32 +39,32 @@ export function useDirectory() {
     if (activeTag !== null) {
       invoke<string[]>("get_files_by_tag", { tagId: activeTag })
         .then((paths) => {
-          if (useNavigationStore.getState().currentPath !== targetPath) return;
+          if (!isCurrent()) return;
           if (paths.length === 0) {
             fileStore.setEntries([]);
             fileStore.setLoading(false);
             return;
           }
           return invoke<FileEntry[]>("get_file_entries", { paths }).then((entries) => {
-            if (useNavigationStore.getState().currentPath !== targetPath) return;
+            if (!isCurrent()) return;
             fileStore.setEntries(entries);
             tagStore.loadTagsForFiles(paths).catch(() => {});
           });
         })
         .catch(() => {
-          if (useNavigationStore.getState().currentPath === targetPath) {
+          if (isCurrent()) {
             fileStore.setEntries([]);
           }
         })
         .finally(() => {
-          if (useNavigationStore.getState().currentPath === targetPath) {
+          if (isCurrent()) {
             fileStore.setLoading(false);
           }
         });
     } else {
       invoke<FileEntry[]>("list_directory", { path: targetPath })
         .then((entries) => {
-          if (useNavigationStore.getState().currentPath !== targetPath) return;
+          if (!isCurrent()) return;
           // Defend against transient empty reads during external operations
           // (atomic rename, mid-write FSEvents tick). On a watcher refresh,
           // if the result is empty but we currently have entries, skip the
@@ -72,16 +78,20 @@ export function useDirectory() {
           tagStore.loadTagsForFiles(paths).catch(() => {});
           invoke<Record<string, string>>("get_sync_statuses", { path: targetPath })
             .then((statusObj) => {
-              if (useNavigationStore.getState().currentPath !== targetPath) return;
+              if (!isCurrent()) return;
               const map = new Map(Object.entries(statusObj) as [string, "pushed" | "local"][]);
               useFileListStore.getState().setSyncStatusMap(map);
             })
             .catch(() => {});
         })
         .catch((err) => {
-          if (useNavigationStore.getState().currentPath !== targetPath) return;
+          if (!isCurrent()) return;
           const msg = err instanceof Error ? err.message : String(err);
-          if (msg.includes("not exist") || msg.includes("Not found") || msg.includes("NotFound")) {
+          // Only auto-navigate to parent on real not-found during user
+          // navigation. Watcher-triggered refreshes can transiently fail
+          // during atomic renames or mid-write FSEvents ticks; navigating
+          // away on those would yank the user back to Home unexpectedly.
+          if (isNavigation && (msg.includes("not exist") || msg.includes("Not found") || msg.includes("NotFound"))) {
             const parent = targetPath.split("/").slice(0, -1).join("/") || "/";
             if (parent !== targetPath) {
               useNavigationStore.getState().navigateTo(parent);
@@ -92,7 +102,7 @@ export function useDirectory() {
           fileStore.setEntries([]);
         })
         .finally(() => {
-          if (useNavigationStore.getState().currentPath === targetPath) {
+          if (isCurrent()) {
             fileStore.setLoading(false);
           }
         });
@@ -106,10 +116,12 @@ export function useDirectory() {
     let cancelled = false;
     let resolvedUnlisten: (() => void) | null = null;
 
-    // Delay watcher setup to avoid racing with initial list_directory
-    const setupTimeout = setTimeout(() => {
-      invoke("watch_directory", { path: currentPath }).catch(() => {});
-    }, 500);
+    // Watcher setup is independent of list_directory and watcher events are
+    // already debounced — register immediately so external edits during the
+    // first 500ms after navigation aren't dropped on the floor.
+    invoke("watch_directory", { path: currentPath }).catch((err) => {
+      console.error("[useDirectory] watch_directory failed:", err);
+    });
 
     let debounce: ReturnType<typeof setTimeout> | null = null;
     const unlisten = listen<string>("directory-changed", (event) => {
@@ -134,7 +146,6 @@ export function useDirectory() {
 
     return () => {
       cancelled = true;
-      clearTimeout(setupTimeout);
       if (debounce) clearTimeout(debounce);
       if (resolvedUnlisten) resolvedUnlisten();
       invoke("unwatch_directory").catch(() => {});

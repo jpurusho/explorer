@@ -84,23 +84,45 @@ pub async fn start_native_drag<R: Runtime>(
     app: AppHandle<R>,
     paths: Vec<String>,
 ) -> Result<(), AppError> {
+    eprintln!("[drag] start_native_drag called with {} paths", paths.len());
+    for (i, p) in paths.iter().enumerate() {
+        eprintln!("[drag]   path[{}]: {}", i, p);
+    }
+
     if paths.is_empty() {
+        eprintln!("[drag] ERROR: no paths provided");
         return Err(AppError::Other("no paths to drag".to_string()));
     }
     let window = app
         .get_webview_window("main")
-        .ok_or_else(|| AppError::Other("main window not found".to_string()))?;
+        .ok_or_else(|| {
+            eprintln!("[drag] ERROR: main window not found");
+            AppError::Other("main window not found".to_string())
+        })?;
+    eprintln!("[drag] main window found");
 
     let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
 
     app.run_on_main_thread(move || {
+        eprintln!("[drag] dispatched to main thread, calling start_drag_on_main_thread");
         let result = unsafe { start_drag_on_main_thread(&window, paths) };
+        if let Err(ref e) = result {
+            eprintln!("[drag] ERROR from main thread: {}", e);
+        } else {
+            eprintln!("[drag] main thread returned Ok");
+        }
         let _ = tx.send(result.map_err(|e| e.to_string()));
     })
-    .map_err(|e| AppError::Other(format!("run_on_main_thread failed: {}", e)))?;
+    .map_err(|e| {
+        eprintln!("[drag] ERROR: run_on_main_thread failed: {}", e);
+        AppError::Other(format!("run_on_main_thread failed: {}", e))
+    })?;
 
     rx.recv()
-        .map_err(|e| AppError::Other(format!("drag channel recv failed: {}", e)))?
+        .map_err(|e| {
+            eprintln!("[drag] ERROR: channel recv failed: {}", e);
+            AppError::Other(format!("drag channel recv failed: {}", e))
+        })?
         .map_err(AppError::Other)
 }
 
@@ -111,16 +133,22 @@ unsafe fn start_drag_on_main_thread<R: Runtime>(
     use base64::Engine;
     use raw_window_handle::{HasWindowHandle, RawWindowHandle};
 
+    eprintln!("[drag] start_drag_on_main_thread: entry");
+
     let handle = window
         .window_handle()
         .map_err(|e| format!("window handle: {}", e))?;
     let appkit = match handle.as_raw() {
-        RawWindowHandle::AppKit(w) => w,
+        RawWindowHandle::AppKit(w) => {
+            eprintln!("[drag] confirmed AppKit window");
+            w
+        }
         _ => return Err("not an AppKit window".to_string()),
     };
 
     let mtm = MainThreadMarker::new()
         .ok_or_else(|| "must run on main thread".to_string())?;
+    eprintln!("[drag] got MainThreadMarker");
 
     let ns_view = unsafe { &*(appkit.ns_view.as_ptr() as *const NSView) };
     let ns_window = ns_view
@@ -129,8 +157,10 @@ unsafe fn start_drag_on_main_thread<R: Runtime>(
     let content_view = ns_window
         .contentView()
         .ok_or_else(|| "window has no contentView".to_string())?;
+    eprintln!("[drag] got contentView");
 
     let cursor_pos: NSPoint = ns_window.mouseLocationOutsideOfEventStream();
+    eprintln!("[drag] cursor_pos: ({}, {})", cursor_pos.x, cursor_pos.y);
 
     // Decode the bundled drag image. NSImage::initWithData copies, so we can
     // free the Vec immediately.
@@ -152,9 +182,11 @@ unsafe fn start_drag_on_main_thread<R: Runtime>(
     // Validate paths up front — partial-success drags are confusing.
     for path in &paths {
         if !PathBuf::from(path).exists() {
+            eprintln!("[drag] ERROR: path does not exist: {}", path);
             return Err(format!("path does not exist: {}", path));
         }
     }
+    eprintln!("[drag] all {} paths validated", paths.len());
 
     // Build the legacy NSFilenamesPboardType payload once. It's the XML
     // plist representation of an array of POSIX path strings. We attach
@@ -207,6 +239,7 @@ unsafe fn start_drag_on_main_thread<R: Runtime>(
     let current_event = NSApp(mtm).currentEvent();
     let timestamp = current_event.map(|e| e.timestamp()).unwrap_or(0.0);
     let window_number = ns_window.windowNumber();
+    eprintln!("[drag] building synthetic LeftMouseDragged event (window={}, timestamp={})", window_number, timestamp);
     let drag_event = NSEvent::mouseEventWithType_location_modifierFlags_timestamp_windowNumber_context_eventNumber_clickCount_pressure(
         NSEventType::LeftMouseDragged,
         cursor_pos,
@@ -228,6 +261,7 @@ unsafe fn start_drag_on_main_thread<R: Runtime>(
         &drag_event,
         &ProtocolObject::<dyn NSDraggingSource>::from_retained(source),
     );
+    eprintln!("[drag] beginDraggingSessionWithItems_event_source returned successfully");
 
     Ok(())
 }

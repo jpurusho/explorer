@@ -36,11 +36,17 @@ pub fn watch_directory(path: String, app: AppHandle, state: State<'_, WatcherSta
 
     let watcher = notify::recommended_watcher(move |res: Result<notify::Event, notify::Error>| {
         if let Ok(event) = res {
-            let dominated_by_watched_dir = event.paths.iter().any(|p| {
-                p.parent().map(|parent| parent == PathBuf::from(&watched_dir)).unwrap_or(false)
+            let watched_path = PathBuf::from(&watched_dir);
+            // FSEvents on macOS may emit the directory itself (metadata change),
+            // direct children, or nested descendants. Accept all three; ignore
+            // events whose paths are entirely outside the watched tree.
+            let relevant = event.paths.is_empty() || event.paths.iter().any(|p| {
+                p == &watched_path
+                    || p.parent().map(|parent| parent == watched_path).unwrap_or(false)
+                    || p.starts_with(&watched_path)
             });
 
-            if !dominated_by_watched_dir {
+            if !relevant {
                 return;
             }
 

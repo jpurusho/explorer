@@ -106,8 +106,9 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ settings: updated });
     try {
       await invoke("save_settings", { settings: updated });
-    } catch {
-      // Settings save failed silently — will retry on next change
+    } catch (err) {
+      console.error("[settingsStore] save_settings failed:", err);
+      // Don't throw — keep in-memory state. Will retry on next change.
     }
   },
 

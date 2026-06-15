@@ -97,7 +97,16 @@ export function FileList() {
   }, [renameRequestPath, entries]);
 
 
+  const longPress = useLongPressDragOut();
+
   const handleClick = useCallback((index: number, e: React.MouseEvent) => {
+    // A long-press just fired — the mouseup that triggered this click is the
+    // release of the press, not a real click. Eat it so we don't open the file.
+    if (longPress.shouldSuppressClick()) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     // Multi-select takes priority
     if (e.metaKey) {
       toggleIndex(index);
@@ -111,7 +120,7 @@ export function FileList() {
     // onDoubleClick, and renaming by the name cell's onDoubleClick — keeping a
     // manual double-click detector here would race with (and beat) rename.
     selectIndex(index);
-  }, [toggleIndex, selectRange, selectIndex]);
+  }, [toggleIndex, selectRange, selectIndex, longPress]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent, entry: FileEntry, index: number) => {
     e.preventDefault();
@@ -128,8 +137,6 @@ export function FileList() {
     useFileListStore.getState().clearSelection();
     setContextMenu({ x: e.clientX, y: e.clientY, entry: null });
   }, []);
-
-  const longPress = useLongPressDragOut();
 
   const resolvePaths = useCallback((entry: FileEntry, index: number): string[] => {
     if (!selectedIndices.has(index)) {
@@ -317,7 +324,7 @@ export function FileList() {
                 onStartRename={() => setRenamingIndex(virtualRow.index)}
                 onClick={(e) => handleClick(virtualRow.index, e)}
                 onDoubleClick={() => {
-                  if (entry.is_dir) navigateTo(entry.path);
+                  if (!longPress.shouldSuppressClick() && entry.is_dir) navigateTo(entry.path);
                 }}
                 onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
                 onMouseDown={(e) => handleMouseDown(e, entry, virtualRow.index)}

@@ -86,7 +86,16 @@ export function FileGrid() {
     }
   }, [renameRequestPath, entries, cols, virtualizer]);
 
+  const longPress = useLongPressDragOut();
+
   const handleClick = (index: number, e: React.MouseEvent) => {
+    // A long-press just fired — the mouseup that triggered this click is the
+    // release of the press, not a real click. Eat it so we don't open the file.
+    if (longPress.shouldSuppressClick()) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if (e.metaKey) {
       toggleIndex(index);
     } else if (e.shiftKey) {
@@ -108,8 +117,6 @@ export function FileGrid() {
     useFileListStore.getState().clearSelection();
     setContextMenu({ x: e.clientX, y: e.clientY, entry: null });
   };
-
-  const longPress = useLongPressDragOut();
 
   const resolvePaths = (entry: FileEntry, index: number): string[] => {
     if (!selectedIndices.has(index)) selectIndex(index);
@@ -195,7 +202,7 @@ export function FileGrid() {
                       onCancelRename={() => setRenamingPath(null)}
                       onStartRename={() => setRenamingPath(entry.path)}
                       onClick={(e) => handleClick(index, e)}
-                      onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
+                      onDoubleClick={() => { if (!longPress.shouldSuppressClick() && entry.is_dir) navigateTo(entry.path); }}
                       onContextMenu={(e) => handleContextMenu(e, entry, index)}
                       onMouseDown={(e) => longPress.onMouseDown(e, () => resolvePaths(entry, index))}
                       draggable

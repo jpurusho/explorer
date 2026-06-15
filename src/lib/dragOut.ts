@@ -12,7 +12,10 @@ import { toast } from "../stores/toastStore";
  */
 export function startNativeFileDrag(paths: string[]): void {
   if (paths.length === 0) return;
+  console.log("[dragOut] invoking start_native_drag with", paths.length, "paths");
   invoke("start_native_drag", { paths }).catch((e) => {
-    toast.error(`Drag-out failed: ${e instanceof Error ? e.message : String(e)}`);
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error("[dragOut] start_native_drag failed:", msg, { paths });
+    toast.error(`Drag-out failed: ${msg}`);
   });
 }

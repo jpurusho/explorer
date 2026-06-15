@@ -18,6 +18,9 @@ export function useLongPressDragOut() {
   const firedRef = useRef(false);
   const moveListenerRef = useRef<((e: MouseEvent) => void) | null>(null);
   const upListenerRef = useRef<(() => void) | null>(null);
+  // Once the long-press fires, the user's mouseup still bubbles to onClick.
+  // Suppress clicks for a short window so the release doesn't open/navigate.
+  const suppressClickUntilRef = useRef<number>(0);
 
   const detachListeners = useCallback(() => {
     if (moveListenerRef.current) {
@@ -70,15 +73,28 @@ export function useLongPressDragOut() {
 
     timerRef.current = setTimeout(() => {
       const paths = getPaths();
+      console.log("[useLongPressDragOut] Long-press triggered, paths:", paths);
       detachListeners();
       timerRef.current = null;
       startPos.current = null;
       if (paths.length > 0) {
         firedRef.current = true;
+        // Block the upcoming click for 500ms so releasing the mouse after
+        // the long-press doesn't trigger onClick (which opens the file).
+        suppressClickUntilRef.current = Date.now() + 500;
+        console.log("[useLongPressDragOut] Calling startNativeFileDrag");
         startNativeFileDrag(paths);
+      } else {
+        console.warn("[useLongPressDragOut] No paths to drag");
       }
     }, LONG_PRESS_MS);
   }, [cancel, detachListeners]);
+
+  // Components call this from onClick/onDoubleClick. Returns true if the
+  // event should be ignored because a long-press just fired.
+  const shouldSuppressClick = useCallback((): boolean => {
+    return Date.now() < suppressClickUntilRef.current;
+  }, []);
 
   // Caller invokes this from onDragStart. Returns true if native drag has
   // already taken over (so the HTML5 drag should be suppressed).
@@ -92,5 +108,5 @@ export function useLongPressDragOut() {
     return false;
   }, [cancel, reset]);
 
-  return { onMouseDown, handleDragStart };
+  return { onMouseDown, handleDragStart, shouldSuppressClick };
 }

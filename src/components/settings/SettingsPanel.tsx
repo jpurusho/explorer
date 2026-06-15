@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useFontThemeStore } from "../../stores/fontThemeStore";
+import { toast } from "../../stores/toastStore";
 import { themes } from "../../lib/themes";
 import { formatSize } from "../../lib/formatters";
 import type { AppSettings } from "../../types";
@@ -464,14 +465,35 @@ function SearchTab() {
       <Section title="Actions">
         <div className="flex gap-2">
           <button
-            onClick={() => { invoke("rebuild_trigrams"); setRebuilding(true); setTimeout(() => setRebuilding(false), 5000); }}
+            onClick={async () => {
+              setRebuilding(true);
+              try {
+                await invoke("rebuild_trigrams");
+                toast.success("Trigrams rebuilt");
+              } catch (err) {
+                toast.error(`Rebuild failed: ${err instanceof Error ? err.message : String(err)}`);
+              } finally {
+                setRebuilding(false);
+              }
+            }}
             disabled={rebuilding}
             className="px-2.5 py-1.5 rounded-md text-[var(--font-xs)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
           >
             {rebuilding ? "Rebuilding..." : "Rebuild Trigrams"}
           </button>
           <button
-            onClick={() => { invoke("reindex"); setRebuilding(true); setTimeout(() => setRebuilding(false), 10000); }}
+            onClick={async () => {
+              setRebuilding(true);
+              try {
+                await invoke("reindex");
+                toast.success("Reindex started");
+                // Reindex runs in the background; release the button after a beat.
+                setTimeout(() => setRebuilding(false), 10000);
+              } catch (err) {
+                toast.error(`Reindex failed: ${err instanceof Error ? err.message : String(err)}`);
+                setRebuilding(false);
+              }
+            }}
             disabled={rebuilding}
             className="px-2.5 py-1.5 rounded-md text-[var(--font-xs)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
           >

@@ -13,6 +13,7 @@ import { ScratchPad } from "../scratch/ScratchPad";
 import { Toaster } from "../Toaster";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { useEditorBufferStore } from "../../stores/editorBufferStore";
+import { toast } from "../../stores/toastStore";
 import { openNewWindow } from "../../lib/detachPreview";
 import { invoke } from "@tauri-apps/api/core";
 import { updateCache, emitContentUpdated } from "../../lib/previewCache";
@@ -89,7 +90,13 @@ export function AppShell() {
             updateCache(p, { content: buffer.content, mime_type: "", size: bytes, truncated: false });
             emitContentUpdated(p);
             useEditorBufferStore.getState().markSaved(p, buffer.content);
-          }).catch(() => {});
+          }).catch((err) => {
+            // Don't markSaved — leave the dirty flag so the user knows the
+            // change isn't on disk. Surface the failure so it isn't silent.
+            console.error("[AppShell] Autosave failed for", p, err);
+            const name = p.split("/").pop() || p;
+            toast.error(`Auto-save failed for ${name}: ${err instanceof Error ? err.message : String(err)}`);
+          });
         }
       }
     }
