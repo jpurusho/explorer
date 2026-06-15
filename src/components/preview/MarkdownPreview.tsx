@@ -17,6 +17,26 @@ interface MarkdownPreviewProps {
   onNavigate?: (path: string) => void;
 }
 
+// GitHub-flavored heading slugger. Lowercase, drop punctuation except dashes
+// and underscores, collapse spaces to dashes. Same algorithm GitHub uses for
+// heading anchors so existing TOCs (`[Section](#section)`) work as-authored.
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/\s+/g, "-");
+}
+
+function headingText(children: any): string {
+  if (children == null) return "";
+  if (typeof children === "string") return children;
+  if (typeof children === "number") return String(children);
+  if (Array.isArray(children)) return children.map(headingText).join("");
+  if (typeof children === "object" && children.props) return headingText(children.props.children);
+  return "";
+}
+
 mermaid.initialize({
   startOnLoad: false,
   theme: "dark",
@@ -89,6 +109,32 @@ function MermaidBlock({ code }: { code: string }) {
 const COLOR_RE = /^#(?:[0-9a-fA-F]{3}){1,2}$|^#(?:[0-9a-fA-F]{4}){1,2}$|^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$|^rgba\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*[\d.]+\s*\)$|^hsl\(\s*\d{1,3}\s*,\s*\d{1,3}%\s*,\s*\d{1,3}%\s*\)$/;
 
 export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPreviewProps) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Within-document anchors (TOC links). Scroll the heading into view inside
+  // the preview's scroll container — `window.scrollTo` would target the page,
+  // not the panel.
+  const scrollToAnchor = useCallback((id: string) => {
+    if (!scrollRef.current || !id) return;
+    const decoded = decodeURIComponent(id);
+    const target = scrollRef.current.querySelector<HTMLElement>(
+      `#${CSS.escape(decoded)}`
+    );
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
+
+  const renderHeading = useCallback((level: 1 | 2 | 3 | 4 | 5 | 6) => {
+    return ({ children, ...props }: any) => {
+      const id = slugify(headingText(children));
+      const Tag = `h${level}` as any;
+      // Suppress the default `id` from rehype-raw (if any) and assign ours so
+      // anchor links resolve consistently with GitHub-style slugs.
+      return <Tag {...props} id={id}>{children}</Tag>;
+    };
+  }, []);
+
   const renderCode = useCallback(({ className, children, ...props }: any) => {
     const match = /language-(\w+)/.exec(className || "");
     const lang = match?.[1];
@@ -143,6 +189,12 @@ export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPrevi
         return;
       }
 
+      // Pure within-document anchor: scroll the preview pane.
+      if (linkHref.startsWith("#")) {
+        scrollToAnchor(linkHref.slice(1));
+        return;
+      }
+
       if (onNavigate && basePath) {
         const dir = basePath.substring(0, basePath.lastIndexOf("/"));
         let resolved = linkHref;
@@ -167,21 +219,38 @@ export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPrevi
     };
 
     const isExternal = linkHref.startsWith("http://") || linkHref.startsWith("https://");
-    const isInternal = !isExternal && !!linkHref;
+    const isAnchor = linkHref.startsWith("#");
+    const isInternal = !isExternal && !isAnchor && !!linkHref;
 
     return (
       <a
         href={linkHref}
         onClick={handleClick}
-        className={isExternal ? "cursor-not-allowed opacity-60" : isInternal ? "cursor-pointer underline decoration-accent/40 hover:decoration-accent" : ""}
-        title={isExternal ? linkHref : isInternal ? `Open: ${linkHref}` : undefined}
+        className={
+          isExternal
+            ? "cursor-not-allowed opacity-60"
+            : isAnchor
+            ? "cursor-pointer underline decoration-accent/40 hover:decoration-accent"
+            : isInternal
+            ? "cursor-pointer underline decoration-accent/40 hover:decoration-accent"
+            : ""
+        }
+        title={
+          isExternal
+            ? linkHref
+            : isAnchor
+            ? `Jump to ${linkHref}`
+            : isInternal
+            ? `Open: ${linkHref}`
+            : undefined
+        }
         {...props}
       >
         {children}
         {isExternal && <span className="text-[var(--font-xs)] text-text-muted ml-1">(external)</span>}
       </a>
     );
-  }, [basePath, onNavigate]);
+  }, [basePath, onNavigate, scrollToAnchor]);
 
   const renderBlockquote = useCallback(({ children, ...props }: any) => {
     // Detect GitHub-style admonitions: > [!NOTE], > [!TIP], > [!WARNING], > [!CAUTION], > [!IMPORTANT]
@@ -246,12 +315,22 @@ export function MarkdownPreview({ content, basePath, onNavigate }: MarkdownPrevi
   }, []);
 
   return (
-    <div className="h-full overflow-auto">
+    <div ref={scrollRef} className="h-full overflow-auto">
       <div className="py-5 prose-explorer max-w-full" style={{ paddingLeft: "calc(var(--panel-px) + 8px)", paddingRight: "var(--panel-px)" }}>
         <ReactMarkdown
           remarkPlugins={[remarkGfm, remarkMath, remarkSupersub]}
           rehypePlugins={[rehypeKatex, rehypeRaw]}
-          components={{ code: renderCode, a: renderLink, blockquote: renderBlockquote }}
+          components={{
+            code: renderCode,
+            a: renderLink,
+            blockquote: renderBlockquote,
+            h1: renderHeading(1),
+            h2: renderHeading(2),
+            h3: renderHeading(3),
+            h4: renderHeading(4),
+            h5: renderHeading(5),
+            h6: renderHeading(6),
+          }}
         >
           {content}
         </ReactMarkdown>
