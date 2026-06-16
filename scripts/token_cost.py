@@ -1,23 +1,11 @@
 #!/usr/bin/env python3
 """
-Sum the token usage for the Explorer project across all Claude Code sessions
-(main + subagents) and print a per-session and total breakdown.
+Sum token usage across all Claude Code sessions for this project.
 
 Usage:
     python3 scripts/token_cost.py [--by-day] [--rates path]
 
-Reads transcripts from:
-    ~/.claude/projects/-Users-jpurshot-experimental-explorer/
-
-Each .jsonl file is one session (or one subagent run). Lines that are model
-turns carry a `message.usage` block — those are what we sum.
-
-Pricing notes:
-- Anthropic prices are per million tokens and vary by model. The model name
-  for each turn is in `message.model`. Cache reads are cheaper than fresh
-  input; cache writes are more expensive than fresh input.
-- We default to Opus 4-class pricing (the heaviest tier this project hits).
-  Override with --rates to feed a JSON file mapping model substring → rates.
+Reads transcripts from ~/.claude/projects/<sanitized-project-path>/
 """
 from __future__ import annotations
 
@@ -26,44 +14,38 @@ import json
 import os
 import sys
 from collections import defaultdict
-from datetime import datetime
 from pathlib import Path
 
-PROJECT_DIR = Path.home() / ".claude" / "projects" / "-Users-jpurshot-experimental-explorer"
 
-# $ per million tokens. Numbers below are *approximate* public pricing for the
-# Claude 4 family at the time the script was written; check Anthropic's
-# pricing page for current values.
+def sanitize_path(p: str) -> str:
+    """Convert /foo/bar to -foo-bar (Claude's project dir convention)."""
+    return p.replace("/", "-")
+
+
+def get_project_dir() -> Path:
+    """Derive the Claude project directory for the current working directory."""
+    cwd = Path.cwd().resolve()
+    sanitized = sanitize_path(str(cwd))
+    return Path.home() / ".claude" / "projects" / sanitized
+
+
+# Approximate public pricing ($ per million tokens) for Claude 4 family.
 DEFAULT_RATES = {
-    # match by substring on `message.model`
     "opus": {
-        "input": 15.0,
-        "output": 75.0,
-        "cache_write_5m": 18.75,   # ~1.25x input
-        "cache_write_1h": 30.0,    # ~2.0x input
-        "cache_read": 1.50,        # ~10% of input
+        "input": 15.0, "output": 75.0,
+        "cache_write_5m": 18.75, "cache_write_1h": 30.0, "cache_read": 1.50,
     },
     "sonnet": {
-        "input": 3.0,
-        "output": 15.0,
-        "cache_write_5m": 3.75,
-        "cache_write_1h": 6.0,
-        "cache_read": 0.30,
+        "input": 3.0, "output": 15.0,
+        "cache_write_5m": 3.75, "cache_write_1h": 6.0, "cache_read": 0.30,
     },
     "haiku": {
-        "input": 1.0,
-        "output": 5.0,
-        "cache_write_5m": 1.25,
-        "cache_write_1h": 2.0,
-        "cache_read": 0.10,
+        "input": 1.0, "output": 5.0,
+        "cache_write_5m": 1.25, "cache_write_1h": 2.0, "cache_read": 0.10,
     },
-    # Fallback if model field is missing or unrecognized.
     "default": {
-        "input": 15.0,
-        "output": 75.0,
-        "cache_write_5m": 18.75,
-        "cache_write_1h": 30.0,
-        "cache_read": 1.50,
+        "input": 15.0, "output": 75.0,
+        "cache_write_5m": 18.75, "cache_write_1h": 30.0, "cache_read": 1.50,
     },
 }
 
@@ -80,19 +62,17 @@ def rate_for(model: str | None, rates: dict) -> dict:
 
 def iter_jsonl(path: Path):
     with path.open("r", errors="replace") as f:
-        for i, line in enumerate(f, 1):
+        for line in f:
             line = line.strip()
             if not line:
                 continue
             try:
                 yield json.loads(line)
             except json.JSONDecodeError:
-                # Truncated or partial line — skip silently.
                 continue
 
 
 def collect_usages(jsonl_path: Path):
-    """Yield (timestamp, model, usage_dict) tuples from a transcript file."""
     for entry in iter_jsonl(jsonl_path):
         msg = entry.get("message")
         if not isinstance(msg, dict):
@@ -106,7 +86,6 @@ def collect_usages(jsonl_path: Path):
 
 
 def sum_session(jsonl_path: Path):
-    """Returns a dict of summed token counts and a per-model breakdown."""
     totals = defaultdict(int)
     by_model = defaultdict(lambda: defaultdict(int))
     by_day = defaultdict(lambda: defaultdict(int))
@@ -122,8 +101,6 @@ def sum_session(jsonl_path: Path):
             "cache_write_5m": int(cache.get("ephemeral_5m_input_tokens") or 0),
             "cache_write_1h": int(cache.get("ephemeral_1h_input_tokens") or 0),
         }
-        # Older shapes may have only `cache_creation_input_tokens` without the
-        # 5m/1h split — fold that into 5m.
         if not fields["cache_write_5m"] and not fields["cache_write_1h"]:
             legacy_write = int(u.get("cache_creation_input_tokens") or 0)
             fields["cache_write_5m"] = legacy_write
@@ -144,7 +121,6 @@ def sum_session(jsonl_path: Path):
 
 
 def cost_of(totals: dict, rates: dict) -> float:
-    """totals is a dict of token_kind → tokens; rates is the per-model rate dict."""
     cost = 0.0
     for k, n in totals.items():
         per_million = rates.get(k, 0.0)
@@ -162,9 +138,10 @@ def fmt_tokens(n: int) -> str:
 
 def main(argv=None):
     ap = argparse.ArgumentParser()
-    ap.add_argument("--by-day", action="store_true", help="Show per-day breakdown")
-    ap.add_argument("--rates", help="Path to JSON file overriding pricing rates")
-    ap.add_argument("--project-dir", default=str(PROJECT_DIR), help="Override project dir")
+    ap.add_argument("--by-day", action="store_true")
+    ap.add_argument("--rates", help="Path to JSON file overriding pricing")
+    ap.add_argument("--project-dir", help="Override auto-detected project dir")
+    ap.add_argument("--summary", action="store_true", help="Show concise summary (current session + cumulative)")
     args = ap.parse_args(argv)
 
     rates = DEFAULT_RATES
@@ -172,14 +149,18 @@ def main(argv=None):
         with open(args.rates) as f:
             rates = json.load(f)
 
-    project_dir = Path(args.project_dir)
+    project_dir = Path(args.project_dir) if args.project_dir else get_project_dir()
     if not project_dir.exists():
         print(f"No transcripts at {project_dir}", file=sys.stderr)
         return 1
 
-    # Find all .jsonl files: top-level (main sessions) + subagent dirs.
     main_files = sorted(project_dir.glob("*.jsonl"))
     sub_files = sorted(project_dir.glob("*/subagents/agent-*.jsonl"))
+
+    # Find current session (most recently modified main file)
+    current_session_path = None
+    if main_files:
+        current_session_path = max(main_files, key=lambda p: p.stat().st_mtime)
 
     grand_totals = defaultdict(int)
     grand_by_model = defaultdict(lambda: defaultdict(int))
@@ -187,14 +168,22 @@ def main(argv=None):
     grand_turns = 0
     sessions_summary = []
 
+    current_session_data = None
+    current_session_cost = 0.0
+
     for path in main_files + sub_files:
         s = sum_session(path)
         if s["turns"] == 0:
             continue
         kind = "main" if path in main_files else "subagent"
-        # Compute weighted-cost for this file using its own model breakdown.
         file_cost = sum(cost_of(d, rate_for(model, rates)) for model, d in s["by_model"].items())
         sessions_summary.append((kind, path.name, s, file_cost))
+
+        # Track current session separately
+        if path == current_session_path:
+            current_session_data = s
+            current_session_cost = file_cost
+
         for k, v in s["totals"].items():
             grand_totals[k] += v
         for m, d in s["by_model"].items():
@@ -205,9 +194,75 @@ def main(argv=None):
                 grand_by_day[day][k] += v
         grand_turns += s["turns"]
 
-    # ---- Output ----
+    project_name = Path.cwd().name
+
+    # If --summary flag, show concise format
+    if args.summary and current_session_data:
+        print()
+        print("=" * 72)
+        print(f"Token Usage Summary — {project_name}")
+        print("=" * 72)
+        print()
+
+        # Current session
+        print("CURRENT SESSION (since last /clear):")
+        print("-" * 72)
+        curr_in = (current_session_data["totals"].get("input", 0) +
+                   current_session_data["totals"].get("cache_read", 0) +
+                   current_session_data["totals"].get("cache_write_5m", 0) +
+                   current_session_data["totals"].get("cache_write_1h", 0))
+        curr_out = current_session_data["totals"].get("output", 0)
+        curr_cache_read = current_session_data["totals"].get("cache_read", 0)
+
+        print(f"  Turns:              {current_session_data['turns']:>6}")
+        print(f"  Input tokens:       {fmt_tokens(curr_in):>8}  ({curr_in:,})")
+        print(f"  Output tokens:      {fmt_tokens(curr_out):>8}  ({curr_out:,})")
+        print(f"  Cache read:         {fmt_tokens(curr_cache_read):>8}  ({curr_cache_read:,})")
+        print(f"  Cost:               ${current_session_cost:>7.2f}")
+        print()
+
+        # Model breakdown for current session
+        if len(current_session_data["by_model"]) > 1:
+            print("  Models used:")
+            for model, d in sorted(current_session_data["by_model"].items(), key=lambda x: -sum(x[1].values())):
+                m_cost = cost_of(d, rate_for(model, rates))
+                print(f"    {model:<35} ${m_cost:>7.2f}")
+            print()
+
+        # Cumulative (all sessions)
+        print("CUMULATIVE (all sessions to date):")
+        print("-" * 72)
+        cum_in = (grand_totals["input"] + grand_totals["cache_read"] +
+                  grand_totals["cache_write_5m"] + grand_totals["cache_write_1h"])
+        cum_out = grand_totals["output"]
+        cum_cache_read = grand_totals["cache_read"]
+        total_cost = sum(c for _, _, _, c in sessions_summary)
+
+        print(f"  Total turns:        {grand_turns:>6}")
+        print(f"  Input tokens:       {fmt_tokens(cum_in):>8}  ({cum_in:,})")
+        print(f"  Output tokens:      {fmt_tokens(cum_out):>8}  ({cum_out:,})")
+        print(f"  Cache read:         {fmt_tokens(cum_cache_read):>8}  ({cum_cache_read:,})")
+        print(f"  Total cost:         ${total_cost:>7.2f}")
+        print()
+
+        # Top models (cumulative)
+        print("  Top models:")
+        sorted_models = sorted(grand_by_model.items(), key=lambda x: cost_of(x[1], rate_for(x[0], rates)), reverse=True)
+        for model, d in sorted_models[:3]:  # Top 3
+            m_cost = cost_of(d, rate_for(model, rates))
+            print(f"    {model:<35} ${m_cost:>7.2f}")
+        print()
+
+        print("=" * 72)
+        print()
+        print("Note: Cost estimate uses approximate public pricing for Claude 4 family.")
+        print("      If on Claude Code Pro/Max plan, this is an API-equivalent estimate.")
+        print()
+        return 0
+
+    # Otherwise, show full detailed report
     print("=" * 72)
-    print(f"Explorer project — token cost summary  ({len(sessions_summary)} files)")
+    print(f"{project_name} — token cost summary  ({len(sessions_summary)} files)")
     print("=" * 72)
     print()
 

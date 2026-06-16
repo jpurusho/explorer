@@ -21,6 +21,10 @@ about to give an explanation that future-me will need to re-derive
 instead — then reference the ADR in the commit message. The repo is
 the durable spec; conversation context evaporates.
 
+**Project-local skills** (if any) must follow the directory structure:
+`.claude/skills/<skill-name>/SKILL.md` (not flat `.claude/skills/<skill-name>.md`).
+The harness requires the subdirectory + `SKILL.md` filename to load them.
+
 **Token discipline.** This project pays for cache reads on every turn,
 so long conversations compound. After shipping a tag and starting an
 unrelated task, prefer a fresh session over continuing. Don't re-read
@@ -28,9 +32,10 @@ files I just edited (the harness tracks state). For exploratory
 questions ("how does X work?"), ask in a new session — they're
 low-context and don't need the accumulated chat history.
 
-**Cost tally.** `python3 scripts/token_cost.py` walks all transcripts
+**Cost tally.** `~/bin/claude-token-cost.py --summary` walks all transcripts
 under `~/.claude/projects/-Users-jpurshot-experimental-explorer/` and
-prints token totals + an API-equivalent dollar estimate.
+prints token totals + an API-equivalent dollar estimate (current session
+vs cumulative).
 
 ## Project Overview
 A Tauri v2 desktop app (Rust backend + React/TypeScript frontend) for viewing, previewing, and managing media files and documents. Rich inline previews, adjustable gallery grid, fast trigram-indexed search, keyboard-driven workflow, and multi-theme support.
@@ -50,6 +55,10 @@ A Tauri v2 desktop app (Rust backend + React/TypeScript frontend) for viewing, p
 - `npm run tauri build` — Production build (outputs .app and .dmg)
 - `npm run dev` — Frontend-only dev server (no Rust)
 - `npm run build` — Frontend production build
+- `npx tsc --noEmit` — TypeScript type check (run before committing)
+- `cargo check` — Rust type check (run in src-tauri/)
+- `cargo clippy` — Rust linter (run in src-tauri/)
+- `cargo fmt` — Format Rust code (run in src-tauri/)
 
 ## Project Structure
 ```
@@ -72,16 +81,31 @@ src-tauri/           # Rust backend
 - **Preview Panel:** Right-side panel showing rich previews (images, video player, PDF, markdown, code)
 - **Settings:** Inline panel replacing preview area (not a modal)
 - **Search:** Persistent search trigger in toolbar + Cmd+P global search overlay
+- **Scratch Pad (Cmd+E):** Built-in text formatter with auto-detect (JSON/YAML/Markdown/plain text). Repairs broken JSON, reformats YAML, applies text transformations (wrap, justify, align columns). Drafts + settings persist across restarts.
 - **Thumbnails:** Rust generates + disk-caches thumbnails (SHA256 keyed by path+mtime+size). Frontend LRU cache (500 entries) avoids re-invoking for already-loaded thumbnails.
 - **Auto-Update:** Version badge in status bar glows amber when update available. One-click download+install.
 - **Context Menu:** Styled flyout with submenus for tags/sections, keyboard navigable
+- **Undo:** Cmd+Z reverses copy, move, and duplicate operations (tracked in Rust state)
+
+### Backend State Management
+State is managed via Tauri's `.manage()` API and injected into command handlers via `State<T>`:
+- **IndexDb** — SQLite search index with trigram indexing (shared Arc<Mutex> for conn, read_conn, indexing flag)
+- **DbState** — Tags database (SQLite at config dir)
+- **WatcherState** — File watcher subscriptions per directory
+- **NativePreviewState** (macOS only) — Tracks native Quick Look preview windows
+
+Background thread at startup: prunes caches (thumbnails/previews), performs incremental or full reindex, saves shutdown timestamp on exit.
+
+### Custom URI Protocol
+`media://` protocol serves files from disk with proper MIME types and streaming support (Range headers for video scrubbing). Defined in lib.rs via `register_asynchronous_uri_scheme_protocol`.
 
 ## Conventions
 - All file operations go through Rust commands (never use frontend fs directly for perf-critical ops)
 - Themes use CSS variables defined in src/styles/globals.css, switched via data-theme attribute
 - State management: one Zustand store per domain (navigation, fileList, settings)
 - File type classification lives in Rust (models/file_entry.rs classify_file_type)
-- Settings stored at platform config dir via the `directories` crate
+- Settings stored at platform config dir via the `directories` crate (~/Library/Application Support/com.explorer.Explorer on macOS)
+- **No tests yet:** The project has no unit/integration test suite. CI runs type checks (`tsc --noEmit`, `cargo check`) and builds, but no automated tests. Manual testing via `npm run tauri dev` is the verification workflow.
 - All rendering is native to the app — never launch external apps or
   browsers. Every preview, drag, and interaction stays inside Explorer.
 - Browser default context menu is disabled globally (app provides its own)
@@ -108,11 +132,17 @@ src-tauri/           # Rust backend
 - Floating UI (context menus, popovers) must clamp to the viewport after mount
   (measure rect, shift left/up by overflow, keep an 8px margin)
 
+## CI/CD
+- **build.yml** — Runs on every push/PR to master. Skips if commit is tagged (to avoid duplicate work). Jobs: TypeScript/Rust type checks, then full macOS build (Apple Silicon). Uploads .zip artifact.
+- **release.yml** — Triggers on `v*` tags. Builds both Apple Silicon and Intel DMGs with code signing, generates updater JSON, creates GitHub release with artifacts.
+- CI skips tagged commits via `skip-if-tagged` job (see `docs/decisions/0008-ci-skip-build-on-tagged-commits.md`).
+
 ## Key Keyboard Shortcuts
 - ↑/↓ Navigate files, Enter open/enter dir, Backspace go up
 - Cmd+1 list view, Cmd+2 grid view, Cmd+Shift+. toggle hidden files
 - Cmd+[ back, Cmd+] forward
-- Cmd+P global search, Cmd+K command palette
+- Cmd+P global search, Cmd+K command palette, Cmd+E scratch pad
 - Cmd+A select all, Cmd+click toggle select, Shift+click range select
 - Cmd+C copy, Cmd+X cut, Cmd+V paste, Cmd+Shift+Backspace trash
+- Cmd+D duplicate, Cmd+Z undo (copy/move/duplicate operations)
 - Cmd+, settings, Escape close panel/clear selection

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { startNativeFileDrag } from "../lib/dragOut";
 
-const LONG_PRESS_MS = 350;
+const LONG_PRESS_MS = 800;
 const MOVE_TOLERANCE_PX = 5;
 
 /**
@@ -73,7 +73,6 @@ export function useLongPressDragOut() {
 
     timerRef.current = setTimeout(() => {
       const paths = getPaths();
-      console.log("[useLongPressDragOut] Long-press triggered, paths:", paths);
       detachListeners();
       timerRef.current = null;
       startPos.current = null;
@@ -82,10 +81,7 @@ export function useLongPressDragOut() {
         // Block the upcoming click for 500ms so releasing the mouse after
         // the long-press doesn't trigger onClick (which opens the file).
         suppressClickUntilRef.current = Date.now() + 500;
-        console.log("[useLongPressDragOut] Calling startNativeFileDrag");
         startNativeFileDrag(paths);
-      } else {
-        console.warn("[useLongPressDragOut] No paths to drag");
       }
     }, LONG_PRESS_MS);
   }, [cancel, detachListeners]);

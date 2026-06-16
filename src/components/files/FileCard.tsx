@@ -264,7 +264,27 @@ export function FileCard({ entry, selected, renaming, onRename, onCancelRename, 
       onDragStart={onDragStart}
       onDragOver={isDir && onFileDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setIsDragTarget(true); } : undefined}
       onDragLeave={isDir ? () => setIsDragTarget(false) : undefined}
-      onDrop={isDir && onFileDrop ? (e) => { e.preventDefault(); setIsDragTarget(false); const data = e.dataTransfer.getData("application/x-explorer-files"); if (data) onFileDrop(JSON.parse(data)); } : undefined}
+      onDrop={isDir && onFileDrop ? (e) => {
+        e.preventDefault();
+        setIsDragTarget(false);
+        // HTML5 in-app drag: custom mime type with JSON array of paths
+        const htmlData = e.dataTransfer.getData("application/x-explorer-files");
+        if (htmlData) {
+          onFileDrop(JSON.parse(htmlData));
+          return;
+        }
+        // Native macOS drag (long-press): Try text/uri-list (standard file URL format)
+        const uriList = e.dataTransfer.getData("text/uri-list");
+        if (uriList) {
+          const paths = uriList.split("\n").filter(line => line && !line.startsWith("#")).map(uri => {
+            // file:///path/to/file → /path/to/file
+            return decodeURIComponent(uri.replace(/^file:\/\//, ""));
+          });
+          if (paths.length > 0) {
+            onFileDrop(paths);
+          }
+        }
+      } : undefined}
     >
       <div className="relative group">
         {isImage ? (
