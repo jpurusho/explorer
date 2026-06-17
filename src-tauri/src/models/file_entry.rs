@@ -88,9 +88,10 @@ pub fn classify_file_type(name: &str) -> String {
         "md" | "mdx" => "markdown".to_string(),
         "json" => "json".to_string(),
         "yml" | "yaml" => "yaml".to_string(),
+        "html" | "htm" => "html".to_string(),
         "rs" | "ts" | "tsx" | "js" | "jsx" | "py" | "go" | "java" | "c" | "cpp" | "h"
         | "hpp" | "cs" | "rb" | "swift" | "kt" | "lua" | "sh" | "bash" | "zsh" | "fish"
-        | "sql" | "html" | "css" | "scss" | "less" | "vue" | "svelte" | "php" | "toml"
+        | "sql" | "css" | "scss" | "less" | "vue" | "svelte" | "php" | "toml"
         | "ini" | "cfg" | "conf" => "code".to_string(),
         "pdf" | "doc" | "docx" | "xls" | "xlsx" | "ppt" | "pptx" | "odt" | "ods" | "odp"
         | "key" | "pages" | "numbers" => {

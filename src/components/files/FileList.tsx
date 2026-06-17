@@ -8,6 +8,7 @@ import { toast } from "../../stores/toastStore";
 import { useLongPressDragOut } from "../../hooks/useLongPressDragOut";
 import { FileListItem } from "./FileListItem";
 import { ContextMenu } from "./ContextMenu";
+import { handleFileDoubleClick } from "../../lib/fileActions";
 import type { FileEntry, SortField } from "../../types";
 import type { ColumnId, ColumnConfig } from "../../stores/fileListStore";
 
@@ -324,7 +325,11 @@ export function FileList() {
                 onStartRename={() => setRenamingIndex(virtualRow.index)}
                 onClick={(e) => handleClick(virtualRow.index, e)}
                 onDoubleClick={() => {
-                  if (!longPress.shouldSuppressClick() && entry.is_dir) navigateTo(entry.path);
+                  if (!longPress.shouldSuppressClick()) {
+                    handleFileDoubleClick(entry).catch((err) => {
+                      toast.error(`Failed to open: ${err instanceof Error ? err.message : String(err)}`);
+                    });
+                  }
                 }}
                 onContextMenu={(e) => handleContextMenu(e, entry, virtualRow.index)}
                 onMouseDown={(e) => handleMouseDown(e, entry, virtualRow.index)}

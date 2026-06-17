@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -34,6 +34,9 @@ export function Toolbar({ onOpenSettings, onOpenSearch, onOpenScratch }: Toolbar
   const setFilterPattern = useFileListStore((s) => s.setFilterPattern);
   const [filterInput, setFilterInput] = useState("");
   const filterInputRef = useRef<HTMLInputElement>(null);
+  const [isEditingPath, setIsEditingPath] = useState(false);
+  const [pathInput, setPathInput] = useState("");
+  const pathInputRef = useRef<HTMLInputElement>(null);
 
   const pathParts = currentPath.split("/").filter(Boolean);
 
@@ -42,6 +45,67 @@ export function Toolbar({ onOpenSettings, onOpenSearch, onOpenScratch }: Toolbar
     e.preventDefault();
     getCurrentWebviewWindow().startDragging().catch(() => {});
   };
+
+  const startEditingPath = () => {
+    setPathInput(currentPath);
+    setIsEditingPath(true);
+    setTimeout(() => pathInputRef.current?.select(), 0);
+  };
+
+  const commitPathEdit = async () => {
+    const trimmed = pathInput.trim();
+    if (!trimmed || trimmed === currentPath) {
+      setIsEditingPath(false);
+      return;
+    }
+
+    // Expand ~ to home directory
+    const { invoke } = await import("@tauri-apps/api/core");
+    let expandedPath = trimmed;
+    if (trimmed.startsWith("~")) {
+      const home = await invoke<string>("get_home_directory");
+      expandedPath = trimmed.replace(/^~/, home);
+    }
+
+    try {
+      // Check if it's a file or directory
+      const metadata = await invoke<{ is_dir: boolean }>("get_file_metadata", { path: expandedPath });
+
+      if (metadata.is_dir) {
+        navigateTo(expandedPath);
+      } else {
+        // It's a file - navigate to parent and select the file
+        const parentPath = expandedPath.split("/").slice(0, -1).join("/") || "/";
+        navigateTo(parentPath);
+        // Let the file list load, then select the file
+        setTimeout(() => {
+          const { setSelectedPath } = useFileListStore.getState();
+          setSelectedPath(expandedPath);
+        }, 100);
+      }
+    } catch {
+      // Path doesn't exist or error - try navigating anyway
+      navigateTo(expandedPath);
+    }
+    setIsEditingPath(false);
+  };
+
+  const cancelPathEdit = () => {
+    setIsEditingPath(false);
+    setPathInput("");
+  };
+
+  // Cmd+L to edit path
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "l") {
+        e.preventDefault();
+        startEditingPath();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [currentPath]);
 
   return (
     <div className="border-b border-border/60 bg-bg-secondary/70 backdrop-blur-xl">
@@ -81,33 +145,54 @@ export function Toolbar({ onOpenSettings, onOpenSearch, onOpenScratch }: Toolbar
           </button>
         </div>
 
-        {/* Breadcrumb */}
-        <div data-tauri-drag-region className="flex items-center gap-0 overflow-hidden shrink min-w-0 mx-1">
-          <button
-            onClick={() => navigateTo("/")}
-            className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[var(--radius-md)] hover:bg-bg-hover"
+        {/* Breadcrumb or Path Input */}
+        {isEditingPath ? (
+          <input
+            ref={pathInputRef}
+            type="text"
+            value={pathInput}
+            onChange={(e) => setPathInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commitPathEdit();
+              if (e.key === "Escape") cancelPathEdit();
+            }}
+            onBlur={cancelPathEdit}
+            className="flex-1 min-w-0 max-w-[500px] px-2 h-7 mx-1 rounded-md bg-bg-tertiary border border-accent/50 text-[var(--font-base)] text-text focus:outline-none focus:ring-1 focus:ring-accent/50"
+            placeholder="Enter path (e.g., /tmp)"
+          />
+        ) : (
+          <div
+            data-tauri-drag-region
+            onClick={startEditingPath}
+            className="flex items-center gap-0 overflow-hidden shrink min-w-0 mx-1 cursor-text hover:bg-bg-hover/50 rounded-md px-1"
+            title="Click to edit path (⌘L)"
           >
-            /
-          </button>
-          {pathParts.map((part, i) => {
-            const fullPath = "/" + pathParts.slice(0, i + 1).join("/");
-            const isLast = i === pathParts.length - 1;
-            return (
-              <span key={fullPath} className="flex items-center shrink-0" data-tauri-drag-region>
-                <span data-tauri-drag-region className="text-text-muted/50 text-[var(--font-xs)] mx-0.5">/</span>
-                <button
-                  onClick={() => navigateTo(fullPath)}
-                  className={clsx(
-                    "text-[var(--font-base)] px-1 py-0.5 rounded-[var(--radius-md)] hover:bg-bg-hover truncate max-w-[140px]",
-                    isLast ? "text-text font-medium" : "text-text-muted"
-                  )}
-                >
-                  {part}
-                </button>
-              </span>
-            );
-          })}
-        </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); navigateTo("/"); }}
+              className="text-text-muted hover:text-text shrink-0 px-1 py-0.5 rounded-[var(--radius-md)] hover:bg-bg-hover"
+            >
+              /
+            </button>
+            {pathParts.map((part, i) => {
+              const fullPath = "/" + pathParts.slice(0, i + 1).join("/");
+              const isLast = i === pathParts.length - 1;
+              return (
+                <span key={fullPath} className="flex items-center shrink-0" data-tauri-drag-region>
+                  <span data-tauri-drag-region className="text-text-muted/50 text-[var(--font-xs)] mx-0.5">/</span>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigateTo(fullPath); }}
+                    className={clsx(
+                      "text-[var(--font-base)] px-1 py-0.5 rounded-[var(--radius-md)] hover:bg-bg-hover truncate max-w-[140px]",
+                      isLast ? "text-text font-medium" : "text-text-muted"
+                    )}
+                  >
+                    {part}
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        )}
 
         {/* Search trigger — flexible filler */}
         <button

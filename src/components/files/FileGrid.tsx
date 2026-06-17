@@ -8,6 +8,7 @@ import { toast } from "../../stores/toastStore";
 import { useLongPressDragOut } from "../../hooks/useLongPressDragOut";
 import { FileCard } from "./FileCard";
 import { ContextMenu } from "./ContextMenu";
+import { handleFileDoubleClick } from "../../lib/fileActions";
 import type { FileEntry } from "../../types";
 
 const GRID_GAP = 16; // matches gap-4
@@ -202,7 +203,13 @@ export function FileGrid() {
                       onCancelRename={() => setRenamingPath(null)}
                       onStartRename={() => setRenamingPath(entry.path)}
                       onClick={(e) => handleClick(index, e)}
-                      onDoubleClick={() => { if (!longPress.shouldSuppressClick() && entry.is_dir) navigateTo(entry.path); }}
+                      onDoubleClick={() => {
+                        if (!longPress.shouldSuppressClick()) {
+                          handleFileDoubleClick(entry).catch((err) => {
+                            toast.error(`Failed to open: ${err instanceof Error ? err.message : String(err)}`);
+                          });
+                        }
+                      }}
                       onContextMenu={(e) => handleContextMenu(e, entry, index)}
                       onMouseDown={(e) => longPress.onMouseDown(e, () => resolvePaths(entry, index))}
                       draggable

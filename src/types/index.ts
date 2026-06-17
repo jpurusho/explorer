@@ -18,6 +18,7 @@ export type FileType =
   | "markdown"
   | "json"
   | "yaml"
+  | "html"
   | "text"
   | "archive"
   | "unknown";

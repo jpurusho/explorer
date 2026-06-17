@@ -59,6 +59,36 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
       try {
         const trimmed = query.trim();
 
+        // If it looks like an absolute path or starts with ~, check if it exists
+        if (trimmed.startsWith("/") || trimmed.startsWith("~")) {
+          try {
+            // Expand ~ to home directory
+            let expandedPath = trimmed;
+            if (trimmed.startsWith("~")) {
+              const home = await invoke<string>("get_home_directory");
+              expandedPath = trimmed.replace(/^~/, home);
+            }
+
+            const metadata = await invoke<{ path: string; name: string; is_dir: boolean; size: number; modified: string }>(
+              "get_file_metadata",
+              { path: expandedPath }
+            );
+            // Path exists - return it as the only result
+            setResults([{
+              path: metadata.path,
+              name: metadata.name,
+              size_bytes: metadata.size,
+              modified_at: 0,
+              is_dir: metadata.is_dir,
+            }]);
+            setSelectedIdx(0);
+            setLoading(false);
+            return;
+          } catch {
+            // Path doesn't exist - fall through to normal search
+          }
+        }
+
         // Parse tag: or # prefix
         const tagMatch = trimmed.match(/^(?:tag:|#)(\S+)\s*(.*)/i);
 
@@ -101,13 +131,12 @@ export function GlobalSearch({ visible, onClose }: GlobalSearchProps) {
     if (result.is_dir) {
       navigateTo(result.path);
     } else {
-      const parent = result.path.split("/").slice(0, -1).join("/");
+      const parent = result.path.split("/").slice(0, -1).join("/") || "/";
       navigateTo(parent);
-      // Select the file after directory loads
+      // Select the file after directory loads - use setSelectedPath which works with absolute paths
       setTimeout(() => {
         const store = useFileListStore.getState();
-        const idx = store.visibleEntries.findIndex((e) => e.path === result.path);
-        if (idx >= 0) store.selectIndex(idx);
+        store.setSelectedPath(result.path);
       }, 300);
     }
     onClose();

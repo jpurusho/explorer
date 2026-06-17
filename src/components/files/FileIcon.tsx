@@ -9,6 +9,7 @@ import {
   File,
   Archive,
   FileType2,
+  Globe,
   type LucideIcon,
 } from "lucide-react";
 import type { FileType } from "../../types";
@@ -23,6 +24,7 @@ const iconMap: Record<FileType, LucideIcon> = {
   markdown: FileType2,
   json: FileJson2,
   yaml: FileCode2,
+  html: Globe,
   text: FileText,
   archive: Archive,
   unknown: File,
@@ -38,6 +40,7 @@ const colorMap: Record<FileType, string> = {
   markdown: "text-sky-400",
   json: "text-amber-300",
   yaml: "text-rose-300",
+  html: "text-blue-400",
   text: "text-text-secondary",
   archive: "text-amber-500",
   unknown: "text-text-muted",

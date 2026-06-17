@@ -2,9 +2,11 @@ import { useRef, useState, useMemo } from "react";
 import { useFileListStore } from "../../stores/fileListStore";
 import { useNavigationStore } from "../../stores/navigationStore";
 import { useSectionStore } from "../../stores/sectionStore";
+import { toast } from "../../stores/toastStore";
 import { FileListItem } from "./FileListItem";
 import { SectionHeader } from "./SectionHeader";
 import { ContextMenu } from "./ContextMenu";
+import { handleFileDoubleClick } from "../../lib/fileActions";
 import type { FileEntry } from "../../types";
 
 export function SectionedFileList() {
@@ -82,7 +84,11 @@ export function SectionedFileList() {
               selected={selectedIndices.has(index)}
               visibleColumns={visibleColumns}
               onClick={(e) => handleClick(index, e)}
-              onDoubleClick={() => { if (entry.is_dir) navigateTo(entry.path); }}
+              onDoubleClick={() => {
+                handleFileDoubleClick(entry).catch((err) => {
+                  toast.error(`Failed to open: ${err instanceof Error ? err.message : String(err)}`);
+                });
+              }}
               onContextMenu={(e) => handleContextMenu(e, entry, index)}
               draggable
               onDragStart={(e) => {

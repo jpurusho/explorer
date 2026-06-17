@@ -311,7 +311,7 @@ export function PreviewPanel() {
 
     // Rendered view for markdown/json/yaml/html
     if (!editMode && hasRenderedView) {
-      if (isHtmlFile) {
+      if (fileType === "html" || isHtmlFile) {
         return (
           <HtmlPreview
             content={content.content}

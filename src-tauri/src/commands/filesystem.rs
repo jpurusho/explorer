@@ -481,3 +481,34 @@ fn mime_from_extension(ext: &str) -> String {
         _ => "application/octet-stream".to_string(),
     }
 }
+
+#[tauri::command]
+pub async fn open_with_system_app(path: String) -> Result<(), AppError> {
+    log_info!("open_with_system_app: {}", path);
+
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| AppError::Other(format!("Failed to open file: {}", e)))?;
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("cmd")
+            .args(&["/C", "start", "", &path])
+            .spawn()
+            .map_err(|e| AppError::Other(format!("Failed to open file: {}", e)))?;
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(&path)
+            .spawn()
+            .map_err(|e| AppError::Other(format!("Failed to open file: {}", e)))?;
+    }
+
+    Ok(())
+}
