@@ -62,6 +62,7 @@ export interface AppSettings {
   column_modified_visible: boolean;
   font_theme: string;
   index_paths: string[];
+  index_hidden_patterns?: string[];
   show_favorites_section: boolean;
   show_folders_section: boolean;
   show_tags_section: boolean;

@@ -462,7 +462,10 @@ function SearchTab() {
         </Section>
       )}
 
-      <Section title="Actions">
+      <Section
+        title="Actions"
+        description="Full Reindex: use after changing indexed paths or hidden patterns. Runs in background (~10-30s for most home directories)."
+      >
         <div className="flex gap-2">
           <button
             onClick={async () => {
@@ -486,7 +489,7 @@ function SearchTab() {
               setRebuilding(true);
               try {
                 await invoke("reindex");
-                toast.success("Reindex started");
+                toast.success("Full reindex started — files will appear in search as indexing progresses");
                 // Reindex runs in the background; release the button after a beat.
                 setTimeout(() => setRebuilding(false), 10000);
               } catch (err) {
@@ -495,7 +498,7 @@ function SearchTab() {
               }
             }}
             disabled={rebuilding}
-            className="px-2.5 py-1.5 rounded-md text-[var(--font-xs)] font-medium border border-border bg-bg-tertiary text-text-secondary hover:border-accent hover:text-accent disabled:opacity-50 transition-all"
+            className="px-2.5 py-1.5 rounded-md text-[var(--font-xs)] font-medium border border-accent/50 bg-accent/10 text-accent hover:bg-accent/20 disabled:opacity-50 transition-all"
           >
             {rebuilding ? "Reindexing..." : "Full Reindex"}
           </button>
@@ -507,6 +510,10 @@ function SearchTab() {
         <p className="text-[var(--font-xs)] text-text-muted mt-2">
           Stored at ~/.config/explorer/index.db
         </p>
+      </Section>
+
+      <Section title="Hidden File Patterns" description="Hidden directories/files to include in search (.config, .claude, .vscode are always included).">
+        <HiddenPatternsEditor />
       </Section>
     </div>
   );
@@ -567,6 +574,74 @@ function IndexPathsEditor() {
       </div>
       <p className="text-[var(--font-xs)] text-text-muted mt-1.5">
         Empty = index all of $HOME. Reindex after changing paths.
+      </p>
+    </div>
+  );
+}
+
+function HiddenPatternsEditor() {
+  const settings = useSettingsStore((s) => s.settings);
+  const updateSettings = useSettingsStore((s) => s.updateSettings);
+  const [newPattern, setNewPattern] = useState("");
+
+  const patterns = (settings as any).index_hidden_patterns || [];
+  const defaults = [".config", ".claude", ".vscode"];
+  const displayPatterns = patterns.length > 0 ? patterns : defaults;
+  const isDefault = patterns.length === 0;
+
+  const addPattern = () => {
+    const trimmed = newPattern.trim();
+    if (!trimmed) return;
+    if (!trimmed.startsWith(".")) {
+      toast.error("Pattern must start with a dot (e.g., .mydir)");
+      return;
+    }
+    const updated = [...patterns, trimmed];
+    updateSettings({ index_hidden_patterns: updated } as any);
+    setNewPattern("");
+    toast.info("Pattern added. Run 'Full Reindex' to apply.");
+  };
+
+  const removePattern = (idx: number) => {
+    const updated = patterns.filter((_: string, i: number) => i !== idx);
+    updateSettings({ index_hidden_patterns: updated } as any);
+    toast.info("Pattern removed. Run 'Full Reindex' to apply.");
+  };
+
+  return (
+    <div>
+      <div className="space-y-1 mb-2">
+        {displayPatterns.map((p: string, i: number) => (
+          <div key={i} className="flex items-center justify-between gap-2 bg-bg-tertiary/50 rounded-md px-2.5 py-1.5">
+            <span className="font-mono text-[var(--font-xs)] text-text-secondary">
+              {p}
+              {isDefault && <span className="ml-1.5 text-text-muted/50">(default)</span>}
+            </span>
+            {!isDefault && (
+              <button onClick={() => removePattern(i)} className="text-text-muted hover:text-red-400 shrink-0">
+                <X size={10} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <input
+          value={newPattern}
+          onChange={(e) => setNewPattern(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") addPattern(); }}
+          placeholder=".idea"
+          className="flex-1 bg-bg-tertiary/50 border border-border/40 rounded-md px-2.5 py-1 text-[var(--font-xs)] text-text outline-none placeholder:text-text-muted/40 focus:border-accent/50"
+        />
+        <button
+          onClick={addPattern}
+          className="px-3 py-1 rounded-md text-[var(--font-xs)] font-medium bg-accent/15 text-accent hover:bg-accent/25 transition-colors shrink-0"
+        >
+          Add
+        </button>
+      </div>
+      <p className="text-[var(--font-xs)] text-text-muted mt-1.5">
+        Additional hidden directories/files to index (e.g., .idea, .github). Requires reindex.
       </p>
     </div>
   );
