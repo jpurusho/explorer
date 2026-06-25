@@ -3,6 +3,18 @@ use notify::event::{EventKind, CreateKind, ModifyKind, RemoveKind, RenameMode};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{AppHandle, Emitter, State};
+use serde::Serialize;
+
+#[derive(Clone, Serialize)]
+struct FileChangeEvent {
+    kind: String, // "created", "modified", "removed"
+    path: String,
+}
+
+#[derive(Clone, Serialize)]
+struct DirectoryChangeEvent {
+    path: String,
+}
 
 pub struct WatcherState {
     watcher: Mutex<Option<RecommendedWatcher>>,
@@ -50,6 +62,7 @@ pub fn watch_directory(path: String, app: AppHandle, state: State<'_, WatcherSta
                 return;
             }
 
+            // Emit directory-changed for UI refresh
             let should_emit = matches!(
                 event.kind,
                 EventKind::Create(CreateKind::File | CreateKind::Folder | CreateKind::Any)
@@ -59,7 +72,30 @@ pub fn watch_directory(path: String, app: AppHandle, state: State<'_, WatcherSta
             );
 
             if should_emit {
-                emit_app.emit("directory-changed", &watched_dir).ok();
+                emit_app.emit("directory-changed", DirectoryChangeEvent { path: watched_dir.clone() }).ok();
+            }
+
+            // Emit granular file-change events for search indexing
+            for affected_path in &event.paths {
+                let path_str = affected_path.to_string_lossy().to_string();
+                match event.kind {
+                    EventKind::Create(CreateKind::File | CreateKind::Any) => {
+                        emit_app.emit("file-created", FileChangeEvent { kind: "created".to_string(), path: path_str }).ok();
+                    }
+                    EventKind::Remove(RemoveKind::File | RemoveKind::Any) => {
+                        emit_app.emit("file-removed", FileChangeEvent { kind: "removed".to_string(), path: path_str }).ok();
+                    }
+                    EventKind::Modify(ModifyKind::Name(RenameMode::To)) => {
+                        emit_app.emit("file-created", FileChangeEvent { kind: "created".to_string(), path: path_str }).ok();
+                    }
+                    EventKind::Modify(ModifyKind::Name(RenameMode::From)) => {
+                        emit_app.emit("file-removed", FileChangeEvent { kind: "removed".to_string(), path: path_str }).ok();
+                    }
+                    EventKind::Modify(ModifyKind::Data(_)) => {
+                        emit_app.emit("file-modified", FileChangeEvent { kind: "modified".to_string(), path: path_str }).ok();
+                    }
+                    _ => {}
+                }
             }
         }
     }).map_err(|e| e.to_string())?;

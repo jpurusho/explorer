@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH, Instant};
+use crate::models::settings::config_file_path;
 
 fn lock_conn(mutex: &Mutex<Connection>) -> MutexGuard<'_, Connection> {
     mutex.lock().unwrap_or_else(|poisoned| {
@@ -586,16 +587,48 @@ fn init_schema(conn: &Connection) {
 }
 
 fn should_exclude(path: &Path) -> bool {
+    // Load allowed hidden patterns from settings (if configured)
+    let allowed_hidden = get_allowed_hidden_patterns();
+
     for component in path.components() {
         let name = component.as_os_str().to_string_lossy();
         if EXCLUDED_DIRS.iter().any(|e| name.as_ref() == *e) {
             return true;
         }
-        if name.starts_with('.') && name.len() > 1 && name != ".config" {
-            return true;
+        if name.starts_with('.') && name.len() > 1 {
+            // Check if this hidden dir/file is in the allowed list
+            if !allowed_hidden.iter().any(|pattern| name.as_ref() == *pattern) {
+                return true;
+            }
         }
     }
     false
+}
+
+fn get_allowed_hidden_patterns() -> Vec<String> {
+    // Default hardcoded patterns (always allowed)
+    let mut patterns = vec![
+        ".config".to_string(),
+        ".claude".to_string(),
+        ".vscode".to_string(),
+    ];
+
+    // Try to load additional patterns from settings
+    if let Ok(content) = std::fs::read_to_string(config_file_path()) {
+        if let Ok(settings) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(custom) = settings.get("index_hidden_patterns").and_then(|v| v.as_array()) {
+                for pattern in custom {
+                    if let Some(s) = pattern.as_str() {
+                        if !s.is_empty() && !patterns.contains(&s.to_string()) {
+                            patterns.push(s.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    patterns
 }
 
 

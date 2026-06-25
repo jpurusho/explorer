@@ -73,3 +73,15 @@ pub fn rebuild_trigrams(index: State<IndexDb>) -> Result<(), AppError> {
     });
     Ok(())
 }
+
+#[tauri::command]
+pub fn index_file(path: String, index: State<IndexDb>) -> Result<(), AppError> {
+    index.upsert_path(std::path::Path::new(&path));
+    Ok(())
+}
+
+#[tauri::command]
+pub fn unindex_file(path: String, index: State<IndexDb>) -> Result<(), AppError> {
+    index.remove_path(std::path::Path::new(&path));
+    Ok(())
+}

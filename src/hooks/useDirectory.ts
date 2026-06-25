@@ -7,6 +7,10 @@ import { useTagStore } from "../stores/tagStore";
 import { invalidateCache } from "../lib/previewCache";
 import type { FileEntry } from "../types";
 
+interface DirectoryChangeEvent {
+  path: string;
+}
+
 export function useDirectory() {
   const currentPath = useNavigationStore((s) => s.currentPath);
   const refreshTrigger = useNavigationStore((s) => s.refreshTrigger);
@@ -124,8 +128,8 @@ export function useDirectory() {
     });
 
     let debounce: ReturnType<typeof setTimeout> | null = null;
-    const unlisten = listen<string>("directory-changed", (event) => {
-      if (event.payload === currentPath) {
+    const unlisten = listen<DirectoryChangeEvent>("directory-changed", (event) => {
+      if (event.payload.path === currentPath) {
         // The watcher event doesn't tell us which file changed (it's
         // directory-scoped), but the visible preview is the most likely
         // target — drop its cached content so the next render re-reads.

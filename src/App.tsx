@@ -8,6 +8,7 @@ import { useFontThemeStore } from "./stores/fontThemeStore";
 import { useDirectory } from "./hooks/useDirectory";
 import { useTheme } from "./hooks/useTheme";
 import { useKeyboard } from "./hooks/useKeyboard";
+import { useSearchIndexSync } from "./hooks/useSearchIndexSync";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { logger } from "./lib/logger";
@@ -18,6 +19,7 @@ function MainApp() {
   useDirectory();
   useTheme();
   useKeyboard();
+  useSearchIndexSync();
 
   useEffect(() => {
     let cancelled = false;
